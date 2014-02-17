@@ -35,6 +35,8 @@ Weitere Anpassungen
 
 [Etherbox Check um Spannungscheck und "no connected Sensor" erweitert](/Monitoring/CMK_Checks/files/HEAD/etherbox/etherbox.diff)
 
+[APC PDU Check fuer die Leistung der Anschluesse](/Monitoring/CMK_Checks/files/HEAD/apc_pdu/)
+
 ## Eigene Agent Scripte
 
 [Remote IPMI Agent Script](/Monitoring/CMK_Checks/files/HEAD/agent_ipmi/)
