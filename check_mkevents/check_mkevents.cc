@@ -44,8 +44,9 @@ using namespace std;
 
 void usage()
 {
-    printf("Usage: check_mkevents_c [-H REMOTE:PORT] [-a] HOST [APPLICATION]");
+    printf("Usage: check_mkevents_c [-H REMOTE:PORT] [-S socket-path] [-a] HOST [APPLICATION]");
     printf("\n -a    do not take into account acknowledged events.\n");
+    printf("\n -S    define mkevent socket for non OMD installations.\n");
 }
 
 int main(int argc, char** argv)
