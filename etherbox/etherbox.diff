@@ -1,0 +1,63 @@
+--- a/etherbox    2014-02-03 16:49:31.000000000 +0100
++++ b/etherbox    2014-02-13 09:34:26.000000000 +0100
+@@ -26,12 +26,12 @@
+
+ # The etherbox supports the following sensor types on each port
+ # sensor types
+-# 0 = no sensor
++# 0 = no sensor        - implemented
+ # 1 = temperature      - implemented
+ # 2 = brightness
+ # 3 = humidity         - implemented
+ # 4 = switch contact   - implemented
+-# 5 = voltage detector
++# 5 = voltage detector - implemented
+ # 6 = smoke sensor     - implemented
+
+ # Note: The short contact config option in the etherbox is of type switch contact
+@@ -203,4 +203,45 @@
+     "snmp_scan_function"    : etherbox_scan,
+     "snmp_info"             : etherbox_info,
+ }
++
++def check_etherbox_voltage(item, no_params, info):
++    try:
++        name, value = etherbox_get_sensor(item, "5", info)
++    except Exception, error:
++        return 3, error.message
++
++    state = 0
++    perfdata = [ ("voltage", value) ]
++    extra_info = ""
++    if value != "0":
++        extra_info = " - Voltage alarm!"
++        state = 2
++
++    return (state, "%s: Voltage sensor%s" % (name, extra_info), perfdata)
++
++check_info["etherbox.voltage"] = {
++    "check_function"        : check_etherbox_voltage,
++    "inventory_function"    : lambda x: inventory_etherbox(x, "5"),
++    "service_description"   : "Sensor %s",
++    "has_perfdata"          : True,
++    "snmp_scan_function"    : etherbox_scan,
++    "snmp_info"             : etherbox_info,
++}
++
++def check_etherbox_nosensor(item, no_params, info):
++    try:
++        name, value = etherbox_get_sensor(item, "0", info)
++    except Exception, error:
++        return 3, error.message
++
++    return (state, "%s: no sensor connected" % (name))
++
++check_info["etherbox.nosensor"] = {
++    "check_function"        : check_etherbox_nosensor,
++    "inventory_function"    : lambda x: inventory_etherbox(x, "0"),
++    "service_description"   : "Sensor %s",
++    "has_perfdata"          : False,
++    "snmp_scan_function"    : etherbox_scan,
++    "snmp_info"             : etherbox_info,
++}
+

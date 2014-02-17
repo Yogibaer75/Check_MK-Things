@@ -2,7 +2,7 @@
 
 ## Anpassungen der CMK Komponenten
 
-[check_mkevents.cc mit Option für Socket Path versehen](/Monitoring/CMK_Checks/files/HEAD/check_mkevents/check_mkevents.cc)
+[check_mkevents.cc mit Option fuer Socket Path versehen](/Monitoring/CMK_Checks/files/HEAD/check_mkevents/check_mkevents.cc)
 ```cc
 char *socket_path         = NULL;
 
@@ -30,3 +30,7 @@ else {
 ```
 
 Weitere Anpassungen
+
+## Eigene Checks
+
+[Etherbox Check um Spannungscheck und "no connected Sensor" erweitert](/Monitoring/CMK_Checks/files/HEAD/etherbox/etherbox.diff)
