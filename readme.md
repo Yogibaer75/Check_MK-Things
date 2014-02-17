@@ -34,3 +34,7 @@ Weitere Anpassungen
 ## Eigene Checks
 
 [Etherbox Check um Spannungscheck und "no connected Sensor" erweitert](/Monitoring/CMK_Checks/files/HEAD/etherbox/etherbox.diff)
+
+## Eigene Agent Scripte
+
+[Remote IPMI Agent Script](/Monitoring/CMK_Checks/files/HEAD/agent_ipmi/)
