@@ -204,27 +204,3 @@ check_info["etherbox.smoke"] = {
     "snmp_info"             : etherbox_info,
 }
 
-def check_etherbox_voltage(item, no_params, info):
-    try:
-        name, value = etherbox_get_sensor(item, "5", info)
-    except Exception, error:
-        return 3, error.message
-
-    state = 0
-    perfdata = [ ("voltage", value) ]
-    extra_info = ""
-    if value != "0":
-        extra_info = " - Voltage alarm!"
-        state = 2
-
-    return (state, "%s: Voltage sensor%s" % (name, extra_info), perfdata)
-
-check_info["etherbox.voltage"] = {
-    "check_function"        : check_etherbox_voltage,
-    "inventory_function"    : lambda x: inventory_etherbox(x, "5"),
-    "service_description"   : "Sensor %s",
-    "has_perfdata"          : True,
-    "snmp_scan_function"    : etherbox_scan,
-    "snmp_info"             : etherbox_info,
-}
-
