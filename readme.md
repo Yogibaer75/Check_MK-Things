@@ -28,6 +28,11 @@ else {
     exit(3);
 }
 ```
+Extra noch wurden die Icons und die Generierung der aktiven MKEvent Checks angepasst.
+
+[Win Printers geändert das Offline Network Printer nicht critical werden](Monitoring/CMK_Checks/files/HEAD/win_printers/)
+
+[Sidebar Snapin mit allen Services welche Notification an haben](Monitoring/CMK_Checks/files/HEAD/sidebar_snapin_service_problem_short/)
 
 Weitere Anpassungen
 
