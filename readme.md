@@ -30,9 +30,13 @@ else {
 ```
 Extra noch wurden die Icons und die Generierung der aktiven MKEvent Checks angepasst.
 
-[Win Printers geaendert das Offline Network Printer nicht critical werden](Monitoring/CMK_Checks/files/HEAD/win_printers/)
+[Win Printers geaendert das Offline Network Printer nicht critical werden](/Monitoring/CMK_Checks/files/HEAD/win_printers/)
 
-[Sidebar Snapin mit allen Services welche Notification an haben](Monitoring/CMK_Checks/files/HEAD/sidebar_snapin_service_problem_short/)
+[Sidebar Snapin mit allen Services welche Notification an haben](/Monitoring/CMK_Checks/files/HEAD/sidebar_snapin_service_problem_short/)
+
+[check_bi_local.py angepasst das JSON Output erzeugt wird](/Monitoring/CMK_Checks/files/HEAD/local_check_bi/)
+
+[Dashboard nur mit Host mit aktivierter Benachrichtigung](/Monitoring/CMK_Checks/files/HEAD/dashboard_mit_benachrichtigung_only/)
 
 Weitere Anpassungen
 
@@ -45,3 +49,7 @@ Weitere Anpassungen
 ## Eigene Agent Scripte
 
 [Remote IPMI Agent Script](/Monitoring/CMK_Checks/files/HEAD/agent_ipmi/)
+
+## Piggyback Example
+
+[Website Scrapping und Piggyback Check](/Monitoring/CMK_Checks/files/HEAD/plugin_piggybag_example_webscrapping/)
