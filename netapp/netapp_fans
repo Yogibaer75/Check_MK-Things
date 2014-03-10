@@ -1,0 +1,46 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+#################################################################
+#	 _  _ ___ _____ _   ___ ___    ___ _  _ ___ ___ _  __	#
+#	| \| | __|_   _/_\ | _ \ _ \  / __| || | __/ __| |/ /	#
+#	| .` | _|  | |/ _ \|  _/  _/ | (__| __ | _| (__| ' <	#	
+#	|_|\_|___| |_/_/ \_\_| |_|    \___|_||_|___\___|_|\_\	#		
+#---------------------------------------------------------------#
+# Author: Benjamin Odenthal					#
+# Contact: support@tuxclouds.org				#
+# File: netapp_fans						#
+# Version: 1.0							#
+# Revision: 14.Oct.2010						#
+# Description: The purpose of this netapp_fans is to check	#
+# the functionality of all Fans via SNMP			#
+# As Result you get the Number of failed Fans.			#
+################################################################
+netapp_fans_default_levels = (1, 2)
+
+def inventory_netapp_fans(checkname, info):
+	inventory = [ ("Fans Failed", "", "netapp_fans_default_levels") ]
+	return inventory
+
+def check_netapp_fans(item, params, info):
+	warn, crit = params
+
+	for line in info:
+	     fansdefect = int(line[0])
+	if (fansdefect == ""):
+		return (3, "UNKNOWN - Check SNMP or OID")
+	
+	perfdata = [("fans", fansdefect, warn, crit)]
+
+	if fansdefect >= crit:
+		return (2, "CRIT - NetAPP Fans Failed: %d (critical at %d)" % (fansdefect, crit), perfdata)
+	elif fansdefect >= warn:
+		return (1, "WARN - NetAPP Fans Failed: %d (warning at %d)" % (fansdefect, warn), perfdata)
+	else:
+		return (0, "OK - NetAPP Fans Failed: %d" % fansdefect, perfdata)
+	
+check_info["netapp_fans"] = (check_netapp_fans, "NetApp", 1, inventory_netapp_fans)
+
+snmp_info["netapp_fans"] = ( ".1.3.6.1.4.1.789.1.2.4", ["2"] )
+
+snmp_scan_functions['netapp_fans'] = \
+    lambda oid: oid("1.3.6.1.2.1.1.1.0").startswith('NetApp Release')
