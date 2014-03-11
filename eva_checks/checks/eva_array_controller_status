@@ -1,0 +1,80 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+
+# Example output from agent:
+
+#<<<eva_array_controller_status>>>
+#CPU %   Data %  Ctlr    Serial  Node
+#1       0       U010    PAPCRA49S1U010  5001-4380-1137-ECF0
+#1       1       S071    PAPCRA49S1S071  5001-4380-1137-ECF0
+
+
+array_controller_status_default_levels = (85.0, 90.0)
+
+
+def inventory_array_controller_status(checkname, info):
+   # print info
+   # print checkname, info  
+   # return []
+   inventory = []
+ 
+    # loop over all output lines of the agent
+   for line in info:
+      Instance = line[2]   # volume name is in the first column
+
+      if Instance != "Data":
+         #if Instance != "us":
+            # found an interesting line, add to inventory
+         inventory.append((Instance, "", 'array_controller_status_default_levels'))
+
+   #print inventory
+   #return []
+   return inventory
+
+
+#def check_array_controller_status(item, params, info):
+#   return (3, "Sorry - not implemented")
+
+
+# the check function (dummy)
+def check_array_controller_status(item, params, info):
+   #latency = []
+
+   warn, crit = params
+   # loop over all lines
+   for line in info:
+      # is this our line?
+      if line[2] == item:
+         #if line[0] != "us":
+         #   if line[0] == item:           # and line[2] == "Temperature_Celsius":
+         # found an interesting line, add to inventory
+         CPU = float(line[0])   # variable name in the second
+         Data = float(line[1])  #
+               #latency.append
+         perfdata = [ ( "CPU", CPU, warn, crit), 
+                      ("Data", Data, warn, crit) ]
+               #perfdata = [ ( "avg_latency", avg_latency, warn, crit) ]   
+               #perfdata = [ ( "avg_latency", avg_latency, read_latency, write_latenc, other_latenc), 
+               #             ("avg_latency", avg_latency, read_latency, write_latenc, other_latenc) ]
+         if CPU > crit:
+           return (2, "CRITICAL - Cpu: %s %%, Data %s %% " % (CPU, Data), perfdata)
+         elif CPU > warn:
+           return (1, "WARNING - Cpu: %s %%, Data %s %% " % (CPU, Data), perfdata)
+         else:
+           return (0, "OK - Cpu: %s %%, Data %s %% " % (CPU, Data), perfdata)
+
+
+   return (3, "UNKNOWN - disk %s not found in agent output" % item)
+   #print latency
+   #print CPU, Data, info
+   #return []
+
+
+
+
+
+
+# declare the check to Check_MK
+check_info['eva_array_controller_status'] = (check_array_controller_status, "Eva_array_controller %s", 1, inventory_array_controller_status)
+#checkgroup_of["eva_array_controller_status"] = "total_host"

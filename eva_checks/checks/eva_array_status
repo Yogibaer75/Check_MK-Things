@@ -1,0 +1,92 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+
+# Example output from agent:
+
+#<<<eva_array_status>>>
+#Total Host Req/s        Total Host MB/s Node
+#274     0.64    5001-4380-1137-ECF0
+
+#<<<volume:*:latency>>>
+#Instance avg_latency read_latency write_latenc other_latenc
+#                  us           us           us           us
+#   vol11       14.78            0            0        14.78
+#   vol12       12.00            0            0        12.00
+#   vol13           0            0            0            0
+#   vol14      192.51            0       112.33       254.02
+#   vol15       15.44            0            0        15.44
+# volroot       16.58        15.00       227.00         6.43
+#operations   8527.68            0            0      8527.68
+#vmware01      106.98            0       131.87         5.64
+#vmware_swap        0            0            0            0
+# fabdata           0            0            0            0
+# fabconf           0            0            0            0
+
+
+array_status_default_levels = (5000.0, 5500.0)
+#array_status_default_levels = (99.0,99.9)
+
+
+def inventory_array_status(checkname, info):
+   # print info
+   # print checkname, info  
+   # return []
+   inventory = []
+ 
+    # loop over all output lines of the agent
+   for line in info:
+      Instance = line[2]   # volume name is in the first column
+
+      if Instance == "5001-4380-1137-ECF0":
+         #if Instance != "us":
+            # found an interesting line, add to inventory
+         inventory.append((Instance, "", 'array_status_default_levels'))
+
+   #print inventory
+   #return []
+   return inventory
+
+
+#def check_array_status(item, params, info):
+#   return (3, "Sorry - not implemented")
+
+
+# the check function (dummy)
+def check_array_status(item, params, info):
+   #latency = []
+
+   warn, crit = params
+   # loop over all lines
+   for line in info:
+      # is this our line?
+      if line[2] == "5001-4380-1137-ECF0":
+         #if line[0] != "us":
+         #   if line[0] == item:           # and line[2] == "Temperature_Celsius":
+         # found an interesting line, add to inventory
+         Total_Host_Req_s = float(line[0])   # variable name in the second
+         Total_Host_MB_s = float(line[1])  #
+               #latency.append
+         perfdata = [ ( "Total_Host_Req_s", Total_Host_Req_s, warn, crit), 
+                      ("Total_Host_MB_s", Total_Host_MB_s, warn, crit) ]
+         #if Total_Host_Req_s > crit:
+         #  return (2, "CRITICAL - Total Host: %s Req/s, %s MB/s " % (Total_Host_Req_s, Total_Host_MB_s), perfdata)
+         #elif Total_Host_Req_s > warn:
+         #  return (1, "WARNING - Total Host: %s Req/s, %s MB/s " % (Total_Host_Req_s, Total_Host_MB_s), perfdata)
+         #else:
+         return (0, "OK - Total Host: %s Req/s, %s MB/s " % (Total_Host_Req_s, Total_Host_MB_s), perfdata)
+
+
+   return (3, "UNKNOWN - disk %s not found in agent output" % item)
+   #print latency
+   #print Total_Host_Req_s, Total_Host_MB_s, info
+   #return []
+
+
+
+
+
+
+# declare the check to Check_MK
+check_info['eva_array_status'] = (check_array_status, "Eva_array_status %s", 1, inventory_array_status)
+#checkgroup_of["eva_array_status"] = "total_host"

@@ -1,0 +1,155 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# 21.11.12 YK 15:00
+
+#rsh fsd2 stats show -i 1 -n 1 -e volume:*
+
+# Example output from agent:
+
+
+#<<<eva_virtual_disk_groups>>>
+
+#   Disk Total  Total Average Total  Total Average Total  Total Average  Total  Total    Total Ctlr Node
+#  Group  Read   Read    Read  Read   Read    Read Write  Write   Write  Flush Mirror Prefetch
+#          Hit    Hit     Hit  Miss   Miss    Miss Req/s   MB/s Latency   MB/s   MB/s     MB/s
+#        Req/s   MB/s Latency Req/s   MB/s Latency                 (ms)
+#                        (ms)                 (ms)
+#------- ----- ------ ------- ----- ------ ------- ----- ------ ------- ------ ------ -------- ---- -------------------
+#     01     0   0.00     0.0     1   0.00     7.8    57   0.28     0.3   0.25   0.53     0.00 S071 5001-4380-1137-ECF0
+#     01     1   0.00     0.1     1   0.01     5.3    22   0.11     0.3   0.08   0.20     0.00 U010 5001-4380-1137-ECF0
+#Default     1   0.01     0.1     2   0.01     2.4    37   0.45     0.5   0.45   0.91     0.00 S071 5001-4380-1137-ECF0
+#Default     0   0.00     0.0     1   0.00     0.2     4   0.04     0.2   0.01   0.06     0.00 U010 5001-4380-1137-ECF0
+
+
+#<<<eva_virtual_disk_groups>>>
+#Disk Group      Total Read Hit Req/s    Total Read Hit MB/s     Average Read Hit Latency (ms)   Total Read Miss Req/s   Total Read Miss MB/s   Average Read Miss Latency (ms)   Total Write Req/s       Total Write MB/s        Average Write Latency (ms)      Total Flush MB/s        Total Mirror MB/s       Total Prefetch MB/s     Ctlr    Node
+#01      0       0.00    0.0     0       0.00    0.0     40      0.14    0.1     0.00    0.14    0.00    S071    5001-4380-1137-ECF0
+#01      1       0.00    0.0     0       0.00    0.0     13      0.44    0.2     0.73    1.17    0.00    U010    5001-4380-1137-ECF0
+#Default 0       0.00    0.0     0       0.00    0.0     11      0.08    0.1     0.00    0.08    0.00    S071    5001-4380-1137-ECF0
+#Default 0       0.00    0.0     0       0.00    0.0     3       0.01    0.2     0.05    0.06    0.00    U010    5001-4380-1137-ECF0
+
+#  0     1       2       3       4       5       6       7       8       9       10      11      12      13      14
+
+#formatiert output
+#0    Disk Group
+#1    Total Read Hit Req/s
+#2    Total Read Hit MB/s
+#3    Average Read Hit Latency (ms)
+#4    Total Read Miss Req/s
+#5    Total Read Miss MB/s
+#6    Average Read Miss Latency (ms)
+#7    Total Write Req/s
+#8    Total Write MB/s
+#9    Average Write Latency (ms)
+#10   Total Flush MB/s
+#11   Total Mirror MB/s
+#12   Total Prefetch MB/s
+#13   Ctlr
+#14   Node
+
+
+eva_virtual_disk_default_levels = (20, 30)
+
+
+def inventory_virtual_disk_groups(checkname, info):
+   # print info
+   # print checkname, info  
+   # return []
+   inventory = []
+ 
+    # loop over all output lines of the agent
+    #Instance = line[13]   # volume name is in the first column
+
+   for line in info:
+      Instance = re.sub('"', '', line[13])
+      Instance2 = re.sub('"', '', line[0])
+      if Instance2 == "01" and Instance == "S071":
+          Instance = re.sub('S071', 'S071_01', line[13])
+          inventory.append((Instance, "", eva_virtual_disk_default_levels))
+      elif Instance2 == "01" and Instance == "U010": 
+          Instance = re.sub('U010', 'U010_01', line[13]) 
+          inventory.append((Instance, "", eva_virtual_disk_default_levels))
+      elif Instance2 == "Default" and Instance == "S071": 
+          Instance = re.sub('S071', 'S071_Default', line[13])
+          inventory.append((Instance, "", eva_virtual_disk_default_levels))
+      elif Instance2 == "Default" and Instance == "U010":
+          Instance = re.sub('U010', 'U010_Default', line[13])
+          inventory.append((Instance, "", eva_virtual_disk_default_levels))
+
+
+   #print info
+   #print inventory
+   #return []
+   return inventory
+
+
+#def check_virtual_disk_groups(item, params, info):
+#   return (3, "Sorry - not implemented")
+
+
+        #if line[0] != "us":
+            #if line[0] == item:           # and line[2] == "Temperature_Celsius":             # found an interesting line, add to inventory
+
+
+def check_virtual_disk_groups(item, params, info):
+
+   warn, crit = params
+   # loop over all lines
+   for line in info:
+      # is this our line?
+      Instance = re.sub('"', '', line[13])
+      Instance2 = re.sub('"', '', line[0])
+      if Instance2 == "01" and Instance == "S071":
+          Instance = re.sub('S071', 'S071_01', line[13])          
+      elif Instance2 == "01" and Instance == "U010": 
+          Instance = re.sub('U010', 'U010_01', line[13]) 
+      elif Instance2 == "Default" and Instance == "S071": 
+          Instance = re.sub('S071', 'S071_Default', line[13])
+      elif Instance2 == "Default" and Instance == "U010":
+          Instance = re.sub('U010', 'U010_Default', line[13])          
+      if Instance == item:
+        Total_Read_Hit_Req_s = float(line[1])   # variable name in the second
+        Total_Read_Hit_MB_s = float(line[2])
+        Average_Read_Hit_Latency = float(line[3])
+        Total_Read_Miss_Req_s = float(line[4])
+        Total_Read_Miss_MB_s = float(line[5])
+        Average_Read_Miss_Latency_ms = float(line[6])  
+        Total_Write_Req_s = float(line[7])
+        Total_Write_MB_s = float(line[8])
+        Average_Write_Latency_ms = float(line[9])
+        Total_Flush_MB_s = float(line[10])
+        Total_Mirror_MB_s = float(line[11])
+        Total_Prefetch_MB_s = float(line[12])
+        perfdata = [ ( "T_Read_Hit_Req_s", Total_Read_Hit_Req_s, warn, crit),
+                            ( "T_Read_Hit_Req_s", Total_Read_Hit_Req_s, 500, 1000),
+                            ( "T_Read_Hit_MB_s", Total_Read_Hit_MB_s, warn, crit),
+                            ( "Av_Read_Hit_Latency", Average_Read_Hit_Latency, warn, crit),
+                            ( "T_Read_Miss_Req_s", Total_Read_Miss_Req_s, 500, 1000),
+                            ( "T_Read_Miss_MB_s", Total_Read_Miss_MB_s, warn, crit),
+                            ( "Av_Read_Miss_Latency_ms", Average_Read_Miss_Latency_ms, 20, 30),
+                            ( "T_Write_Req_s", Total_Write_Req_s, warn, crit),
+                            ( "T_Write_MB_s", Total_Write_MB_s, warn, crit),
+                            ( "Av_Write_Latency_ms", Average_Write_Latency_ms, 10, 20),
+                            ( "T_Flush_MB_s", Total_Flush_MB_s, warn, crit),
+                            ( "T_Mirror_MB_s", Total_Mirror_MB_s, warn, crit),
+                            ( "T_Prefetch_MB_s", Total_Prefetch_MB_s, warn, crit) ]
+        #if Average_Read_Miss_Latency_ms > crit:
+        if Average_Read_Miss_Latency_ms > 80:
+          return (2, "CRITICAL - Average latency: Read Hit=%s ms, Read Miss=%s ms, Write=%s ms; Total Read: Hit=%s Req/s; Hit=%s Mb/s, Miss=%s Req/s, Miss=%s MB/s; Total Write: %s Req/s, %s MB/s; Flush=%s MB/s, Mirror=%s MB/s, Prefetch=%s MB/s " % (Average_Read_Hit_Latency, Average_Read_Miss_Latency_ms, Average_Write_Latency_ms, Total_Read_Hit_Req_s, Total_Read_Hit_MB_s, Total_Read_Miss_Req_s, Total_Read_Miss_MB_s, Total_Write_Req_s, Total_Write_MB_s, Total_Flush_MB_s, Total_Mirror_MB_s, Total_Prefetch_MB_s), perfdata)        #elif Total_Read_Hit_Req_s > warn:
+        elif Average_Read_Miss_Latency_ms > 60:
+          return (1, "WARNING - Average latency: Read Hit=%s ms, Read Miss=%s ms, Write=%s ms; Total Read: Hit=%s Req/s; Hit=%s Mb/s, Miss=%s Req/s, Miss=%s MB/s; Total Write: %s Req/s, %s MB/s; Flush=%s MB/s, Mirror=%s MB/s, Prefetch=%s MB/s " % (Average_Read_Hit_Latency, Average_Read_Miss_Latency_ms, Average_Write_Latency_ms, Total_Read_Hit_Req_s, Total_Read_Hit_MB_s, Total_Read_Miss_Req_s, Total_Read_Miss_MB_s, Total_Write_Req_s, Total_Write_MB_s, Total_Flush_MB_s, Total_Mirror_MB_s, Total_Prefetch_MB_s), perfdata)
+        elif Average_Write_Latency_ms > 60:
+          return (2, "CRITICAL - Average latency: Read Hit=%s ms, Read Miss=%s ms, Write=%s ms; Total Read: Hit=%s Req/s; Hit=%s Mb/s, Miss=%s Req/s, Miss=%s MB/s; Total Write: %s Req/s, %s MB/s; Flush=%s MB/s, Mirror=%s MB/s, Prefetch=%s MB/s " % (Average_Read_Hit_Latency, Average_Read_Miss_Latency_ms, Average_Write_Latency_ms, Total_Read_Hit_Req_s, Total_Read_Hit_MB_s, Total_Read_Miss_Req_s, Total_Read_Miss_MB_s, Total_Write_Req_s, Total_Write_MB_s, Total_Flush_MB_s, Total_Mirror_MB_s, Total_Prefetch_MB_s), perfdata)
+        elif Average_Write_Latency_ms > 40:
+          return (1, "WARNING - Average latency: Read Hit=%s ms, Read Miss=%s ms, Write=%s ms; Total Read: Hit=%s Req/s; Hit=%s Mb/s, Miss=%s Req/s, Miss=%s MB/s; Total Write: %s Req/s, %s MB/s; Flush=%s MB/s, Mirror=%s MB/s, Prefetch=%s MB/s " % (Average_Read_Hit_Latency, Average_Read_Miss_Latency_ms, Average_Write_Latency_ms, Total_Read_Hit_Req_s, Total_Read_Hit_MB_s, Total_Read_Miss_Req_s, Total_Read_Miss_MB_s, Total_Write_Req_s, Total_Write_MB_s, Total_Flush_MB_s, Total_Mirror_MB_s, Total_Prefetch_MB_s), perfdata)
+        else:
+          return (0, "OK - Average latency: Read Hit=%s ms, Read Miss=%s ms, Write=%s ms; Total Read: Hit=%s Req/s; Hit=%s Mb/s, Miss=%s Req/s, Miss=%s MB/s; Total Write: %s Req/s, %s MB/s; Flush=%s MB/s, Mirror=%s MB/s, Prefetch=%s MB/s " % (Average_Read_Hit_Latency, Average_Read_Miss_Latency_ms, Average_Write_Latency_ms, Total_Read_Hit_Req_s, Total_Read_Hit_MB_s, Total_Read_Miss_Req_s, Total_Read_Miss_MB_s, Total_Write_Req_s, Total_Write_MB_s, Total_Flush_MB_s, Total_Mirror_MB_s, Total_Prefetch_MB_s), perfdata)
+
+   return (3, "UNKNOWN - disk %s not found in agent output" % item)
+   #print latency
+   #print Total_Read_Hit_Req_s, info
+   #return []
+
+#Declare the check to Check_MK
+check_info['eva_virtual_disk_groups'] = (check_virtual_disk_groups, "Eva_virtual_disk_groups Ctrl %s", 1, inventory_virtual_disk_groups)
+checkgroup_of["eva_virtual_disk"] = "volume"

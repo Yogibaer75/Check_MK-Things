@@ -1,0 +1,129 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# 21.11.12 YK 15:00
+
+#rsh fsd2 stats show -i 1 -n 1 -e volume:*
+
+# Example output from agent:
+
+
+
+#C:\Program Files (x86)\Hewlett-Packard\EVA Performance Monitor>evaperf.exe hps
+
+#Name  Read   Read    Read Write  Write   Write   Av. Port                Ctlr Node
+#     Req/s   MB/s Latency Req/s   MB/s Latency Queue WWN
+#                     (ms)                 (ms) Depth
+#---- ----- ------ ------- ----- ------ ------- ----- ------------------- ---- -------------------
+#FP1     22   0.15     1.3    35   0.22     0.2     0 5001-4380-1137-ECFC S071 5001-4380-1137-ECF0
+#FP2     41   0.30     2.5    14   0.15     0.5     0 5001-4380-1137-ECFD S071 5001-4380-1137-ECF0
+#FP3      0   0.00     0.0     0   0.00     0.0     0 5001-4380-1137-ECFE S071 5001-4380-1137-ECF0
+#FP4      0   0.00     0.0     0   0.00     0.0     0 5001-4380-1137-ECFF S071 5001-4380-1137-ECF0
+#FP1      0   0.00     0.0    34   0.19     0.3     0 5001-4380-1137-ECF8 U010 5001-4380-1137-ECF0
+#FP2     19   0.18     5.4    20   0.23     0.5     0 5001-4380-1137-ECF9 U010 5001-4380-1137-ECF0
+#FP3      0   0.00     0.0     0   0.00     0.0     0 5001-4380-1137-ECFA U010 5001-4380-1137-ECF0
+#FP4      0   0.00     0.0     0   0.00     0.0     0 5001-4380-1137-ECFB U010 5001-4380-1137-ECF0
+
+#<<<eva_host_port_statistics>>>
+#Name    Read Req/s      Read MB/s       Read Latency (ms)       Write Req/s     Write MB/s      Write Latency (ms)      Av. Queue Depth Port WWNCtlr    Node
+#FP1     3       0.06    0.1     41      0.15    0.1     0       5001-4380-1137-ECFC     S071    5001-4380-1137-ECF0
+#FP2     0       0.00    0.0     5       0.05    0.1     0       5001-4380-1137-ECFD     S071    5001-4380-1137-ECF0
+#FP3     0       0.00    0.0     0       0.00    0.0     0       5001-4380-1137-ECFE     S071    5001-4380-1137-ECF0
+#FP4     0       0.00    0.0     0       0.00    0.0     0       5001-4380-1137-ECFF     S071    5001-4380-1137-ECF0
+#FP1     0       0.00    0.0     21      0.14    0.3     0       5001-4380-1137-ECF8     U010    5001-4380-1137-ECF0
+#FP2     0       0.00    0.0     0       0.00    0.0     0       5001-4380-1137-ECF9     U010    5001-4380-1137-ECF0
+#FP3     0       0.00    0.0     0       0.00    0.0     0       5001-4380-1137-ECFA     U010    5001-4380-1137-ECF0
+#FP4     0       0.00    0.0     0       0.00    0.0     0       5001-4380-1137-ECFB     U010    5001-4380-1137-ECF0
+# 0      1       2       3       4       5       6       7       8                       9       10
+
+#0   Name
+#1   Read Req/s
+#2   Read MB/s
+#3   Read Latency (ms)
+#4   Write Req/s
+#5   Write MB/s
+#6   Write Latency (ms)
+#7   Av. Queue Depth
+#8   Port WWNCtlr
+#9   Node
+
+eva_host_port_statistics_default_levels = (250, 300)
+
+def inventory_host_port_statistics(checkname, info):
+   # print info
+   # print checkname, info  
+   # return []
+   inventory = []
+ 
+   for line in info:
+      Instance = re.sub('', '', line[9])
+      Instance2 = re.sub('', '', line[0])
+      if Instance2 == "FP1" and Instance == "S071":
+          Instance = re.sub('S071', 'S071_FP1', line[9])
+          inventory.append((Instance, "", eva_physical_disk_default_levels))
+      elif Instance2 == "FP1" and Instance == "U010": 
+          Instance = re.sub('U010', 'U010_FP1', line[9]) 
+          inventory.append((Instance, "", eva_physical_disk_default_levels))
+      elif Instance2 == "FP2" and Instance == "S071": 
+          Instance = re.sub('S071', 'S071_FP2', line[9])
+          inventory.append((Instance, "", eva_physical_disk_default_levels))
+      elif Instance2 == "FP2" and Instance == "U010":
+          Instance = re.sub('U010', 'U010_FP2', line[9])
+          inventory.append((Instance, "", eva_physical_disk_default_levels))
+
+   #print info
+   #print inventory
+   #return []
+   return inventory
+
+
+def check_host_port_statistics(item, params, info):
+
+   warn, crit = params
+   # loop over all lines
+   for line in info:
+      # is this our line?
+      Instance = re.sub('', '', line[9])
+      Instance2 = re.sub('', '', line[0])
+      if Instance2 == "FP1" and Instance == "S071":
+          Instance = re.sub('S071', 'S071_FP1', line[9])
+      elif Instance2 == "FP1" and Instance == "U010": 
+          Instance = re.sub('U010', 'U010_FP1', line[9]) 
+      elif Instance2 == "FP2" and Instance == "S071": 
+          Instance = re.sub('S071', 'S071_FP2', line[9])
+      elif Instance2 == "FP2" and Instance == "U010":
+          Instance = re.sub('U010', 'U010_FP2', line[9])
+      if Instance == item:
+        Read_Req_s = float(line[1])   # variable name in the second
+        Read_MB_s = line[2]
+        Read_Latency_ms = float(line[3])
+        Write_Req_s = float(line[4])
+        Write_MB_s = float(line[5])
+        Write_Latency_ms = float(line[6])  
+        Av_Queue_Depth = float(line[7])
+        perfdata = [ ( "Read_Req_s", Read_Req_s, warn, crit),
+                     ( "Read_MB_s", Read_MB_s, warn, crit),
+                     ( "Read_Latency_ms", Read_Latency_ms, warn, crit),
+                     ( "Write_Req_s", Write_Req_s, warn, crit),
+                     ( "Write_MB_s", Write_MB_s, warn, crit),
+                     ( "Write_Latency_ms", Write_Latency_ms, warn, crit),
+                     ( "Av_Queue_Depth", Av_Queue_Depth, warn, crit) ]
+        #if Read_Req_s > crit:
+        #  return (2, "CRITICAL - Average=%s us Read=%s us Write=%s us Concurrency=%s us " % \
+        #         (Read_Req_s, Write_Req_s, Av_Queue_Depth), perfdata)
+        #elif Read_Req_s > warn:
+        #  return (1, "WARNING - Average=%s us Read=%s us Write=%s us Concurrency=%s us " % \
+        #         (Read_Req_s, Write_Req_s, Av_Queue_Depth), perfdata)
+        #else:
+        return (0, "OK - Latency: Read=%s ms, Write=%s ms, Read: %s Req/s, %s MB/s, Write: %s Req/s, %s MB/s, Av. Queue Depth=%s " %  \
+               (Read_Latency_ms, Write_Latency_ms, Read_Req_s, Read_MB_s, Write_Req_s, Write_MB_s, \
+                              Av_Queue_Depth), perfdata)
+        
+
+   return (3, "UNKNOWN - disk %s not found in agent output" % item)
+   #print latency
+   #print Total_Read_Hit_Req_s, info
+   #return []
+
+#Declare the check to Check_MK
+check_info['eva_host_port_statistics'] = (check_host_port_statistics, "Eva_host_port_statistics Ctrl %s", 1, inventory_host_port_statistics)
+#checkgroup_of["eva_disk_groups"] = ""

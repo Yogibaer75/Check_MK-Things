@@ -1,0 +1,158 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# 21.11.12 YK 15:00
+
+#rsh fsd2 stats show -i 1 -n 1 -e volume:*
+
+# Example output from agent:
+
+
+#<<<eva_physical_disk_groups>>>
+
+#Disk    Average Average Average Average Average Average Average Average Number Ctlr Node
+#Group     Drive   Drive    Read    Read    Read   Write   Write   Write of
+#          Queue Latency   Req/s    MB/s Latency   Req/s    MB/s Latency Disks
+#          Depth    (ms)                    (ms)                    (ms)
+#------- ------- ------- ------- ------- ------- ------- ------- ------- ------ ---- -------------------
+#01            4       -       8    0.05     7.9       8    0.05    10.9 8      S071 5001-4380-1137-ECF0
+#01            3       -       4    0.03     8.8       4    0.03    15.4 8      U010 5001-4380-1137-ECF0
+#Default       2       -       4    0.05     6.7       4    0.38     9.5 16     S071 5001-4380-1137-ECF0
+#Default       1       -       1    0.00     2.6       1    0.00     8.7 16     U010 5001-4380-1137-ECF0
+
+#<<<eva_physical_disk_groups>>>
+#Disk Group      Average Drive Queue Depth       Average Drive Latency (ms)      Average Read Req/s      Average Read MB/s       Average Read Latency (ms)       Average Write Req/s     Average Write MB/s      Average Write Latency (ms)      Number of Disks Ctlr    Node
+#01      2       -       3       0.03    8.2     3       0.03    6.7     8       S071    5001-4380-1137-ECF0
+#01      2       -       5       0.04    11.0    5       0.04    12.5    8       U010    5001-4380-1137-ECF0
+#Default 15      -       88      0.92    16.7    42      0.92    14.6    16      S071    5001-4380-1137-ECF0
+#Default 1       -       1       0.00    4.5     1       0.00    9.5     16      U010    5001-4380-1137-ECF0
+#  0     1       2       3       4       5       6       7       8       9       10      11      12      13      14
+
+#0     Disk Group
+#1     Average Drive Queue Depth
+#2     Average Drive Latency (ms)
+#3     Average Read Req/s
+#4     Average Read MB/s
+#5     Average Read Latency (ms)
+#6     Average Write Req/s
+#7     Average Write MB/s
+#8     Average Write Latency (ms)
+#9     Number of Disks Ctlr
+#10    Ctlr
+#11    Node
+
+
+
+#formatiert output
+#0    Disk Group
+#1    Total Read Hit Req/s          -> Average_Drive_Queue_Depth
+#2    Total Read Hit MB/s           -> Average_Drive_Latency_ms
+#3    Average Read Hit Latency (ms) -> Average_Read Req/s
+#4    Total Read Miss Req/s         -> Average_Read_MB/s
+#5    Total Read Miss MB/s          -> Average_Read_Latency_ms
+#6    Average Read Miss Latency (ms)-> Average_Write_Req_s
+#7    Total Write Req/s             -> Average_Write_MB_s
+#8    Total Write MB/s              -> Average_Write_Latency_ms
+#9    Average Write Latency (ms)    -> Number_of_Disks
+#10   Total Flush MB/s              -> Ctrl
+#11   Total Mirror MB/s             -> Node
+#12   Total Prefetch MB/s           ->
+#13   Ctlr
+#14   Node
+
+
+eva_physical_disk_default_levels = (100, 150)
+
+
+def inventory_physical_disk_groups(checkname, info):
+   # print info
+   # print checkname, info  
+   # return []
+   inventory = []
+ 
+    # loop over all output lines of the agent
+    #Instance = line[13]   # volume name is in the first column
+
+   for line in info:
+      Instance = re.sub('', '', line[10])
+      Instance2 = re.sub('', '', line[0])
+      if Instance2 == "01" and Instance == "S071":
+          Instance = re.sub('S071', 'S071_01', line[10])
+          inventory.append((Instance, "", eva_physical_disk_default_levels))
+      elif Instance2 == "01" and Instance == "U010": 
+          Instance = re.sub('U010', 'U010_01', line[10]) 
+          inventory.append((Instance, "", eva_physical_disk_default_levels))
+      elif Instance2 == "Default" and Instance == "S071": 
+          Instance = re.sub('S071', 'S071_Default', line[10])
+          inventory.append((Instance, "", eva_physical_disk_default_levels))
+      elif Instance2 == "Default" and Instance == "U010":
+          Instance = re.sub('U010', 'U010_Default', line[10])
+          inventory.append((Instance, "", eva_physical_disk_default_levels))
+
+
+   #print info
+   #print inventory
+   #return []
+   return inventory
+
+
+#def check_physical_disk_groups(item, params, info):
+#   return (3, "Sorry - not implemented")
+        #if line[0] != "us":
+        #if line[0] == item:           # and line[2] == "Temperature_Celsius":             # found an interesting line, add to inventory
+
+
+def check_physical_disk_groups(item, params, info):
+
+   warn, crit = params
+   # loop over all lines
+   for line in info:
+      # is this our line?
+      Instance = re.sub('', '', line[10])
+      Instance2 = re.sub('', '', line[0])
+      if Instance2 == "01" and Instance == "S071":
+          Instance = re.sub('S071', 'S071_01', line[10])          
+      elif Instance2 == "01" and Instance == "U010": 
+          Instance = re.sub('U010', 'U010_01', line[10]) 
+      elif Instance2 == "Default" and Instance == "S071": 
+          Instance = re.sub('S071', 'S071_Default', line[10])
+      elif Instance2 == "Default" and Instance == "U010":
+          Instance = re.sub('U010', 'U010_Default', line[10])          
+      if Instance == item:
+        Average_Drive_Queue_Depth = float(line[1])   # variable name in the second
+        Average_Drive_Latency_ms = line[2]
+        Average_Read_Req_s = float(line[3])
+        Average_Read_MB_s = float(line[4])
+        Average_Read_Latency_ms = float(line[5])
+        Average_Write_Req_s = float(line[6])  
+        Average_Write_MB_s = float(line[7])
+        Average_Write_Latency_ms = float(line[8])
+        Number_of_Disks = float(line[9])
+        perfdata = [ ( "Drive_Queue_Depth", Average_Drive_Queue_Depth, warn, crit),
+        #             ( "Drive_Latency_ms", Average_Drive_Latency_ms, warn, crit),
+                     ( "Read_Req_s", Average_Read_Req_s, warn, crit),
+                     ( "Read_MB_s", Average_Read_MB_s, warn, crit),
+                     ( "Read_Latency_ms", Average_Read_Latency_ms, warn, crit),
+                     ( "Write_Req_s", Average_Write_Req_s, warn, crit),
+                     ( "Write_MB_s", Average_Write_MB_s, warn, crit),
+                     ( "Write_Latency_ms", Average_Write_Latency_ms, warn, crit),
+                     ( "Number_of_Disks", Number_of_Disks, warn, crit) ]
+        #if Average_Drive_Queue_Depth > crit:
+        #  return (2, "CRITICAL - Average=%s us Read=%s us Write=%s us Concurrency=%s us " % \
+        #         (Average_Drive_Queue_Depth, Average_Read_MB_s, Average_Write_MB_s, Average_Write_Latency_ms), perfdata)
+        #elif Average_Drive_Queue_Depth > warn:
+        #  return (1, "WARNING - Average=%s us Read=%s us Write=%s us Concurrency=%s us " % \
+        #         (Average_Drive_Queue_Depth, Average_Read_MB_s, Average_Write_MB_s, Average_Write_Latency_ms), perfdata)
+        #else:
+        return (0, "OK - Av. Drive Queue Depth=%s ; Av. latency: Drive=%s ms, Read=%s ms, Write=%s ms ; Av.: Read=%s Req/s, Write=%s Req/s; Av.: Read=%s MB/s, Write=%s MB/s; Number of Disks=%s " %  \
+               (Average_Drive_Queue_Depth, Average_Drive_Latency_ms, Average_Read_Latency_ms, Average_Write_Latency_ms, \
+                             Average_Read_Req_s, Average_Write_Req_s, Average_Read_MB_s, Average_Write_MB_s, Number_of_Disks), perfdata)
+        
+
+   return (3, "UNKNOWN - disk %s not found in agent output" % item)
+   #print latency
+   #print Total_Read_Hit_Req_s, info
+   #return []
+
+#Declare the check to Check_MK
+check_info['eva_physical_disk_groups'] = (check_physical_disk_groups, "Eva_physical_disk_groups Ctrl %s", 1, inventory_physical_disk_groups)
+#checkgroup_of["eva_disk_groups"] = ""
