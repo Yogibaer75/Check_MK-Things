@@ -1,0 +1,51 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+ 
+def inventory_knoerr_coolloop_temp(info):
+    if len(info) > 0:
+        return [ (None, None) ]
+ 
+def check_knoerr_coolloop_temp(item, params, info):
+    temperature = info[0]
+    warmluft = saveint(temperature[0]) / 10.0
+    kaltluft = saveint(temperature[3]) / 10.0
+    single_states = []
+    if saveint(temperature[0]) >= saveint(temperature[2]):
+        infotxt = "Warmluft ist %4.1f (!!)" % warmluft
+        state = 2
+        single_states.append( (state, infotxt, ("Warmluft", warmluft, saveint(temperature[1])/10.0, saveint(temperature[2])/10.0, 0, 50) ))
+    elif saveint(temperature[0]) >= saveint(temperature[1]):
+        infotxt = "Warmluft ist %4.1f (!)" % warmluft
+        state = 1
+        single_states.append( (state, infotxt, ("Warmluft", warmluft, saveint(temperature[1])/10.0, saveint(temperature[2])/10.0, 0, 50) ))
+    else:
+        infotxt = "Warmluft ist %4.1f" % warmluft
+        state = 0
+        single_states.append( (state, infotxt, ("Warmluft", warmluft, saveint(temperature[1])/10.0, saveint(temperature[2])/10.0, 0, 50) ))
+ 
+    if saveint(temperature[3]) >= saveint(temperature[5]):
+        infotxt = "Kaltluft ist %4.1f (!!)" % kaltluft
+        state = 2
+        single_states.append( (state, infotxt, ("Kaltluft", kaltluft, saveint(temperature[4])/10.0, saveint(temperature[5])/10.0, 0, 50) ))
+    elif saveint(temperature[3]) >= saveint(temperature[4]):
+        infotxt = "Kaltluft ist %4.1f (!)" % kaltluft
+        state = 1
+        single_states.append( (state, infotxt, ("Kaltluft", kaltluft, saveint(temperature[4])/10.0, saveint(temperature[5])/10.0, 0, 50) ))
+    else:
+        infotxt = "Kaltluft ist %4.1f" % kaltluft
+        state = 0
+        single_states.append( (state, infotxt, ("Kaltluft", kaltluft, saveint(temperature[4])/10.0, saveint(temperature[5])/10.0, 0, 50) ))
+ 
+    worst_state = max([x[0] for x in single_states])
+    info_text = ", ".join([x[1] for x in single_states])
+    return(worst_state, info_text, [x[2] for x in single_states if x[2] != None])
+ 
+check_info['knoerr_coolloop_temp'] = {
+  "inventory_function"  : inventory_knoerr_coolloop_temp,
+  "check_function"      : check_knoerr_coolloop_temp,
+  "service_description" : "Temperature",
+  "has_perfdata"        : True,
+  "group"               : "knoerr_coolloop_temp",
+  "snmp_info"           : ( ".1.3.6.1.4.1.2769.2.1.1", [ "1.3", "1.5", "1.6", "2.3", "2.5", "2.6" ]),
+  "snmp_scan_function"  : lambda oid: "coolcon" in oid(".1.3.6.1.2.1.1.1.0").lower()
+}
