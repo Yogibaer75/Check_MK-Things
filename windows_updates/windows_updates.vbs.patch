@@ -1,0 +1,14 @@
+--- a\windows_updates.vbs	Wed Mar 12 15:34:10 2014
++++ b\windows_updates.vbs	Wed Mar 12 15:33:49 2014
+@@ -49,8 +49,10 @@
+ rndFudge = Int(8 * 60 * Rnd) ' random fudge factor for test (0 to 8 hrs) 
+ 
+ If objFSO.FileExists(scriptpath &"\windows-update\windows_updates-log.txt") Then
++	Dim size
++	size = objFSO.GetFile(scriptpath &"\windows-update\windows_updates-log.txt").size
+ 	lastModificationDate = objFSO.GetFile(scriptpath &"\windows-update\windows_updates-log.txt").DateLastModified
+-	If DateDiff("n", lastModificationDate, now) < ((60*24)-rndFudge) Then ' 1 day minus 0 to 8 hours
++	If size > 0 and DateDiff("n", lastModificationDate, now) < ((60*24)-rndFudge) Then ' 1 day minus 0 to 8 hours
+ 	  updateNeeded = False
+ 	End If
+ End If
