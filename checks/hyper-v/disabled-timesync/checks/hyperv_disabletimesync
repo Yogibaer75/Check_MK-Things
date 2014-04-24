@@ -31,7 +31,6 @@
 # 
 
 def inventory_hyperv_disabletimesync(info):
-    print info
     if len(info) > 0:
         return [(None, None)]
 
