@@ -1,0 +1,35 @@
+def inventory_Ex2010_MBDB_Info(info):
+	if info and len(info) > 0 and info[0] != '':
+		inventory = []
+		for line in info:
+			mbdb = line[0]
+			inventory.append( (mbdb, "", None) )
+		return inventory
+
+# the check function
+def check_Ex2010_MBDB_Info(item, params, info):
+	if info and len(info) > 0 and info[0] != '':
+		for line in info:
+			if line[0] == item:
+				dbname = line[0]
+				dbsize = int(line[1])
+				mboxes = 0
+				if len(line) == 3:
+					mboxes = int(line[2])
+				if dbsize > 1073741824:
+					_dbsize = "{0:.2f}".format(dbsize / 1073741824.0)
+					_dbsize = str(_dbsize) + ' GByte'
+				elif dbsize > 1048576:
+					_dbsize = "{0:.2f}".format(dbsize / 1048576.0)
+					_dbsize = str(_dbsize) + ' MByte'
+				elif dbsize > 1024:
+					_dbsize = "{0:.2f}".format(dbsize / 1024.0)
+					_dbsize = str(_dbsize) + ' KByte'
+				output = "OK - Size: %s, Mailboxes: %d" % (_dbsize, mboxes)
+				perfdata = [ ("MailBoxDBSize", dbsize), ("Mailboxes", mboxes) ]
+				return (0, output, perfdata)
+	return (3, "Unknown")
+
+# declare the check to Check_MK
+check_info['Ex2010_MBDB_Info'] = \
+      (check_Ex2010_MBDB_Info, "MailBoxDB %s", 1, inventory_Ex2010_MBDB_Info)
