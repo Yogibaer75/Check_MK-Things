@@ -2,7 +2,7 @@
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 from bs4 import BeautifulSoup
 import urllib2
-soup = BeautifulSoup(urllib2.urlopen("http://141.49.189.102/UnitT/TNode/index.htm").read(), "html.parser")
+soup = BeautifulSoup(urllib2.urlopen("http://192.168.1.1/UnitT/TNode/index.htm").read(), "html.parser")
 #print soup('table')[12]
 print "<<<<klima>>>>"
 print "<<<local>>>"
