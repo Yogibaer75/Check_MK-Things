@@ -25,7 +25,7 @@
 # Boston, MA 02110-1301 USA.
 
 builtin_dashboards["main_notify"] = {
-    "title" : _("Uebersicht SWS mit Benachrichtigung"),
+    "title" : _("Uebersicht mit Benachrichtigung"),
     "dashlets" : [
         {
             "title"      : _("Host Statistics"),
