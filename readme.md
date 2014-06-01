@@ -48,7 +48,7 @@ Weitere Anpassungen
 
 ## Eigene Agent Scripte
 
-[Remote IPMI Agent Script](/Monitoring/CMK_Checks/files/HEAD/agent_ipmi/)
+[Remote IPMI Agent Script](/datasource-programms/agent_ipmi/)
 
 ## Piggyback Example
 
