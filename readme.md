@@ -2,7 +2,7 @@
 
 ## Anpassungen der CMK Komponenten
 
-[check_mkevents.cc mit Option fuer Socket Path versehen](//tree/master/classic-checks/check_mkevents)
+[check_mkevents.cc mit Option fuer Socket Path versehen](./tree/master/classic-checks/check_mkevents)
 
 ```cc
 char *socket_path         = NULL;
