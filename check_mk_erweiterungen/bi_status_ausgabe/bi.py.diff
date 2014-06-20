@@ -1,0 +1,57 @@
+--- a/bi.py	Mon Feb 03 17:50:06 2014
++++ b/bi.py	Wed Jun 04 13:12:20 2014
+@@ -1217,12 +1217,23 @@
+ def aggr_nth_state(nodelist, n, worst_state):
+     states = [ i[0]["state"] for i in nodelist ]
+     state = x_best_state(states, n)
+-
++    text = ""
+     # limit to worst state
+     if state_weight(state) > state_weight(worst_state):
+         state = worst_state
+-
+-    return { "state" : state, "output" : "" }
++    if state == 0:
++        text = u"Alles im grünen Bereich"
++    elif state == 1:
++        for i in nodelist:
++            if i[0]["state"] != 0:
++                text += " - " + i[1]["title"] + " - " + i[0]["output"]
++        #text = u"Einige Probleme vorhanden"
++    elif state == 2:
++        for i in nodelist:
++            if i[0]["state"] != 0:
++                text += " - " + i[1]["title"] + " - " + i[0]["output"]
++        #text = u"Zu viele Probleme vorhanden"
++    return { "state" : state, "output" : text }
+ 
+ def aggr_worst(nodes, n = 1, worst_state = CRIT):
+     return aggr_nth_state(nodes, -int(n), int(worst_state))
+@@ -1242,15 +1253,23 @@
+ def aggr_countok(nodes, needed_for_ok=2, needed_for_warn=1):
+     states = [ i[0]["state"] for i in nodes ]
+     num_ok = len([s for s in states if s == 0 ])
+-
++    text = ""
+     # counts can be specified as integer (e.g. '2') or
+     # as percentages (e.g. '70%').
+     if num_ok >= aggr_countok_convert(needed_for_ok, len(states)):
+-        return { "state" : 0, "output" : "" }
++        return { "state" : 0, "output" : u"Alles im grünen Bereich" }
+     elif num_ok >= aggr_countok_convert(needed_for_warn, len(states)):
+-        return { "state" : 1, "output" : "" }
++        for i in nodes:
++            if i[0]["state"] != 0:
++                text += " - " + i[1]["title"] + " - " + i[0]["output"]
++#        return { "state" : 1, "output" : u"Einige Probleme vorhanden" }
++        return { "state" : 1, "output" : text }
+     else:
+-        return { "state" : 2, "output" : "" }
++        for i in nodes:
++            if i[0]["state"] != 0:
++                text += " - " + i[1]["title"] + " - " + i[0]["output"]
++#        return { "state" : 2, "output" : u"Zu viele Probleme vorhanden" }
++        return { "state" : 2, "output" : text }
+ 
+ config.aggregation_functions["count_ok"] = aggr_countok
+ 
