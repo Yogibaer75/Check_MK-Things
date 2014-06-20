@@ -2,7 +2,7 @@
 
 ## Anpassungen der CMK Komponenten
 
-[check_mkevents.cc mit Option fuer Socket Path versehen](./classic-checks/check_mkevents)
+[check_mkevents.cc mit Option fuer Socket Path versehen](./classic-checks/check_mkevents/)
 
 ```cc
 char *socket_path         = NULL;
@@ -31,26 +31,26 @@ else {
 ```
 Extra noch wurden die Icons und die Generierung der aktiven MKEvent Checks angepasst.
 
-[Win Printers geaendert das Offline Network Printer nicht critical werden](/Monitoring/CMK_Checks/files/HEAD/win_printers/)
+[Win Printers geaendert das Offline Network Printer nicht critical werden](./checks/win_printers/)
 
-[Sidebar Snapin mit allen Services welche Notification an haben](/Monitoring/CMK_Checks/files/HEAD/sidebar_snapin_service_problem_short/)
+[Sidebar Snapin mit allen Services welche Notification an haben](./erweiterungen-webseite/sidebar_snapin_service_problem_short/)
 
-[check_bi_local.py angepasst das JSON Output erzeugt wird](/Monitoring/CMK_Checks/files/HEAD/local_check_bi/)
+[check_bi_local.py angepasst das JSON Output erzeugt wird](./local-checks/local_check_bi/)
 
-[Dashboard nur mit Host mit aktivierter Benachrichtigung](/Monitoring/CMK_Checks/files/HEAD/dashboard_mit_benachrichtigung_only/)
+[Dashboard nur mit Host mit aktivierter Benachrichtigung](./erweiterungen-webseite/dashboard_mit_benachrichtigung_only/)
 
 Weitere Anpassungen
 
 ## Eigene Checks
 
-[Etherbox Check um Spannungscheck und "no connected Sensor" erweitert](/Monitoring/CMK_Checks/files/HEAD/etherbox/etherbox.diff)
+[Etherbox Check um Spannungscheck und "no connected Sensor" erweitert](./checks/etherbox/)
 
-[APC PDU Check fuer die Leistung der Anschluesse](/Monitoring/CMK_Checks/files/HEAD/apc_pdu/)
+[APC PDU Check fuer die Leistung der Anschluesse](./checks/apc_pdu/)
 
 ## Eigene Agent Scripte
 
-[Remote IPMI Agent Script](/datasource-programms/agent_ipmi/)
+[Remote IPMI Agent Script](./datasource-programms/agent_ipmi/)
 
 ## Piggyback Example
 
-[Website Scrapping und Piggyback Check](/Monitoring/CMK_Checks/files/HEAD/plugin_piggybag_example_webscrapping/)
+[Website Scrapping und Piggyback Check](./plugins/plugin_piggybag_example_webscrapping/)
