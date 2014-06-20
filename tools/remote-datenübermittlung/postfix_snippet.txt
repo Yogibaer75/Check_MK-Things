@@ -1,0 +1,28 @@
+Crontab CH
+
+2,7,12,17,22,27,32,37,42,47,52,57 * * * * mk-job ChecksSKD ~/bin/livedump_skd_import.sh
+
+Postfix Config Ausschnitt
+
+# DELIVERY TO MAILBOX
+#
+# The home_mailbox parameter specifies the optional pathname of a
+# mailbox file relative to a user's home directory. The default
+# mailbox file is /var/spool/mail/user or /var/mail/user.  Specify
+# "Maildir/" for qmail-style delivery (the / is required).
+#
+#home_mailbox = Mailbox
+home_mailbox = Maildir/
+
+# (the value on the table right-hand side is not used).
+#
+mynetworks = 192.168.144.22/32, 127.0.0.0/8, 217.7.17.0/24
+#mynetworks = $config_directory/mynetworks
+#mynetworks = hash:/etc/postfix/network_table
+
+# 217.7.17.0 - Netzwerk des SVN
+
+smtpd_client_restrictions = permit_mynetworks,REJECT
+# nur Mail von mynetworks annehmen
+
+

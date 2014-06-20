@@ -1,0 +1,8 @@
+#
+# Run every hour, 5 minutes after full hour
+#
+20 0 * * * ~/local/bin/config.sh > $OMD_ROOT/var/log/live_config.log 2>&1
+#
+# Run every hour, 5 minutes after full hour
+#
+*/5 * * * * ~/local/bin/data.sh > $OMD_ROOT/var/log/live_data.log 2>&1
