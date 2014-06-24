@@ -1,0 +1,4 @@
+                            'version': '15.0.4420.1017'},
+                           {'name': 'Outils de v\x82rification linguistique 2013 de Microsoft Office\xff- Fran\x87ais',
+                            'package_type': 'wmi',
+                            'vendor': 'Microsoft Corporation',
