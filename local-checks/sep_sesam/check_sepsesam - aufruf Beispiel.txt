@@ -1,0 +1,5 @@
+Cygwin Aufruf für den check_sepsesam unter Windows task --> Backup Job / ohne Angabe werden alle Jobs seit der Zeitangabe unter -l geprüft Zeitangabe ist immer in Unixzeit zu lesen
+
+C:\cygwin\bin\bash.exe -lc "/cygdrive/c/check_mk_agent/check_sepsesam.pl --task oes-groupware_media_nss_GWBACKUP -l 1344290400"
+
+bei Angabe ohne -l wird einfach ein Tag von der aktuellen Check Zeit abgezogen und überprüft
