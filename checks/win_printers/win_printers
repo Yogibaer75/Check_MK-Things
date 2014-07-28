@@ -74,8 +74,6 @@ def check_win_printers(item, params, info):
             elif error in [ 9 ]:
                 state = 0
                 error_text = "State: %s(!)" % error_map[error]
-
-
             queue_label = ""
             if crit and current_jobs >= crit:
                 state = 2
@@ -83,9 +81,9 @@ def check_win_printers(item, params, info):
             elif warn and current_jobs >= warn:
                 state = max(1, state)
                 queue_label = "(!)"
-
-            return state, "%s jobs current%s, State: %s, %s" %\
-                    ( current_jobs, queue_label, status_map[status], error_text )
+            perfdata = [ ('jobs', current_jobs, warn, crit, 0, 50) ]
+            return (state, "%s jobs current%s, State: %s, %s" %\
+                    ( current_jobs, queue_label, status_map[status], error_text ), perfdata)
 
     return 3, "Printer not found in agent output"
 
