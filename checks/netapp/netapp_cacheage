@@ -36,5 +36,5 @@ check_info["netapp_cacheage"] = {
     "service_description"   : "Cache Age",
     "has_perfdata"          : True,
     "snmp_scan_function"    : lambda oid: oid(".1.3.6.1.4.1.789.1.2.1.3.0"),
-    "snmp_info"		    : ( ".1.3.6.1.4.1.789.1.2.2", [ 23 ]),
+    "snmp_info"             : ( ".1.3.6.1.4.1.789.1.2.2", [ 23 ]),
 }

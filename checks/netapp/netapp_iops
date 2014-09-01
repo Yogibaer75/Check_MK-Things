@@ -40,32 +40,32 @@ def check_netapp_iops(item, params, info):
     timedif, avg_httpops  = get_counter("netapp_iops.httpops", this_time, httpops)
     timedif, avg_fcpops  = get_counter("netapp_iops.fcpops", this_time, fcpops)
     timedif, avg_iscsiops  = get_counter("netapp_iops.iscsiops", this_time, iscsiops)
-	
+
     read_warn, read_crit = params['read']
     write_warn, write_crit = params['write']
 
     perfdata = [("nfsops", avg_nfsops, write_warn, write_crit ),
-    		("cifsops", avg_cifsops, write_warn, write_crit ),
-			("httpops", avg_httpops, write_warn, write_crit ),
-			("fcpops", avg_fcpops, write_warn, write_crit ),
-			("iscsiops", avg_iscsiops, write_warn, write_crit )
-    	       ]
+                ("cifsops", avg_cifsops, write_warn, write_crit ),
+                ("httpops", avg_httpops, write_warn, write_crit ),
+                ("fcpops", avg_fcpops, write_warn, write_crit ),
+                ("iscsiops", avg_iscsiops, write_warn, write_crit )
+               ]
     state = 0
 #    read_msg = ''
 #    write_msg = ''
 #    if read_warn != None and read_warn >= read:
 #        state = 1
-#	read_msg = ' (!)'
+#    read_msg = ' (!)'
 #    if read_crit != None and read_crit >= read:
 #        state = 2
-#	read_msg = ' (!!)'
+#    read_msg = ' (!!)'
 #
 #    if write_warn != None and write_warn >= write:
 #        state = max(state, 1)
 #        write_msg = ' (!)'
 #    if write_crit != None and write_crit >= write:
 #        state = 2
-#	write_msg = ' (!!)'
+#    write_msg = ' (!!)'
 
 
     infotext = " - %s NFSOPS, %s CIFSOPS, %s HTTPOPS, %s FCPOPS, %s ISCSIOPS in last %d sec" % (nfsops,cifsops,httpops,fcpops,iscsiops,timedif)
