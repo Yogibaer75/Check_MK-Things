@@ -37,7 +37,7 @@ def check_ups_socomec_status(item, params, info):
     temp = saveint(info[0][5])
     statename = ups_socomec_states.get(status, "(invalid)")
     if status == 2:
-        return(0, "Status ist %s mit %d%% runtime remaining, Battery Voltage %sV" % (statename, capacity, voltage))
+        return(0, "Status ist %s mit %d%% runtime remaining, Battery Voltage %sV" % (statename, runtime, voltage))
     else:
         return(2, "Status ist %s mit %d runtime remaining, Battery Voltage %sV" % (statename, runtime, voltage))
 
