@@ -36,16 +36,18 @@ def check_ups_socomec_status(item, params, info):
     voltage = saveint(info[0][4]) * 0.1
     temp = saveint(info[0][5])
     statename = ups_socomec_states.get(status, "(invalid)")
+    perfdata = [ ( "Runtime", runtime ), ( "Capacity", capacity ), ( "Voltage", voltage ) ]
     if status == 2:
-        return(0, "Status ist %s mit %d%% runtime remaining, Battery Voltage %sV" % (statename, runtime, voltage))
+        return(0, "Status is %s with %d minutes runtime remaining, Capacity %d%%, Battery Voltage %sV" % (statename, runtime, capacity, voltage), perfdata)
     else:
-        return(2, "Status ist %s mit %d runtime remaining, Battery Voltage %sV" % (statename, runtime, voltage))
+        return(2, "Status is %s with %d minutes runtime remaining, Capacity %d%%, Battery Voltage %sV" % (statename, runtime, capacity, voltage), perfdata)
+
 
 check_info['ups_socomec_status'] = {
   "inventory_function"  : inventory_ups_socomec_status,
   "check_function"      : check_ups_socomec_status,
   "service_description" : "Enviroment",
-  "has_perfdata"        : True,
+  "has_perfdata"        : False,
   "group"               : "socomec_status",
   "snmp_info"           : ( ".1.3.6.1.4.1.4555.1.1.1.1.2", [ "1", "2", "3", "4", "5", "6" ]),
   "snmp_scan_function"  : lambda oid: oid(".1.3.6.1.2.1.1.2.0") in [".1.3.6.1.4.1.4555.1.1.1"]
