@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+#
+# Check_MK YUM Plugin - Check for upgradeable packages.
+#
+# The basic idea was borrowed from Jonathan Mills version of a YUM
+# plugin - thank you! I wanted a plugin which not only monitors security
+# updates and also had to change the output for a bit.
+#
+# Copyright 2013, Stefan Schlesinger <sts@ono.at>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+INTERVAL=80000                          # interval to run yum updates
+LOG="/var/log/check_updates_cache.log"  # default path to log file
+
+# Unix time (seconds since Unix epoch)
+START=$(date +%s)
+
+cacheage ()
+{
+    file=$1
+    now=`date +%s`
+    mtime=`stat -c %Y $file`
+    delta=$((now - mtime ))
+    echo $delta
+}
+
+# Generate the list of updateable packages in $LOG
+generate_cache ()
+{
+    if which yum >/dev/null; then
+        if [ ! -e "/var/run/yum.pid" ]; then
+            yum -v check-update 2>&1 \
+                | sed 's/^.*--> //g' \
+                | egrep -v 'excluded \(priority\)$' \
+                | egrep -v '(^Keeping|^Removing|^Nothing|^Excluding|^Looking|^Loading)' \
+                | egrep '\.(x86_64|i.86|noarch)' > $LOG
+
+        fi
+    fi
+}
+
+## Check for updates regulary
+if [ ! -e $LOG ]; then
+    touch $LOG
+    generate_cache
+else
+    age=$(cacheage $LOG)
+    if [ $age -ge $INTERVAL ]; then
+        generate_cache
+    fi
+fi
+
+echo '<<<yum>>>'
+cacheage $LOG
+cat /etc/centos-release
+cat $LOG

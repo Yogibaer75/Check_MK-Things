@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+#
+# Check_MK YUM Plugin - Check for upgradeable packages.
+#
+#
+# Copyright 2010, Stefan Schlesinger <sts@ono.at>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Example Agent Output:
+#
+#  <<<yum>>>
+# 922
+# CentOS release 6.4 (Final)
+# coreutils.x86_64                          8.4-19.el6_4.2                 updates
+# selinux-policy-targeted.noarch            3.7.19-195.el6_4.5             updates
+#
+# 1 WARNING ; 2 CRITICAL
+yum_repository_severity = {
+  'security'    : 1,
+  'updates'     : 0,
+  'base'        : 0,
+  '__default__' : 0,
+}
+
+yum_cache_max_age = 90000
+
+def inventory_yum(checkname, info):
+    if len(info) > 0:
+        return [(None, None)]
+
+def check_yum(item, params, info):
+    yum_upgrades = {}
+    level        = 0
+    msg          = ""
+    perfdata     = []
+
+    # Parse the agent output
+    mod_time     = int(info[0][0])
+    deb_release  = info[1][0]
+
+    # If there are upgrades available parse them.
+    if len(info) > 2:
+        packages  = info[2:]
+        for package in packages:
+            name   = package[0]
+            # yum doesnt seem to always return a package 'source'
+            if len(package) == 3:
+                source = package[2]
+            else:
+                source = ""
+
+            # Determine the severity of the situation :-)
+            if source in yum_repository_severity:
+                level  = max(level, yum_repository_severity[source])
+            else:
+                level  = max(level, yum_repository_severity['__default__'])
+
+            # Append to list of upgrades
+            if not source in yum_upgrades:
+                yum_upgrades[source] = []
+            yum_upgrades[source].append(name)
+
+    for source in yum_upgrades:
+        msg += "%s/%s Updates [%s] " % (source, len(yum_upgrades[source]), ",".join(yum_upgrades[source]))
+        perf = [ source, len(yum_upgrades[source])]
+        perfdata.append(perf)
+
+    # Determine yum cache age
+    if mod_time > yum_cache_max_age:
+        level = 1
+        msg   = "Package cache is out of date, %s seconds since last update." % mod_time
+
+    state = { 0 : "OK",
+              1 : "WARNING",
+              2 : "CRITICAL",
+              3 : "UNKNOWN" }.get(level)
+
+    return (level, "%s - %s - %s" % ( state, deb_release,  msg), perfdata)
+
+check_info['yum'] = {
+     "check_function"          : check_yum,
+     "inventory_function"      : inventory_yum,
+     "has_perfdata"            : True,
+     "service_description"     : "Yum Updates",
+     "group"                   : "zypper",
+}
