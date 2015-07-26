@@ -10,9 +10,8 @@ send_path = None
 send_path = "/usr/local/nagios/contrib/nagios2asterisk/call.pl"
 
 max_len = 250
-message = os.environ['NOTIFY_HOSTNAME'] + " "
 
-message = "Das ist eine Nachricht vom Nagios System der Freiberger Compound, "
+message = "Dies ist eine Nachricht vom Nagios System der Firma, "
 
 if os.environ['NOTIFY_WHAT'] == 'SERVICE':
     message += "der Service " + os.environ['NOTIFY_SERVICEDESC'] + " auf dem Host " + os.environ['NOTIFY_HOSTNAME'] + " hat den Status " + string.lower(os.environ['NOTIFY_SERVICESTATE'])
