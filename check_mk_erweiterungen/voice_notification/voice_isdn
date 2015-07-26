@@ -1,0 +1,23 @@
+#!/usr/bin/python
+# Voice ISDN (using asterisk)
+# Notification via voice using the asterisk
+# Note: You have to add the side user to the asterisk group
+# and restart the site
+
+import os, sys, string
+
+send_path = None
+send_path = "/usr/local/nagios/contrib/nagios2asterisk/call.pl"
+
+max_len = 250
+
+message = "Dies ist eine Nachricht vom Nagios System der Firma, "
+
+if os.environ['NOTIFY_WHAT'] == 'SERVICE':
+    message += "der Service " + os.environ['NOTIFY_SERVICEDESC'] + " auf dem Host " + os.environ['NOTIFY_HOSTALIAS'] + " hat den Status " + string.lower(os.environ['NOTIFY_SERVICESTATE'])
+    command = send_path + " -m '" + message + "' -c 8595 -n " + os.environ['NOTIFY_CONTACTPAGER'] + " -C 'CAPI/ISDN1/" + os.environ['NOTIFY_CONTACTPAGER'] + "' -H " + os.environ['NOTIFY_HOSTNAME'] + " -S '" + os.environ['NOTIFY_SERVICEDESC'] + "'"
+else:
+    message += "der Host " + os.environ['NOTIFY_HOSTALIAS'] + " hat den Status " + string.lower(os.environ['NOTIFY_HOSTSTATE'])
+    command = send_path + " -m '" + message + "' -c 8595 -n " + os.environ['NOTIFY_CONTACTPAGER'] + " -C 'CAPI/ISDN1/" + os.environ['NOTIFY_CONTACTPAGER'] + "' -H " + os.environ['NOTIFY_HOSTNAME']
+
+os.system("%s" % (command))
