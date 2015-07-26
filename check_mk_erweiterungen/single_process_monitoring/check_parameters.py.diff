@@ -1,0 +1,17 @@
+--- /omd/sites/test/share/check_mk/web/plugins/wato/check_parameters.py 2015-07-16 14:12:33.000000000 +0200
++++ /omd/sites/test/local/share/check_mk/web/plugins/wato/check_parameters.py   2015-07-24 13:28:35.096647060 +0200
+@@ -417,14 +417,6 @@
+             ),
+         ],
+     )),
++     ("singleproc", Checkbox(
++         title = _("Use only single process for calculation"),
++         label = _("use only single process"),
++         default_value = False,
++         help = _("This option lets Check_MK use only the process with the highest values "
++                  "for memory and cpu to calculate the performance data for this process."
++                  "Testing"))),
++
+ ]
+
+ # In version 1.2.4 the check parameters for the resulting ps check
