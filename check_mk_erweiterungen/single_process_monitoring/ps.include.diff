@@ -1,5 +1,5 @@
---- /omd/sites/default/share/check_mk/checks/ps.include	2015-07-16 14:12:33.000000000 +0200
-+++ /omd/sites/default/local/share/check_mk/checks/ps.include	2015-07-26 11:10:55.303386400 +0200
+--- ~/share/check_mk/checks/ps.include	2015-07-16 14:12:33.000000000 +0200
++++ ~/local/share/check_mk/checks/ps.include	2015-07-26 11:10:55.303386400 +0200
 @@ -206,6 +206,12 @@
  #   "user" : "foo",
  #   "levels" : (1, 1, 99999, 99999)
