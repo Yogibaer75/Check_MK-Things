@@ -1,6 +1,6 @@
---- /omd/sites/test/share/check_mk/web/plugins/wato/check_parameters.py 2015-07-16 14:12:33.000000000 +0200
-+++ /omd/sites/test/local/share/check_mk/web/plugins/wato/check_parameters.py   2015-07-24 13:28:35.096647060 +0200
-@@ -417,14 +417,6 @@
+--- /omd/sites/default/share/check_mk/web/plugins/wato/check_parameters.py	2015-07-16 14:12:33.000000000 +0200
++++ /omd/sites/default/local/share/check_mk/web/plugins/wato/check_parameters.py	2015-07-26 10:58:08.763386400 +0200
+@@ -417,6 +417,14 @@
              ),
          ],
      )),
@@ -10,8 +10,8 @@
 +         default_value = False,
 +         help = _("This option lets Check_MK use only the process with the highest values "
 +                  "for memory and cpu to calculate the performance data for this process."
-+                  "Testing"))),
-+
++                  "Testing")
++    )),
  ]
-
+ 
  # In version 1.2.4 the check parameters for the resulting ps check
