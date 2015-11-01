@@ -1,0 +1,98 @@
+--- agent_vsphere_bck	2015-07-29 11:05:48.475949837 +0200
++++ agent_vsphere	2015-07-29 11:08:32.330636285 +0200
+@@ -306,6 +306,40 @@
+     else:
+         return h.replace(" ", "_")
+ 
++def get_counters_new():
++	
++	lista_ids = get_counters_name()
++	xhsts = hostsystems.keys()
++	test_host = xhsts[0]
++        counter_avail = telegram_list["perfcounteravail"]
++        reply_code, reply_msg, reply_headers, counter_avail_response = query_server(counter_avail, payload_params = { "esxhost": test_host })
++	
++        counters_avail  = {}
++        p = re.compile("<counterId>([0-9]*)</counterId><instance>([^<]*)")
++        elements = get_pattern("<counterId>([0-9]*)</counterId><instance>([^<]*)", counter_avail_response)
++        for counter, instance in elements:
++                counters_avail.setdefault(counter, []).append(instance)
++	needed_ids = counters_avail.keys()
++	counter_data = []
++        for entry in needed_ids:
++		counter_data.append("<ns1:counterId>%s</ns1:counterId>" % entry)
++	counter_syntax_payload = telegram_list["perfcountersyntax"]
++        reply_code, reply_msg, reply_headers, counters_syntax_response = \
++                query_server(counter_syntax_payload, payload_params = { "counters": "".join(counter_data)})
++
++        counters_syntax = {}
++        elements = get_pattern('<returnval><key>(.*?)</key>.*?<key>(.*?)</key>.*?'\
++                                   '<key>(.*?)</key>.*?<key>(.*?)</key>.*?', counters_syntax_response)
++        for key, nameInfo, groupInfo, unitInfo in elements:
++		completo = groupInfo + "." + nameInfo
++	#	print completo
++		if completo in lista_ids:
++                	counters_syntax[key] = { "name": nameInfo, "group": groupInfo, "unit": unitInfo }
++	#print len(counters_syntax.keys())
++	devolver = counters_syntax.keys()
++	devolver = map(int, devolver)
++	return devolver
++
+ def get_counters(esx_version_num):
+     needed_ids = [
+         # sys.uptime
+@@ -362,6 +396,44 @@
+ 
+     return needed_ids
+ 
++def get_counters_name():
++	counters_names = [
++		"disk.deviceLatency",
++		"disk.deviceReadLatency",
++		"disk.deviceWriteLatency",
++		"disk.kernelLatency",
++		"disk.kernelReadLatency",
++		"disk.kernelWriteLatency",
++		"disk.numberRead",
++		"disk.numberWrite",
++		"disk.queueLatency",
++		"disk.queueReadLatency",
++		"disk.queueWriteLatency",
++		"disk.totalReadLatency",
++		"disk.totalWriteLatency",
++		"disk.read",
++		"disk.write",
++		"sys.resourceMemConsumed",
++		"sys.uptime",
++		"net.bytesRx",
++		"net.bytesTx",
++		"net.broadcastRx",
++		"net.broadcastTx",
++		"net.errorsRx",
++		"net.errorsTx",
++		"net.multicastRx",
++		"net.multicastTx",
++		"net.packetsRx",
++		"net.packetsTx",
++		"net.received",
++		"net.transmitted",
++		"net.unknownProtos",
++		"net.usage",
++		]
++
++	return counters_names
++
++
+ def usage():
+     sys.stderr.write("""Check_MK vSphere Agent
+ 
+@@ -751,7 +823,8 @@
+         if "counters" in query_objects:
+             # Get counter syntax
+             counter_syntax_payload = telegram_list["perfcountersyntax"]
+-            needed_ids             = get_counters(systeminfo["apiVersion"])
++#            needed_ids             = get_counters(systeminfo["apiVersion"])
++	    needed_ids		   = get_counters_new()
+             counter_data = []
+             for entry in needed_ids:
+                 counter_data.append("<ns1:counterId>%s</ns1:counterId>" % entry)
