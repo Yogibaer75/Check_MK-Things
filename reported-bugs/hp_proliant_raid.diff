@@ -1,0 +1,33 @@
+--- a/hp_proliant_raid    2016-04-01 16:35:40.000000000 +0200
++++ b/hp_proliant_raid    2016-06-08 10:49:43.000000000 +0200
+@@ -29,7 +29,10 @@
+     if len(info) > 0:
+         inventory = []
+         for line in info:
+-            inventory.append((line[0], None))
++            if line[0] == "":
++                inventory.append((line[4], None))
++            else:
++                inventory.append((line[0], None))
+         return inventory
+
+ def check_hp_proliant_raid(item, _no_params, info):
+@@ -48,8 +51,8 @@
+
+     }
+     for line in info:
+-        if line[0] == item:
+-            state, size_mb, percent_rebuild = map(saveint, line[1:])
++        if line[0] == item or line[4] == item:
++            state, size_mb, percent_rebuild = map(saveint, line[1:4])
+             drive_size = "Logical Volume Size: %s" % get_bytes_human_readable(size_mb * 1024 * 1024 )
+             if state == 7:
+                 return 1, "Rebuild: %d%% finished. %s" % ( percent_rebuild, drive_size )
+@@ -71,6 +74,7 @@
+                                 4,  # Logical Drive status
+                                 9,  # Drive Size
+                                 12, # Percent rebuild
++                                2,  # Array Number
+         ]
+     ),
+     'snmp_scan_function': \
