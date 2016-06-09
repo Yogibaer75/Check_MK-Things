@@ -1,0 +1,23 @@
+--- a/cisco_wlc_clients       2016-04-01 16:35:39.000000000 +0200
++++ b/cisco_wlc_clients       2016-06-09 10:47:08.113091828 +0200
+@@ -45,9 +45,10 @@
+ def parse_cisco_wlc_clients(info):
+     parsed = {}
+     sum_clients = 0
+-    for name, interface, num_clients in info:
++    for name, interface, num_clients, number in info:
+         sum_clients += int(num_clients)
+-        parsed[name] = (int(num_clients), interface)
++        wlan_name = name + "_" + number
++        parsed[wlan_name] = (int(num_clients), interface)
+
+     parsed["Summary"] = (sum_clients, "")
+     return parsed
+@@ -71,6 +72,7 @@
+                                     "2",
+                                     "42",
+                                     "38",
++                                    "1",
+                               ]),
+     "includes"              : [ "wlc_clients.include" ],
+ }
