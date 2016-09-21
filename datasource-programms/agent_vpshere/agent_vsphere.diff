@@ -1,4 +1,4 @@
---- agent_vsphere_bck	2015-07-29 11:05:48.475949837 +0200
+--- agent_vsphere	2015-07-29 11:05:48.475949837 +0200
 +++ agent_vsphere	2015-07-29 11:08:32.330636285 +0200
 @@ -306,6 +306,40 @@
      else:
@@ -86,13 +86,12 @@
  def usage():
      sys.stderr.write("""Check_MK vSphere Agent
  
-@@ -751,7 +823,8 @@
+@@ -751,7 +823,7 @@
          if "counters" in query_objects:
              # Get counter syntax
              counter_syntax_payload = telegram_list["perfcountersyntax"]
 -            needed_ids             = get_counters(systeminfo["apiVersion"])
-+#            needed_ids             = get_counters(systeminfo["apiVersion"])
-+	    needed_ids		   = get_counters_new()
++            needed_ids   = get_counters_new()
              counter_data = []
              for entry in needed_ids:
                  counter_data.append("<ns1:counterId>%s</ns1:counterId>" % entry)
