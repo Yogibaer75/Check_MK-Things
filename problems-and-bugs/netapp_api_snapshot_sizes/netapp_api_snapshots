@@ -1,0 +1,88 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# +------------------------------------------------------------------+
+# |             ____ _               _        __  __ _  __           |
+# |            / ___| |__   ___  ___| | __   |  \/  | |/ /           |
+# |           | |   | '_ \ / _ \/ __| |/ /   | |\/| | ' /            |
+# |           | |___| | | |  __/ (__|   <    | |  | | . \            |
+# |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
+# |                                                                  |
+# | Copyright Mathias Kettner 2014             mk@mathias-kettner.de |
+# +------------------------------------------------------------------+
+#
+# This file is part of Check_MK.
+# The official homepage is at http://mathias-kettner.de/check_mk.
+#
+# check_mk is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# tails. You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+# Agent output:
+# <<<netapp_api_snapshots:sep(9)>>>
+# volume_snapshot volch150    percent-reserved 22 blocks-reserved 3322    size-total 12122 ...
+# volume_snapshot volch150    percentage-of-total-blocks 0 cumulative-total 122924 ...
+
+factory_settings["netapp_api_snapshots_default_levels"] = {
+    "levels" : (85.0, 90.0)
+}
+
+def inventory_netapp_api_snapshots(parsed):
+    for key in parsed.keys():
+        yield key, {}
+
+def check_netapp_api_snapshots(item, params, parsed):
+    data = parsed.get(item)
+
+    if not data:
+        return
+
+#    snapshot_total   = int(data[0]["reserve-used-actual"]) * 1024.0
+    snapshot_total   = int(data[0]["snapshot-size"]) * 1024.0
+    size_total       = int(data[0]["size-total"])
+    reserved_bytes   = int(data[0]["snapshot-blocks-reserved"]) * 1024.0
+
+    if not reserved_bytes:
+        yield 0, "Used snapshot space: %s" % get_bytes_human_readable(snapshot_total),[("bytes", snapshot_total)]
+        yield params.get("state_noreserve", 1), "No snapshot reserve configured"
+        return
+
+    used_percent     = snapshot_total / reserved_bytes * 100.0
+    volume_total     = size_total + reserved_bytes
+
+    state = 0
+
+    warn, crit = params.get("levels")
+    if used_percent >= crit:
+        state = 2
+    elif used_percent >= warn:
+        state = 1
+
+    extra_info = state and "(Levels at %d%%/%d%%)" % (warn, crit) or ""
+
+    yield state, "Reserve used: %.1f%% (%s)%s" % (used_percent,
+                                                get_bytes_human_readable(snapshot_total), extra_info)
+
+    yield 0, "Total Reserve: %s%% (%s) of %s" % (data[0]["snapshot-percent-reserved"],
+                                                 get_bytes_human_readable(reserved_bytes),
+                                                 get_bytes_human_readable(volume_total)),\
+                                                 [("bytes", snapshot_total, 0, 0, 0, reserved_bytes)]
+
+check_info["netapp_api_snapshots"] = {
+    'parse_function'          : lambda info: netapp_api_parse_lines(info,
+                                custom_keys = ["volume_snapshot"], as_dict_list = True),
+    'check_function'          : check_netapp_api_snapshots,
+    'inventory_function'      : inventory_netapp_api_snapshots,
+    "default_levels_variable" : "netapp_api_snapshots_default_levels",
+    'service_description'     : 'Snapshots Volume',
+    'group'                   : "netapp_snapshots",
+    'has_perfdata'            : True,
+    'includes'                : ["netapp_api.include"]
+}
+

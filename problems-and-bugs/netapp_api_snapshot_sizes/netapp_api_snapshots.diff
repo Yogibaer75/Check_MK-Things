@@ -1,0 +1,11 @@
+--- a/netapp_api_snapshots      2016-07-01 14:07:32.000000000 +0200
++++ b/netapp_api_snapshots        2016-10-04 09:41:10.307405752 +0200
+@@ -47,7 +47,8 @@
+         yield 3, "No snapshot information available. Volume is %s" % data[0].get("state")
+         return
+
+-    snapshot_total   = int(data[0]["reserve-used-actual"]) * 1024.0
++#    snapshot_total   = int(data[0]["reserve-used-actual"]) * 1024.0
++    snapshot_total   = int(data[0]["snapshot-size"]) * 1024.0
+     size_total       = int(data[0]["size-total"])
+     reserved_bytes   = int(data[0]["snapshot-blocks-reserved"]) * 1024.0

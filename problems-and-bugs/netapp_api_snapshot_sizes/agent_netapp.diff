@@ -1,0 +1,31 @@
+--- a/agent_netapp   2016-09-14 12:10:51.000000000 +0200
++++ b/agent_netapp   2016-10-04 09:35:58.772455905 +0200
+@@ -728,11 +728,27 @@
+     # Snapshot info
+     print "<<<netapp_api_snapshots:sep(9)>>>"
+     for volume in volumes.children_get():
++        cmd1 = NaElement("snapshot-list-info")
++        cmd1.child_add_string("volume",volume.child_get_string("name"))
++        ret1 = server.invoke_elem(cmd1)
++        snaps = ret1.child_get("snapshots")
++        snapsize = format_config(snaps, "", "", config_report = ["cumulative-total"])
++        sizes = snapsize.split('\n')
++        size = []
++        extra_info = {}
++        if len(sizes) >= 2:
++            for i in sizes:
++                size.append(int(i.strip().split(' ')[1]))
++            extra_info[volume.child_get_string("name")]= {"snapshot-size":max(size)}
++        else:
++            extra_info[volume.child_get_string("name")]= {"snapshot-size":"0"}
++
+         container = NaElement("container")
+         container.child_add(volume)
+         print format_config(container, "volume_snapshot", "name",
+                     config_report = ["name", "size-total", "snapshot-percent-reserved", "state",
+-                                     "snapshot-blocks-reserved", "reserve-used-actual"])
++                                     "snapshot-blocks-reserved", "reserve-used-actual"],
++                    extra_info = extra_info)
+
+     # Protocols
+     print "<<<netapp_api_protocol:sep(9)>>>"
