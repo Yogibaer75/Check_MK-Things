@@ -1,0 +1,54 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# +------------------------------------------------------------------+
+# |             ____ _               _        __  __ _  __           |
+# |            / ___| |__   ___  ___| | __   |  \/  | |/ /           |
+# |           | |   | '_ \ / _ \/ __| |/ /   | |\/| | ' /            |
+# |           | |___| | | |  __/ (__|   <    | |  | | . \            |
+# |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
+# |                                                                  |
+# | Copyright Mathias Kettner 2014             mk@mathias-kettner.de |
+# +------------------------------------------------------------------+
+#
+# This file is part of Check_MK.
+# The official homepage is at http://mathias-kettner.de/check_mk.
+#
+# check_mk is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# tails. You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+#<<<ilo_api_cntrl>>>
+#0 Smart_Array_P440ar_Controller PDNLH0BRH8V64H 2.52 OK
+#Nr. Name Serial-Number Version Status
+
+def inventory_ilo_api_cntrl(info):
+    for line in info:
+        yield line[0], None
+
+def check_ilo_api_cntrl(item, _no_params, info):
+    for line in info:
+        if line[0] == item:
+            if len(line) >= 5:
+                if line[4] == "OK":
+                    yield 0, u"Operational state OK - Type %s - Serial %s - Version %s" % (line[1], line[2], line[3])
+                else:
+                    yield 2, u"Error in Controller %s with Status %s" % (line[0], line[4])
+            else:
+                yield 0, u"Operational state OK - Type %s - Serial %s - Version %s" % (line[1], line[2], line[3])
+
+check_info["ilo_api_cntrl"] = {
+    'check_function'      : check_ilo_api_cntrl,
+    'inventory_function'  : inventory_ilo_api_cntrl,
+    'has_perfdata'        : False,
+    'service_description' : 'HW Controller %s',
+
+}
+
+

@@ -1,0 +1,189 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+#
+#
+# iLO Rest API
+# Copyright 2016 Hewlett Packard Enterprise Development, LP.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# Agent Script
+# Written By Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+import sys, getopt
+from _restobject import RestObject
+
+#############################################################################
+def usage():
+#############################################################################
+    sys.stderr.write("""Check_MK HP iLO 4 Agent
+
+USAGE: agent_ilo4 [OPTIONS] HOST
+       agent_ilo4 -h
+
+ARGUMENTS:
+  HOST                          Host name or IP address of the target iLO 4
+
+OPTIONS:
+  -h, --help                    Show this help message and exit
+  -u USER, --user USER          Username for HP iLO 4 login
+  -p PASSWORD, --password PASSWORD  Password for HP iLO 4 login
+""")
+
+def get_information(restobj):
+    sys.stdout.write('<<<check_mk>>>\n')
+    sys.stdout.write('Version: 4\n')
+    sys.stdout.write('AgentOS: iLO\n')
+    instances = restobj.search_for_type("ThermalMetrics.")
+    for instance in instances:
+        response = restobj.rest_get(instance["href"])
+
+        sys.stdout.write("<<<ilo_api_fans>>>\n")
+        fans = response.dict["Fans"]
+        for entry in fans:
+            if entry["Status"]["State"] == "Absent":
+                health = "NP"
+            else:
+                health = entry["Status"]["Health"]
+            sys.stdout.write("%s %s %s %s %s\n" % (entry["FanName"], entry["CurrentReading"], entry["Units"], entry["Status"]["State"], health))
+
+        sys.stdout.write("<<<ilo_api_temp>>>\n")
+        temps = response.dict["Temperatures"]
+        for entry in temps:
+            if entry["Status"]["State"] == "Absent":
+                health = "NP"
+            else:
+                health = entry["Status"]["Health"]
+            warn = int(entry["LowerThresholdNonCritical"])
+            crit = int(entry["LowerThresholdCritical"])
+            if crit <= warn:
+                crit = warn
+            sys.stdout.write("%s %s %s %d %d %s %s\n" % (entry["Name"].replace(" ","_"), entry["CurrentReading"], entry["Units"], warn, crit, entry["Status"]["State"], health))
+
+    sys.stdout.write("<<<ilo_api_power>>>\n")
+    instances = restobj.search_for_type("PowerMetrics.")
+    for instance in instances:
+        response = restobj.rest_get(instance["href"])
+        psus = response.dict["PowerSupplies"]
+        for entry in psus:
+            if entry["Status"]["State"] == "Absent":
+                health = "NP"
+            else:
+                health = entry["Status"]["Health"]
+            name = entry["Oem"]["Hp"]["BayNumber"]
+            sys.stdout.write("%s %s %s %s %s\n" % (name, entry["LastPowerOutputWatts"], entry["PowerCapacityWatts"], entry["Status"]["State"], health))
+
+    sys.stdout.write("<<<ilo_api_phydrv>>>\n")
+    instances = restobj.search_for_type("HpSmartStorageArrayController.")
+    for instance in instances:
+        tmp = restobj.rest_get(instance["href"])
+        response = restobj.rest_get(tmp.dict["links"]["PhysicalDrives"]["href"])
+        if response.dict["Total"]==0:
+            disc_number = 0
+            continue
+        for element in response.dict["links"]["Member"]:
+            disc = restobj.rest_get(element["href"]).dict
+            sys.stdout.write("%s %s %s %s\n" % (disc["Location"],disc["CurrentTemperatureCelsius"],disc["CapacityMiB"],disc["Status"]["Health"]))
+
+    sys.stdout.write("<<<ilo_api_mem>>>\n")
+    instances = restobj.search_for_type("ComputerSystem.")
+    for instance in instances:
+         tmp = restobj.rest_get(instance["href"])
+         memory = restobj.rest_get(tmp.dict["Oem"]["Hp"]["links"]["Memory"]["href"])
+         for element in memory.dict["links"]["Member"]:
+             mem = restobj.rest_get(element["href"]).dict
+             sys.stdout.write("%s %s %d %s\n" % (mem["Name"], mem["DIMMType"], mem["SizeMB"], mem["DIMMStatus"]))
+
+    sys.stdout.write("<<<ilo_api_raid>>>\n")
+    instances = restobj.search_for_type("HpSmartStorageArrayController.")
+    for instance in instances:
+        tmp = restobj.rest_get(instance["href"])
+        response = restobj.rest_get(tmp.dict["links"]["LogicalDrives"]["href"])
+        if response.dict["Total"]==0:
+            continue
+        for element in response.dict["links"]["Member"]:
+            raid = restobj.rest_get(element["href"]).dict
+            sys.stdout.write("%s %s %d %d %s\n" % (raid["LogicalDriveNumber"], raid["Raid"], raid["CapacityMiB"], raid["StripeSizeBytes"], raid["Status"]["Health"]))
+
+    sys.stdout.write("<<<ilo_api_cntrl>>>\n")
+    instances = restobj.search_for_type("HpSmartStorageArrayController.")
+    for instance in instances:
+        cntlr = restobj.rest_get(instance["href"]).dict
+        if disc_number >= 1:
+            sys.stdout.write("%s %s %s %s %s\n" % (cntlr["Id"],cntlr["Model"].replace(" ","_"),cntlr["SerialNumber"],cntlr["FirmwareVersion"]["Current"]["VersionString"], disc["Status"]["Health"]))
+        else:
+            sys.stdout.write("%s %s %s %s\n" % (cntlr["Id"],cntlr["Model"].replace(" ","_"),cntlr["SerialNumber"],cntlr["FirmwareVersion"]["Current"]["VersionString"]))
+
+    instances = restobj.search_for_type("ComputerSystem.")
+    for instance in instances:
+        cpu = restobj.rest_get(instance["href"]).dict
+
+        sys.stdout.write("<<<ilo_api_cpu>>>\n")
+        sys.stdout.write("%d %s %s\n" % (cpu["ProcessorSummary"]["Count"], cpu["ProcessorSummary"]["Model"].replace(" ","_"), cpu["ProcessorSummary"]["Status"]["HealthRollUp"]))
+
+        sys.stdout.write("<<<ilo_api_general>>>\n")
+        sys.stdout.write("%s %s %s %s\n" % (cpu["Model"].replace(" ","_"), cpu["BiosVersion"].replace(" ","_"), cpu["SerialNumber"], cpu["Status"]["Health"]))
+
+
+#############################################################################
+# command line options
+#############################################################################
+short_options = 'h:u:p:t:'
+long_options  = [ 'help', 'user=', 'password=', 'timeout=' ]
+
+try:
+    opts, args = getopt.getopt(sys.argv[1:], short_options, long_options)
+except getopt.GetoptError, err:
+    sys.stderr.write("%s\n" % err)
+    sys.exit(1)
+
+opt_timeout    = 60
+
+host_address   = None
+user           = None
+password       = None
+
+for o,a in opts:
+    if o in [ '-u', '--user' ]:
+        user = a
+    elif o in [ '-p', '--password' ]:
+        password = a
+    elif o in [ '-t', '--timeout' ]:
+        opt_timeout = int(a)
+    elif o in [ '-h', '--help' ]:
+        usage()
+        sys.exit(0)
+
+if len(args) == 1:
+    host_address = args[0]
+elif not args:
+    sys.stderr.write("ERROR: No host given.\n")
+    sys.exit(1)
+else:
+    sys.stderr.write("ERROR: Please specify exactly one host.\n")
+    sys.exit(1)
+
+if (user == None or user == '') or (password == None or password == ''):
+    sys.stderr.write("ERROR: Please specify user and password.\n")
+    sys.exit(1)
+
+if __name__ == "__main__":
+ 
+    iLO_host = "https://%s" % host_address
+    iLO_account = user
+    iLO_password = password
+ 
+    # Create a REST object
+    REST_OBJ = RestObject(iLO_host, iLO_account, iLO_password)
+    get_information(REST_OBJ)
+

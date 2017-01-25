@@ -1,0 +1,57 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# +------------------------------------------------------------------+
+# |             ____ _               _        __  __ _  __           |
+# |            / ___| |__   ___  ___| | __   |  \/  | |/ /           |
+# |           | |   | '_ \ / _ \/ __| |/ /   | |\/| | ' /            |
+# |           | |___| | | |  __/ (__|   <    | |  | | . \            |
+# |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
+# |                                                                  |
+# | Copyright Mathias Kettner 2014             mk@mathias-kettner.de |
+# +------------------------------------------------------------------+
+#
+# This file is part of Check_MK.
+# The official homepage is at http://mathias-kettner.de/check_mk.
+#
+# check_mk is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# tails. You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+#<<<ilo_api_fans>>>
+#Fan 1 0 Percent Absent NP
+#Fan 2 0 Percent Absent NP
+#Fan 3 15 Percent Enabled OK
+#Fan 4 15 Percent Enabled OK
+
+def inventory_ilo_api_fans(info):
+    for line in info:
+        if len(line) == 7:
+            line[0:2] = [' '.join(line[0:2])]
+        if line[4] != u"Absent":
+            yield line[1], None
+
+def check_ilo_api_fans(item, _no_params, info):
+    for line in info:
+        if len(line) == 7:
+            line[0:2] = [' '.join(line[0:2])]
+        if line[1] == item:
+            perfdata = [ ("perc" ,int(line[2]),"","",0,100) ]
+            if line[5] == "OK":
+                yield 0, "Operational state OK - %d%% Speed" % int(line[2]), perfdata
+            else:
+                yield 2, "Error in Fan %s" % line[1], perfdata
+
+check_info["ilo_api_fans"] = {
+    'check_function'      : check_ilo_api_fans,
+    'inventory_function'  : inventory_ilo_api_fans,
+    'has_perfdata'        : True,
+    'service_description' : 'HW Fan %s',
+}
+
