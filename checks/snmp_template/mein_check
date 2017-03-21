@@ -1,0 +1,18 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def inventory_mein_check(info):
+    return [(None, None)]
+
+def check_mein_check(_no_item, params, info):
+    mein_wert = int(info[0][0])
+    return 0, "Mein Wert ist %d" % mein_wert
+
+check_info["mein_check"] = {
+    "check_function"        : check_mein_check,
+    "inventory_function"    : inventory_mein_check,
+    "service_description"   : "Toller Check",
+    "has_perfdata"          : False,
+    "snmp_scan_function"    : lambda oid: oid(".1.3.6.1.2.1.1.2.0").startswith(".1.1.1.1.1.1"),
+    "snmp_info"             : (".1.3.6.1.4.1.1.1.1.1.1", [1]),
+}
