@@ -1,0 +1,14 @@
+#!/bin/bash
+# This is a sample shell script showing how you can submit the ACKNOWLEDGE_SVC_PROBLEM command
+# to Nagios.  Adjust variables to fit your environment as necessary.
+
+now=`date +%s`
+commandfile='/omd/sites/<sitename>/tmp/run/nagios.cmd'
+
+if [[ -z "${2// }" ]]
+then
+	printf "[%lu] ACKNOWLEDGE_HOST_PROBLEM;$1;2;0;1;$3;Acknowledgement durch Asterisk\n" $now > $commandfile
+else
+	printf "[%lu] ACKNOWLEDGE_SVC_PROBLEM;$1;$2;2;0;1;$3;Acknowledgement durch Asterisk\n" $now > $commandfile
+fi
+

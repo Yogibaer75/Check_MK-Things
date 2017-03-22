@@ -12,11 +12,10 @@ register_check_parameters(
             ('anzahl', 
                 Tuple(title = "Anzahl der Mein Check Werte",
                     elements = [
-                        Integer(title = _("Warning at"), default_value = 100000)
-                        Integer(title = _("Critical at"), default_value = 500000)
+                        Integer(title = _("Warning at"), default_value = 100000),
+                        Integer(title = _("Critical at"), default_value = 500000),
                     ])),
         ],
     ),
-    TextAscii(title = _('Mein Check Wert')),
     match_type = "dict",
 )

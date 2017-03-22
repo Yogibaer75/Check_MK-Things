@@ -1,0 +1,27 @@
+#!/usr/bin/python
+# Voice (using asterisk)
+# Notification via voice using the asterisk
+# Note: You have to add the side user to the asterisk group
+# and restart the site
+
+import os, sys, string
+
+send_path = "/omd/sites/meleghy/local/bin/call.pl"
+nagios2hoststates = { "up" : 1, "down" : 2, "unreachable": 3, "unknown" : 4 }
+hoststates2german = { 1: "an", 2: "aus", 3: "nicht erreichbar", 4: "unbekannt" }
+
+
+message = "<break time=\\\"1000ms\\\"/>Dies ist eine Nachricht vom Monitoring System, "
+hostname = " ".join(os.environ['NOTIFY_HOSTNAME'])
+hoststate = nagios2hoststates[string.lower(os.environ['NOTIFY_HOSTSTATE'])]
+german = hoststates2german[int(hoststate)]
+
+if os.environ['NOTIFY_WHAT'] == 'SERVICE':
+    message += "der Service " + os.environ['NOTIFY_SERVICEDESC'] + " auf dem Host <speed level=\\\"70\\\">" + hostname + "</speed> hat den Status " + string.lower(os.environ['NOTIFY_SERVICESTATE'])
+    command = send_path + " -m '" + message + "' -c " + os.environ['NOTIFY_CONTACTNAME'] + " -C 'SIP/" + os.environ['NOTIFY_CONTACTPAGER'] + "@HIGHPATH' -H " + os.environ['NOTIFY_HOSTNAME'] + " -S '" + os.environ['NOTIFY_SERVICEDESC'] + "'"
+else:
+    message += "der Host <speed level=\\\"70\\\">" + hostname + "</speed> hat den Status " + german
+    command = send_path + " -m '" + message + "' -c " + os.environ['NOTIFY_CONTACTNAME'] + " -C 'SIP/" + os.environ['NOTIFY_CONTACTPAGER'] + "@HIGHPATH' -H " + os.environ['NOTIFY_HOSTNAME']
+
+os.system("%s" % (command))
+

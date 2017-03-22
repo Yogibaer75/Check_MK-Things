@@ -24,9 +24,6 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-# command reference for naviseccli
-# http://corpusweb130.emc.com/upd_prod_VNX/UPDFinalPDF/jp/Command_Reference_for_Block.pdf
-
 # commands to be issued
 #naviseccli -h 10.1.36.13 -User XXXX -Password XXXX -Scope0 getall < -sp>
 #naviseccli -h 10.1.36.13 -User XXXX -Password XXXX -Scope0 getall < -disk>
@@ -46,7 +43,7 @@ import inspect, pprint # FOR DEBUGGING
 #############################################################################
 def usage():
 #############################################################################
-    sys.stderr.write("""Check_MK EMC VNX Agent
+    sys.stderr.write("""Check_MK EMC VNXe Agent
 
 USAGE: agent_emcvnxe [OPTIONS] HOST
        agent_emcvnxe -h
@@ -56,14 +53,14 @@ ARGUMENTS:
 
 OPTIONS:
   -h, --help                    Show this help message and exit
-  -u USER, --user USER          Username for EMC VNX login
-  -p PASSWORD, --password PASSWORD  Password for EMC VNX login
+  -u USER, --user USER          Username for EMC VNXe login
+  -p PASSWORD, --password PASSWORD  Password for EMC VNXe login
 
                                 If you do not give USER and PASSWORD:
-                                We try to use naviseccli with security files.
+                                We try to use uemcli with security files.
                                 These need to be created in advance by running as
                                 the instance user:
-                                naviseccli -AddUserSecurity -scope 0 -password PASSWORD -user USER
+                                uemcli.sh -d HOST -u USER -p PASSWORD -saveUser
 
   --debug                       Debug mode: write some debug messages,
                                 let Python exceptions come through
@@ -103,11 +100,10 @@ mortypes       = [ 'all' ]
 fetch_agent_info = False
 
 naviseccli_options = {
-    "ssd"      : {"cmd_option" : "/env/ssd",     "active" : False, "sep" : None},
-    "ps"       : {"cmd_option" : "/env/ps",      "active" : False, "sep" : None},
-    "iomodule" : {"cmd_option" : "/env/iomodule","active" : False, "sep" : None},
-    "dae"      : {"cmd_option" : "/env/dae",     "active" : False, "sep" : None},
-    "general"  : {"cmd_option" : "/sys/general", "active" : False, "sep" : None},
+    "ssd"      : {"cmd_option" : "/env/ssd",     "active" : False, "sep" : 44},
+    "ps"       : {"cmd_option" : "/env/ps",      "active" : False, "sep" : 44},
+    "iomodule" : {"cmd_option" : "/env/iomodule","active" : False, "sep" : 44},
+    "dae"      : {"cmd_option" : "/env/dae",     "active" : False, "sep" : 44},
 }
 
 for o,a in opts:
@@ -160,14 +156,14 @@ except ValueError:
     pass
 
 #############################################################################
-# fetch information by calling naviseccli
+# fetch information by calling uemcli
 #############################################################################
 
 if (user == None or user == '') and (password == None or password == ''):
     # try using security files
-    basecmd = "/opt/emc/uemcli/bin/uemcli.sh -h %s " % host_address
+    basecmd = "/opt/emc/uemcli/bin/uemcli.sh -silent -d %s " % host_address
 else:
-    basecmd = "/opt/emc/uemcli/bin/uemcli.sh -h %s -user %s -password '%s' " % (host_address, user, password)
+    basecmd = "/opt/emc/uemcli/bin/uemcli.sh -silent -d %s -user %s -password '%s' " % (host_address, user, password)
 
 #
 # check_mk section of agent output
@@ -181,21 +177,22 @@ if opt_debug:
 cmdout = [ l.strip() for l in os.popen(cmd + " 2>&1").readlines() ]
 
 if cmdout:
-    if "naviseccli: not found" in cmdout[0]:
-        sys.stderr.write("The command \"naviseccli\" could not be found. Terminating.\n")
+    if "uemcli.sh: not found" in cmdout[0]:
+        sys.stderr.write("The command \"uemcli.sh\" could not be found. Terminating.\n")
         sys.exit(1)
 
-    elif cmdout[0].startswith("Security file not found"):
+    elif cmdout[0].startswith("You do not have access"):
         sys.stderr.write("Could not find security file. Please provide valid user "
                          "credentials if you don't have a security file.\n")
         sys.exit(1)
 
 # Try to gather the version of the agent
-emcvnx_version = None
+emcvnxe_version = None
 for line in cmdout:
-    tokens = re.split(";", line)
-    if tokens[0] == "Agent" and tokens[1] == "Rev:":
-        emcvnx_version = "_".join(tokens[2:])
+    tokens = re.split(",", line)
+    if tokens[2] == "EMC Storage System":
+        emcvnxe_version = "_".join(tokens[1:2])
+        emcvnxe_version = emcvnxe_version.replace(" ","_").replace("\"","")
 
 print "<<<check_mk>>>"
 print "Version: %s" % emcvnx_version
@@ -205,7 +202,7 @@ print "Version: %s" % emcvnx_version
 # other commandline argument
 #print "AgentOS: %s " % emcvnx_model
 
-print "<<<emcvnx_info>>>"
+print "<<<emcvnxe_info>>>"
 for line in cmdout:
     print line
 
@@ -226,9 +223,9 @@ for module in naviseccli_options.keys():
     if naviseccli_options[module]["active"] == True:
         separator = naviseccli_options[module]["sep"]
         if separator:
-            print "<<<emcvnx_%s:sep(%s)>>>" % (module, separator)
+            print "<<<emcvnxe_%s:sep(%s)>>>" % (module, separator)
         else:
-            print "<<<emcvnx_%s>>>" % module
+            print "<<<emcvnxe_%s>>>" % module
         cmd=basecmd + naviseccli_options[module]["cmd_option"] + " show -output csv"
         if opt_debug:
             sys.stderr.write("executing external command: %s\n" % cmd)
