@@ -6,7 +6,7 @@
 
 import os, sys, string
 
-send_path = "/omd/sites/meleghy/local/bin/call.pl"
+send_path = "/omd/sites/<sitename>/local/bin/call.pl"
 nagios2hoststates = { "up" : 1, "down" : 2, "unreachable": 3, "unknown" : 4 }
 hoststates2german = { 1: "an", 2: "aus", 3: "nicht erreichbar", 4: "unbekannt" }
 
@@ -18,10 +18,9 @@ german = hoststates2german[int(hoststate)]
 
 if os.environ['NOTIFY_WHAT'] == 'SERVICE':
     message += "der Service " + os.environ['NOTIFY_SERVICEDESC'] + " auf dem Host <speed level=\\\"70\\\">" + hostname + "</speed> hat den Status " + string.lower(os.environ['NOTIFY_SERVICESTATE'])
-    command = send_path + " -m '" + message + "' -c " + os.environ['NOTIFY_CONTACTNAME'] + " -C 'SIP/" + os.environ['NOTIFY_CONTACTPAGER'] + "@HIGHPATH' -H " + os.environ['NOTIFY_HOSTNAME'] + " -S '" + os.environ['NOTIFY_SERVICEDESC'] + "'"
+    command = send_path + " -m '" + message + "' -c " + os.environ['NOTIFY_CONTACTNAME'] + " -C 'SIP/" + os.environ['NOTIFY_CONTACTPAGER'] + "@NETPHONE' -H " + os.environ['NOTIFY_HOSTNAME'] + " -S '" + os.environ['NOTIFY_SERVICEDESC'] + "'"
 else:
     message += "der Host <speed level=\\\"70\\\">" + hostname + "</speed> hat den Status " + german
-    command = send_path + " -m '" + message + "' -c " + os.environ['NOTIFY_CONTACTNAME'] + " -C 'SIP/" + os.environ['NOTIFY_CONTACTPAGER'] + "@HIGHPATH' -H " + os.environ['NOTIFY_HOSTNAME']
+    command = send_path + " -m '" + message + "' -c " + os.environ['NOTIFY_CONTACTNAME'] + " -C 'SIP/" + os.environ['NOTIFY_CONTACTPAGER'] + "@NETPHONE' -H " + os.environ['NOTIFY_HOSTNAME']
 
 os.system("%s" % (command))
-
