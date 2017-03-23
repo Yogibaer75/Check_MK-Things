@@ -1,0 +1,12 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def bake_wmi_usb(opsys, conf, conf_dir, plugins_dir):
+    if conf:
+        shutil.copy2(local_dir + "/agents/windows/plugins/wmi_usb.vbs",
+                     plugin_dir + "/wmi_usb.vbs")
+
+bakery_info["wmi_usb"] = {
+    "bake_function" : bake_wmi_usb,
+    "os"            : [ "windows" ],
+}
