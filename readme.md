@@ -1,4 +1,4 @@
-# Bechtle Checks und Anpassungen der CMK Checks
+# Checks und Anpassungen der CMK Checks
 
 ## Anpassungen der CMK Komponenten
 
