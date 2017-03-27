@@ -1,0 +1,28 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# 
+# Sample agent output
+# <<<checkname>>>
+# checkstatus 0 with much text output
+
+<checkname>_status_codes = {
+    0 : (0, "ok")
+    1 : (1, "warning")
+    2 : (2, "critical")
+    3 : (3, "unknown")
+}
+
+def inventory_<checkname>(info):
+    return [(None,{})]
+
+def check_<checkname>(_no_item, _no_params, info):
+    # the following depends on the info - agent output is separeted at <space>
+    status, name = <checkname>_status_codes[int(info[0][1])]
+    messagetext = " ".join(info[0][2:])
+    return status, "Item status: %s with message - %s" % (name, messagetext)
+
+check_info["<checkname>"] = {
+    "check_function"         : check_<checkname>,
+    "inventory_function"     : inventory_<checkname>,
+    "service_description"    : "<Itemname>",
+}

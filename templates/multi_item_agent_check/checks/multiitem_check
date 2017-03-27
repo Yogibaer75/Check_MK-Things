@@ -1,0 +1,48 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# 
+# Sample agent output
+# <<<checkname>>>
+# item1 15 with much text output
+# item2 20 with much text output too
+# item3 17 with much text output
+
+factory_settings["<checkname>_default_levels"] = {
+    "levels" : (20, 30),
+}
+
+def inventory_<checkname>(info):
+    for line in info:
+        yield line[0], {}
+
+def check_<checkname>(item, params, info):
+    if type(params) == tuple:
+        params = { "levels" : params}
+    # Only upper values are checked here - if also lower values
+    # should be checked then a little bit more code is necessary
+    warn, crit = params["levels"]
+    
+    for line in info:
+        if line[0] == item:
+            itemvalue = safeint(line[1])
+            messagetext = " ".join(line[2:])
+            message = "%s at %d with %s" % (line[0], itemvalue, messagetext)
+            perdata = [ ("item", itemvalue, warn, crit) ]
+            if itemvalue > crit:
+                message += "(!!)"
+                return 2, message, perfdata
+            elif itemvalue > warn:
+                message += "(!)"
+                return 1, message, perfdata
+            else:
+                return 0, message, perfdata
+    return 3, "Item not found in agent output"
+
+check_info["<checkname>"] = {
+    "check_function"         : check_<checkname>,
+    "inventory_function"     : inventory_<checkname>,
+    "service_description"    : "<Itemname> %s",
+    "default_levels_variable": "<checkname>_default_levels",
+    "has_perfdata"           : True,                    # optional if available
+    "group"                  : "<wato_group>",
+}
