@@ -1,0 +1,37 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def parse_emcvnxe_disk(info):
+    parsed = [dict(zip([t.replace('"', '') for t in info[0]], [s.replace('"', '') for s in c])) for c in info[1:]]
+    return parsed
+
+def inventory_emcvnxe_disk(parsed):
+    for element in parsed:
+        if element.get('User capacity') == "0":
+            continue
+        yield ( element.get('ID'), {})
+
+def check_emcvnxe_disk(item, params, parsed):
+    for element in parsed:
+        if element.get('ID') == item:
+            health = element.get('Health state')
+            health_state = health.split(' ')[:1]
+            if health_state[0] == "OK":
+                state = 0
+            else:
+                state = 1
+            pool = element.get('Pool')
+            if pool == "Unconfigured":
+                pool = "no Pool assigned"
+            capacity = element.get('User capacity').split(' ')[1:][0].replace(')','').replace('(','')
+            return state, ("Disk %s - Pool %s - Capacity %s" % (health_state[0], pool, capacity))
+    
+    return 3, ("Disk not found in agent output")
+
+check_info["emcvnxe_disk"] = {
+    "parse_function"        : parse_emcvnxe_disk,
+    "check_function"        : check_emcvnxe_disk,
+    "inventory_function"    : inventory_emcvnxe_disk,
+    "service_description"   : "EMC Disk %s",
+    "has_perfdata"          : False,
+}

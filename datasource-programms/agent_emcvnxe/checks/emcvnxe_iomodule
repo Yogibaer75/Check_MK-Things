@@ -1,0 +1,31 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def parse_emcvnxe_iomodule(info):
+    parsed = [dict(zip([t.replace('"', '') for t in info[0]], [s.replace('"', '') for s in c])) for c in info[1:]]
+    return parsed
+
+def inventory_emcvnxe_iomodule(parsed):
+    for element in parsed:
+        yield ( element.get('ID'), {})
+
+def check_emcvnxe_iomodule(item, params, parsed):
+    for element in parsed:
+        if element.get('ID') == item:
+            health = element.get('Health state')
+            health_state = health.split(' ')[:1]
+            if health_state[0] == "OK":
+                state = 0
+            else:
+                state = 1
+            return state, ("IOModule Health State is %s" % health_state[0])
+
+    return 3, ("IOModule not found in agent output")
+
+check_info["emcvnxe_iomodule"] = {
+    "parse_function"        : parse_emcvnxe_iomodule,
+    "check_function"        : check_emcvnxe_iomodule,
+    "inventory_function"    : inventory_emcvnxe_iomodule,
+    "service_description"   : "EMC IOModule %s",
+    "has_perfdata"          : False,
+}

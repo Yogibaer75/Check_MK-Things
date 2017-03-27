@@ -1,0 +1,27 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def parse_emcvnxe_info(info):
+    parsed = [dict(zip([t.replace('"', '') for t in info[0]], [s.replace('"', '') for s in c])) for c in info[1:]]
+    return parsed
+
+def inventory_emcvnxe_info(parsed):
+    return [(None, None)]
+
+def check_emcvnxe_info(_no_item, params, parsed):
+    health = parsed[0].get('Health state')
+    health_state = health.split(' ')[:1]
+    if health_state[0] == "OK":
+        state = 0
+    else:
+        state = 1
+    return state,("EMC %s - Hostname %s - Ser.Nr. %s - Health state %s" % (parsed[0].get('Model'),parsed[0].get('System name'),parsed[0].get('Product serial number'),parsed[0].get('Health state')))
+
+check_info["emcvnxe_info"] = {
+    "parse_function"        : parse_emcvnxe_info,
+    "check_function"        : check_emcvnxe_info,
+    "inventory_function"    : inventory_emcvnxe_info,
+    "service_description"   : "EMC Info",
+    "has_perfdata"          : False,
+}
+

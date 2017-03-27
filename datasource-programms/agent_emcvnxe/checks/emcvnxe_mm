@@ -1,0 +1,32 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def parse_emcvnxe_mm(info):
+    parsed = [dict(zip([t.replace('"', '') for t in info[0]], [s.replace('"', '') for s in c])) for c in info[1:]]
+    return parsed
+
+def inventory_emcvnxe_mm(parsed):
+    for element in parsed:
+        yield ( element.get('ID'), {})
+
+def check_emcvnxe_mm(item, params, parsed):
+    for element in parsed:
+        if element.get('ID') == item:
+            health = element.get('Health state')
+            health_state = health.split(' ')[:1]
+            if health_state[0] == "OK":
+                state = 0
+            else:
+                state = 1
+            return state, ("MemoryModule Health State is %s" % health_state[0])
+
+    return 3, ("MemoryModule not found in agent output")
+
+check_info["emcvnxe_mm"] = {
+    "parse_function"        : parse_emcvnxe_mm,
+    "check_function"        : check_emcvnxe_mm,
+    "inventory_function"    : inventory_emcvnxe_mm,
+    "service_description"   : "EMC MemoryModule %s",
+    "has_perfdata"          : False,
+}
+
