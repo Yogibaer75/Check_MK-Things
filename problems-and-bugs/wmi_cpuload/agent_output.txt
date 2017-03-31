@@ -1,0 +1,72 @@
+Output mit Parsing Error und damit keiner gültigen Ausgabe für Processoren
+
+<<<wmi_cpuload:sep(44)>>>
+[system_perf]
+AlignmentFixupsPersec,Caption,ContextSwitchesPersec,Description,ExceptionDispatchesPersec,FileControlBytesPersec,FileControlOperationsPersec,FileDataOperationsPersec,FileReadBytesPersec,FileReadOperationsPersec,FileWriteBytesPersec,FileWriteOperationsPersec,FloatingEmulationsPersec,Frequency_Object,Frequency_PerfTime,Frequency_Sys100NS,Name,PercentRegistryQuotaInUse,PercentRegistryQuotaInUse_Base,Processes,ProcessorQueueLength,SystemCallsPersec,SystemUpTime,Threads,Timestamp_Object,Timestamp_PerfTime,Timestamp_Sys100NS
+0,,-1116994458,,77306,111759751543,2029743253,659638445,243321967990,337896232,68653445487,321742213,0,10000000,2338334,10000000,,87284160,-1,60,7,47152147,131344018064883571,693,131354173056251087,2374604630619,131354245056250000
+[computer_system]
+AdminPasswordStatus,AutomaticManagedPagefile,AutomaticResetBootOption,AutomaticResetCapability,BootOptionOnLimit,BootOptionOnWatchDog,BootROMSupported,BootupState,Caption,ChassisBootupState,CreationClassName,CurrentTimeZone,DaylightInEffect,Description,DNSHostName,Domain,DomainRole,EnableDaylightSavingsTime,FrontPanelResetStatus,HypervisorPresent,InfraredSupported,InitialLoadInfo,InstallDate,KeyboardPasswordStatus,LastLoadInfo,Manufacturer,Model,Name,NameFormat,NetworkServerModeEnabled,NumberOfLogicalProcessors,NumberOfProcessors,OEMLogoBitmap,OEMStringArray,PartOfDomain,PauseAfterReset,PCSystemType,PCSystemTypeEx,PowerManagementCapabilities,PowerManagementSupported,PowerOnPasswordStatus,PowerState,PowerSupplyState,PrimaryOwnerContact,PrimaryOwnerName,ResetCapability,ResetCount,ResetLimit,Roles,Status,SupportContactDescription,SystemStartupDelay,SystemStartupOptions,SystemStartupSetting,SystemType,ThermalState,TotalPhysicalMemory,UserName,WakeUpType,Workgroup
+1,1,1,1,3,3,1,Normal boot,SERVER,3,Win32_ComputerSystem,120,1,AT/AT COMPATIBLE,SERVER,intern.meine.domain,5,1,3,1,0,,,3,,VMware, Inc.,VMware7,1,SERVER,,1,2,2,,<array>,1,3932100000,1,1,,,0,0,3,,Windows-Benutzer,1,-1,-1,<array>,OK,,,,,x64-based PC,3,4293980160,,6,
+
+[computer_system]
+AdminPasswordStatus                   1
+AutomaticManagedPagefile              1
+AutomaticResetBootOption              1
+AutomaticResetCapability              1
+BootOptionOnLimit                     3
+BootOptionOnWatchDog                  3
+BootROMSupported                      1
+BootupState                           Normal boot
+Caption                               SERVER
+ChassisBootupState                    3
+CreationClassName                     Win32_ComputerSystem
+CurrentTimeZone                       120
+DaylightInEffect                      1
+Description                           AT/AT COMPATIBLE
+DNSHostName                           SERVER
+Domain                                intern.meine.domain
+DomainRole                            5
+EnableDaylightSavingsTime             1
+FrontPanelResetStatus                 3
+HypervisorPresent                     1
+InfraredSupported                     0
+InitialLoadInfo                       
+InstallDate                           
+KeyboardPasswordStatus                3
+LastLoadInfo                          
+Manufacturer                          VMware
+Model                                  Inc.                     
+Name                                  VMware7                   <------ Parsing Error die 1 in der nächsten Zeile gehört dazu
+NameFormat                            1
+NetworkServerModeEnabled              SERVER
+NumberOfLogicalProcessors             
+NumberOfProcessors                    1                         <------ Number of Logical Processors
+OEMLogoBitmap                         2
+OEMStringArray                        2
+PartOfDomain                          
+PauseAfterReset                       <array>
+PCSystemType                          1
+PCSystemTypeEx                        3932100000
+PowerManagementCapabilities           1
+PowerManagementSupported              1
+PowerOnPasswordStatus                 
+PowerState                            
+PowerSupplyState                      0
+PrimaryOwnerContact                   0
+PrimaryOwnerName                      3
+ResetCapability                       
+ResetCount                            Windows-Benutzer
+ResetLimit                            1
+Roles                                 -1
+Status                                -1
+SupportContactDescription             <array>
+SystemStartupDelay                    OK
+SystemStartupOptions                  
+SystemStartupSetting                  
+SystemType                            
+ThermalState                          
+TotalPhysicalMemory                   x64-based PC
+UserName                              3
+WakeUpType                            4293980160
+Workgroup                             
+---> eine Zeile zu viel               6
