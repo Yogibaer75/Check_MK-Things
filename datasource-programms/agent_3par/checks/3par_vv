@@ -1,0 +1,50 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# Example output from agent:
+#<<<3par_vv>>>
+# 1 .srdata                   full base ---       1 RW normal               0      0    81920    81920
+# 0 admin                     full base ---       0 RW normal               0      0    10240    10240
+# 3 VV_FILE_DEVWSMZ-S02090    tpvv base ---       3 RW normal             384   8704    41216   102400
+# 4 VV_FILE_DEVWSMZ-S88029    tpvv base ---       4 RW normal             384   8704    16512   102400
+
+# The names of the columns are:
+#                                                                       ------Rsvd(MB)------- --(MB)--
+#Id Name                      Prov Type CopyOf BsId Rd -Detailed_State-   Adm    Snp      Usr    VSize
+
+def inventory_3par_vv(info):
+    inventory = []
+    for line in info:
+        if len(line) == 12 and line[0].isdigit():
+            vv_id = line[0].zfill(3)
+            inventory.append( (vv_id, None) )
+    return inventory
+
+def check_3par_vv(item, _no_params, info):
+    for line in info:
+        if line[0].zfill(3) == item and len(line) == 12:
+
+            vv_id, name, prov, vv_type, copyof, base_id, \
+                read_write, state, rsvd_adm, rsvd_snp, rsvd_usr, vsize = line
+
+            reserved_space = int(rsvd_adm) + int(rsvd_snp) + int(rsvd_usr)
+
+            # Check status
+            message = "VV %s/%s (%s MB) has status %s" % ( vv_id.zfill(3), name, vsize, state)
+            if state == "normal":
+                status = 0
+            else:
+                status = 2
+                message += "(!!)"
+
+            return status, message
+
+    return 3, "LD %s not found in agent output" % item
+
+check_info["3par_vv"] = {
+    "check_function"        : check_3par_vv,
+    "inventory_function"    : inventory_3par_vv,
+    "service_description"   : "VV %s",
+    "has_perfdata"          : False,
+}
+

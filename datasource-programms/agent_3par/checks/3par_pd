@@ -1,0 +1,47 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# Example output from agent:
+#<<<3par_pd>>>
+#  0 0:0:0   FC    10 normal    838656   327680 1:0:1* 0:0:1           900
+#  1 0:1:0   FC    10 normal    838656   328704 1:0:1  0:0:1*          900
+#  2 0:2:0   FC    10 normal    838656   327680 1:0:1* 0:0:1           900
+
+# The names of the columns are:
+#                            -----Size(MB)----- ----Ports----
+# Id CagePos Type RPM State      Total     Free A      B      Capacity(GB)
+
+def inventory_3par_pd(info):
+    inventory = []
+    for line in info:
+        if len(line) == 10 and line[0].isdigit():
+            disk_id = line[0].zfill(3)
+            inventory.append( (disk_id, None) )
+    return inventory
+
+def check_3par_pd(item, _no_params, info):
+    for line in info:
+        if line[0].zfill(3) == item and len(line) == 10:
+
+            disk_id, position, con_type, rpm, state, size_mb, free_mb, \
+                port_a, port_b, capacity = line
+
+            # Check status
+            message = "Disk %s (%s GB/%s) with position %s is %s" % ( disk_id.zfill(3), capacity, con_type, position, state)
+            if state == "normal":
+                status = 0
+            else:
+                status = 2
+                message += "(!!)"
+
+            return status, message
+
+    return 3, "Disk %s not found in agent output" % item
+
+check_info["3par_pd"] = {
+    "check_function"        : check_3par_pd,
+    "inventory_function"    : inventory_3par_pd,
+    "service_description"   : "Disk %s",
+    "has_perfdata"          : False,
+}
+

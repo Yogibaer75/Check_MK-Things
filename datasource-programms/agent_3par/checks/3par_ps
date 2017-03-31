@@ -1,0 +1,46 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# Example output from agent:
+#<<<3par_ps:sep(58)>>>
+# 0,1  0  726237-001 5DNSFA2438A298 OK      OK      OK
+# 0,1  1  726237-001 5DNSFA2438A1EE OK      OK      OK
+
+# The names of the columns are:
+# Node PS -Assy_Part- -Assy_Serial-- ACState DCState PSState
+
+def inventory_3par_ps(info):
+    inventory = []
+    for line in info:
+        enclosure_id = line[0] + line[1]
+        enclosure_id = enclosure_id.replace(",","_")
+        inventory.append( (enclosure_id, None) )
+    return inventory
+
+def check_3par_ps(item, _no_params, info):
+    for line in info:
+        device = line[0] + line[1]
+        if device.replace(",","_") == item:
+
+            node_id, ps_id, part_nr, part_serial, acstate, \
+                dcstate, psstate = line
+
+            # Check status
+            message = "PowerSupply %s is %s" % ( device.replace(",","_"), psstate)
+            if psstate == "OK":
+                status = 0
+            else:
+                status = 2
+                message += "(!!)"
+
+            return status, message
+
+    return 3, "PowerSupply %s not found in agent output" % item
+
+check_info["3par_ps"] = {
+    "check_function"        : check_3par_ps,
+    "inventory_function"    : inventory_3par_ps,
+    "service_description"   : "PowerSupply %s",
+    "has_perfdata"          : False,
+}
+
