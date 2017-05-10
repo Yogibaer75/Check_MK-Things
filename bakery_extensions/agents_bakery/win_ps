@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+#
+# bakery function to include PS settings with the check_mk.ini
+#
+
+def bake_win_ps(opsys, conf, conf_dir, plugins_dir):
+    f = file(conf_dir + "/check_mk.ini.ps.settings", "w")
+    f.write("    # Experimental: Set to yes to use wmi for retrieving process information."
+            "    # This is required for additional ps feature below"
+            "    use_wmi = %s\r\n"
+            "    # Include the whole path of a process and its arguments in process list"
+            "    full_path = %s\r\n" % (conf["use_wmi"],conf["full_path"]))
+
+bakery_info["win_ps"] = {
+    "bake_function" : bake_win_ps,
+    "os"            : [ "windows" ],
+}
