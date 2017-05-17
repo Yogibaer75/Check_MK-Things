@@ -1,0 +1,58 @@
+[MASTER]
+# Setup the python paths needed for our tests
+persistent=yes
+# We only want to see errors for the moment. Disable this one day. But prepare to cleanup a lot of stuff.
+errors-only=yes
+
+[MESSAGES CONTROL]
+# C0111 missing module docstring
+# C0326 bad-whitespace
+# unsubscriptable-object
+# unsupported-membership-test
+# unpacking-non-sequence
+#   Disable this because we often use multiple types for a single variable. Maybe we
+#   can change this in future to make such linter checks work, but for the moment these
+#   checks are useless with Check_MK.
+disable=C0111,bad-whitespace,unsubscriptable-object,unsupported-membership-test,unpacking-non-sequence,assignment-from-none
+# W0612: Unused variable
+# TODO: enable this and prepare code for it!
+# -unused-variable
+# - bad-indentation,mixed-indentation,unnecessary-semicolon
+# - redefined-builtin
+# - global-variable-undefined
+# - unused-import
+# - spelling? (need python-enchant, enchant packages)
+# https://pylint.readthedocs.io/en/latest/reference_guide/features.html
+enable=unreachable,dangerous-default-value,duplicate-key,using-constant-test,duplicate-except,binary-op-exception,overlapping-except,non-parent-init-called,super-init-not-called,no-init,bad-open-mode,redundant-unittest-assert,boolean-datetime,deprecated-method,nonstandard-exception,import-self,global-variable-not-assigned,undefined-loop-variable,lost-exception,property-on-old-class
+
+[TYPECHECK]
+ignored-modules = rrdtool,ldap
+
+[REPORTS]
+output-format=cmk_colorized
+msg-template={path}:{line}: [{msg_id}({symbol}), {obj}] {msg}
+
+[FORMAT]
+max-line-length=100
+single-line-if-stmt=no
+indent-string='    '
+
+[VARIABLES]
+# Ignore these unused variables (e.g. _no_item,_no_params)
+dummy-variables-rgx=^_.*
+# Needed by web code because of super globals. TODO Clean this up some day
+additional-builtins=html,_,_u,current_language,HTML
+
+[MISCELLANEOUS]
+# List of note tags to take in consideration, separated by a comma.
+notes=FIXME,TODO
+
+[SPELLING]
+spelling-dict=en_US
+# List of comma separated words that should not be checked.
+spelling-ignore-words=
+# A path to a file that contains private dictionary; one word per line.
+#spelling-private-dict-file=
+# Tells whether to store unknown words to indicated private dictionary in
+# --spelling-private-dict-file option instead of raising a message.
+#spelling-store-unknown-words=no
