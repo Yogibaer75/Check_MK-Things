@@ -1,0 +1,50 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+dell_compellent_disks_status = { 1: 'up',
+                            2: 'down',
+                            3: 'degraded',
+                          }
+
+def dell_compellent_disks_summary(info):
+    # compute the number of disks in each state.
+    states = {}
+    for index, state, health in info:
+        state = int(state)
+        statename = dell_compellent_disks_status[state]
+        states[statename] = states.get(statename, 0) + 1
+    return states
+
+def inventory_dell_compellent_disks_summary(info):
+    current_state = dell_compellent_disks_summary(info)
+    if len(current_state) > 0:
+        return [ (None, current_state) ]
+
+def dell_compellent_disks_printstates(state):
+    return ", ".join(["%s: %s" % (s,c) for (s,c) in state.items()])
+
+def check_dell_compellent_disks_summary(index, expected_status, info):
+    current_state = dell_compellent_disks_summary(info)
+    infotext = dell_compellent_disks_printstates(current_state)
+    if current_state == expected_status:
+        return (0, infotext)
+
+    result = 1
+    for ename, ecount in expected_status.items():
+        if current_state.get(ename, 0) < ecount:
+            result = 2
+            break
+
+    return (result, infotext + \
+            " (expected was: %s)" % dell_compellent_disks_printstates(expected_status))
+
+check_info["dell_compellent_disks.summary"] = {
+    'check_function'        : check_dell_compellent_disks_summary,
+    'inventory_function'    : inventory_dell_compellent_disks_summary,
+    'service_description'   : 'Disk summary',
+    'snmp_info'             : ('.1.3.6.1.4.1.16139.2.14.1', [
+                                  2, # scDiskNbr
+                                  3, # scDiskStatus
+                                  5, # scDiskHealthy
+                              ]),
+    'snmp_scan_function'    : lambda oid: oid('.1.3.6.1.4.1.16139.2.3.0') == "Dell-Compellent Technologies",

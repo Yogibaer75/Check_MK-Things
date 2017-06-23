@@ -1,0 +1,49 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+factory_settings["dell_compellent_fans_default_levels"] = {
+    "levels" : (20000, 25000),
+    "levels_lower" : (5000, 2000),
+    "device_levels_handling" : "usrdefault",
+}
+
+def inventory_dell_compellent_fans(info):
+    return [ (entry[0], None) for entry
+              in info if entry[0] != None]
+
+def check_dell_compellent_fans( item, params, info):
+    state_table = {
+        "1" : ( "up, ", 0 ),
+        "2" : ( "down, ", 2 ),
+        "3" : ( "degraded", 1 ),
+    }
+
+    for descr, status, rpm, minwarn, maxwarn, mincrit, maxcrit in info:
+        if item == descr:
+            dev_state_readable, dev_state = state_table[status]
+            return check_fans(savefloat(rpm), params, "dell_compellent.%s" % item,
+                              dev_levels = (saveint(maxwarn), saveint(maxcrit)),
+                              dev_levels_lower = (saveint(minwarn), saveint(mincrit)),
+                              dev_status = dev_state, dev_status_name = dev_state_readable)
+
+    return 3, "unknown"
+
+check_info["dell_compellent_fans"] = {
+    "check_function"        : check_dell_compellent_fans,
+    "inventory_function"    : inventory_dell_compellent_fans,
+    "service_description"   : "Fan Status %s",
+    "has_perfdata"          : True,
+    "group"                 : "hw_fans_rpm",
+    "snmp_info"             : ( ".1.3.6.1.4.1.16139.2.16.1", [
+                                      OID_END,
+                                      3, # scCtlrFanStatus
+                                      5, # scCtlrFanCurrentRpm
+                                      8, # scCtlrFanWarnLwrRpm
+                                      9, # scCtlrFanWarnUprRpm
+                                      10, # scCtlrFanCritLwrRpm
+                                      11, # scCtlrFanCritUprRpm
+                              ]),
+    "default_levels_variable" : "dell_compellent_fans_default_levels",
+    "includes"              : [ "fan_rpm.include" ],
+    "snmp_scan_function"    : lambda oid: oid('.1.3.6.1.4.1.16139.2.3.0') == "Dell-Compellent Technologies",
+}
