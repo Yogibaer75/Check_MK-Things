@@ -1,0 +1,41 @@
+def esx_vsphere_counters_get_disk_mapping(parsed):
+    map_instance_to_item = {}
+    for instance in parsed.get("disk.deviceLatency", {}).keys():
+        map_instance_to_item[instance] = instance
+    return map_instance_to_item
+
+def inventory_esx_vsphere_counters_diskio(parsed):
+    return inventory_diskstat_generic(map(lambda x: [None, x],
+                             esx_vsphere_counters_get_disk_mapping(parsed).values()))
+
+#
+#def inventory_esx_vsphere_counters_diskio(parsed):
+#    if "disk.read" in parsed and "" in parsed["disk.read"]:
+#        return [("SUMMARY", {})]
+
+def check_esx_vsphere_counters_diskio(item, params, parsed):
+    if "disk.read" not in parsed:
+        raise MKCounterWrapped("Counter data is missing")
+
+    disks = {}
+    #print parsed
+    item_mapping = esx_vsphere_counters_get_disk_mapping(parsed)
+
+    for new_name, eval_function, name, scaling in [
+                ("read_throughput",  lambda x: int(esx_vsphere_get_average(x)), "disk.read",                           1024),
+                ("write_throughput", lambda x: int(esx_vsphere_get_average(x)), "disk.write",                          1024),
+                ("read_ios",         lambda x: int(esx_vsphere_get_average(x)), "disk.numberRead",                        1),
+                ("write_ios",        lambda x: int(esx_vsphere_get_average(x)), "disk.numberWrite",                       1),
+                ("latency",          lambda x: max(map(int, x)),                "disk.deviceLatency",              1/1000.0) ]:
+        field_data = parsed.get(name, {})
+
+        for instance, values in field_data.items():
+            if instance == u'':
+                continue
+            item_name = item_mapping[instance]
+            disks.setdefault(item_name, {})
+            value = eval_function(values[0][0])
+            disks[item_name][new_name] = value * scaling
+
+    return check_diskstat_dict(item, params, disks)
+
