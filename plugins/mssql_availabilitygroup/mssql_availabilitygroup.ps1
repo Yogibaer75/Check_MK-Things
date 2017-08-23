@@ -17,7 +17,7 @@ Param(
 )
      # if debug=1 then output
      if ($DEBUG -gt 0) {
-          echo "DEBUG:${error_message}"
+          Write-Output "DEBUG:${error_message}"
      }
 }
 
@@ -88,10 +88,10 @@ else
     $replicaResults = @($groupObject.AvailabilityReplicas | Test-SqlAvailabilityReplica -NoRefresh)
     $databaseResults = @($groupObject.DatabaseReplicaStates | Test-SqlDatabaseReplicaState -NoRefresh)
     Write-Host "<<<sql_availabilitygroup>>>"
-    $groupResult | ft HealthState,Name -AutoSize -HideTableHeader
+    $groupResult | Format-Table HealthState,Name -AutoSize -HideTableHeader
     Write-Host "<<<sql_availabilityreplicas>>>"
-    $replicaResults | ft HealthState,AvailabilityGroup,Name -AutoSize -HideTableHeader
+    $replicaResults | Format-Table HealthState,AvailabilityGroup,Name -AutoSize -HideTableHeader
     Write-Host "<<<sql_databasereplicastate>>>"
-    $databaseResults | ft HealthState,AvailabilityGroup,AvailabilityReplica,Name -AutoSize -HideTableHeader
+    $databaseResults | Format-Table HealthState,AvailabilityGroup,AvailabilityReplica,Name -AutoSize -HideTableHeader
 }
 
