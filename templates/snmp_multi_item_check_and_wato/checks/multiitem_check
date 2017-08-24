@@ -15,12 +15,12 @@ def check_<checkname>(item, params, info):
     # Only upper values are checked here - if also lower values
     # should be checked then a little bit more code is necessary
     warn, crit = params["levels"]
-    
+    perfdata = []
     for line in info:
         if line[0] == item:
-            itemvalue = safeint(line[1])
+            itemvalue = saveint(line[1])
             message = "Item at %d" % itemvalue
-            perdata = [ ("item", itemvalue, warn, crit) ]
+            perfdata = [ ("item", itemvalue, warn, crit) ]
             if itemvalue > crit:
                 message += "(!!)"
                 return 2, message, perfdata
