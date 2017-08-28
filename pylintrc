@@ -29,7 +29,7 @@ enable=unreachable,dangerous-default-value,duplicate-key,using-constant-test,dup
 ignored-modules = rrdtool,ldap
 
 [REPORTS]
-output-format=cmk_colorized
+# output-format=cmk_colorized
 msg-template={path}:{line}: [{msg_id}({symbol}), {obj}] {msg}
 
 [FORMAT]
@@ -48,7 +48,7 @@ additional-builtins=html,_,_u,current_language,HTML
 notes=FIXME,TODO
 
 [SPELLING]
-spelling-dict=en_US
+# spelling-dict=en_US
 # List of comma separated words that should not be checked.
 spelling-ignore-words=
 # A path to a file that contains private dictionary; one word per line.
