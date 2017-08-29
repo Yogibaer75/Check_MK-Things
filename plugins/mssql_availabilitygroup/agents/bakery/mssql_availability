@@ -1,0 +1,21 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def bake_mssql_availability(opsys, conf, conf_dir, plugins_dir):
+    if conf:
+        shutil.copy2(omd_root + "/local/share/check_mk/agents/windows/plugins/mssql_availability_status.ps1",
+                     plugins_dir + "/mssql_availability_status.ps1")
+
+        content = agent_file_header
+        if "server" in conf:
+            content += '$SQLAVAIL=@("%s\%s", "%s")\n' % (conf['server'],conf['instance'], conf['group'])
+
+        cfg_file = conf_dir + "/mssql_availability_status_cfg.ps1"
+        content = content.replace('\n', '\r\n')
+        file(cfg_file, "w").write(content)
+
+bakery_info["mssql_availability"] = {
+    "bake_function" : bake_mssql_availability,
+    "os"            : [ "windows" ],
+}
+
