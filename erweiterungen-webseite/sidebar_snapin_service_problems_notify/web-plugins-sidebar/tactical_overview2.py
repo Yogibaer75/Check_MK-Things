@@ -40,7 +40,8 @@ def get_tactical_overview_data2(extra_filter_headers):
         "Stats: service_staleness >= %s\n" % configured_staleness_threshold + \
         "Stats: host_scheduled_downtime_depth = 0\n" \
         "Stats: service_scheduled_downtime_depth = 0\n" \
-        "StatsAnd: 3\n" \
+        "Stats: host_state = 0\n" \
+        "StatsAnd: 4\n" \
         "Filter: host_custom_variable_names < _REALNAME\n" + \
         extra_filter_headers
 
@@ -61,7 +62,8 @@ def get_tactical_overview_data2(extra_filter_headers):
         "Stats: service_staleness >= %s\n" % configured_staleness_threshold + \
         "Stats: host_scheduled_downtime_depth = 0\n" \
         "Stats: service_scheduled_downtime_depth = 0\n" \
-        "StatsAnd: 3\n" \
+        "Stats: host_state = 0\n" \
+        "StatsAnd: 4\n" \
         "Filter: host_custom_variable_names < _REALNAME\n" \
         "Filter: notifications_enabled = 1\n"
         
@@ -162,7 +164,7 @@ def render_tactical_overview2(extra_filter_headers="", extra_url_variables=None)
         },
         {
             "what"  : "service",
-            "title" : _("Services with notify"),
+            "title" : _("Svc notify"),
             "data"  : svc2data,
             "views" : {
                 "all"       : [
@@ -179,6 +181,7 @@ def render_tactical_overview2(extra_filter_headers="", extra_url_variables=None)
                 ],
                 "stale"     : [
                     ("view_name", "uncheckedsvc"),
+                    ("is_service_notifications_enabled", 1),
                 ],
             },
         },        
