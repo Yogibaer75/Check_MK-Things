@@ -1,0 +1,58 @@
+--- bi.py.org   2017-09-25 16:35:46.000000000 +0200
++++ bi.py       2017-10-01 17:09:19.787584596 +0200
+@@ -2548,11 +2548,22 @@
+     else:
+         state = x_best_state(states, n)
+
++    text = ""
+     # limit to worst state
+     if state_weight(state) > state_weight(worst_state):
+         state = worst_state
+
+-    return { "state" : state, "output" : "" }
++    if state == 0:
++        text = u"Alles im grünen Bereich"
++    elif state == 1:
++        for i in nodelist:
++            if i[0]["state"] != 0:
++                text += " - " + i[1]["title"] + " - " + i[0]["output"]
++    elif state == 2:
++        for i in nodelist:
++            if i[0]["state"] != 0:
++                text += " - " + i[1]["title"] + " - " + i[0]["output"]
++    return { "state" : state, "output" : text}
+
+ def aggr_worst(nodes, n = 1, worst_state = CRIT, ignore_states = None):
+     return aggr_nth_state(nodes, -int(n), int(worst_state), ignore_states)
+@@ -2583,6 +2594,7 @@
+     if num_nodes == 0: # All are pending
+         return { "state": -1, "output": "" }
+
++    text = ""
+     # counts can be specified as integer (e.g. '2') or
+     # as percentages (e.g. '70%').
+     ok_count = aggr_countok_convert(needed_for_ok, num_nodes)
+@@ -2590,14 +2602,20 @@
+
+     # Enough nodes are OK -> state is OK
+     if num_ok >= ok_count:
+-        return { "state": 0, "output": "" }
++        return { "state": 0, "output": u"Alles im grünen Bereich" }
+
+     # Enough nodes OK in order to trigger warn level -> WARN
+     elif num_ok >= warn_count:
+-        return { "state": 1, "output": "" }
+-
++        for i in nodes:
++            if i[0]["state"] != 0:
++                text += " - " + i[1]["title"] + " - " + i[0]["output"]
++        return { "state": 1, "output": text}
+     else:
+-        return { "state": 2, "output": "" }
++        for i in nodes:
++            if i[0]["state"] != 0:
++                text += " - " + i[1]["title"] + " - " + i[0]["output"]
++        return { "state": 2, "output": text}
++
+
+ config.aggregation_functions["count_ok"] = aggr_countok
