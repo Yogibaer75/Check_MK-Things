@@ -10,4 +10,4 @@ $date = (get-date).ToString('G')
 $compare = new-timespan -start $mailage -end $date
 $minutes = $compare.TotalMinutes
 
-echo "P Mailage age=$minutes,60,120 The Age of the oldest Mail is $minutes"
+Write-Output "P Mailage age=$minutes,60,120 The Age of the oldest Mail is $minutes"
