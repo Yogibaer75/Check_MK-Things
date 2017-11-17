@@ -1,0 +1,51 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# <<<mysql_ha>>>
+# Instance db-name ha-name ha-group synchronized healthy-status
+
+health_states = {
+    "HEALTHY"           : (0, "healthy"),
+    "PARTIALLY_HEALTHY" : (1, "partially healthy (!)"),
+    "NOT_HEALTHY"       : (2, "not healthy (!!)"), }
+
+replica_states = {
+    "True" : "primary replica",
+    "False": "secondary replica",}
+
+sync_states = {
+    "NOT_SYNCHRONIZING" : (2, "not synchronizing (!!)"),
+    "SYNCHRONIZING"     : (0, "synchronizing"),
+    "SYNCHRONIZED"      : (0, "synchronized"),
+    "REVERTING"         : (1, "reverting (!)"),
+    "INITIALIZING"      : (1, "initializing (!)"), }
+
+def inventory_mssql_ha(info):
+    for line in info:
+        if len(line) > 1:
+            yield line[0] + ' ' + line[1], None
+
+def check_mssql_ha(item, params, info):
+    for line in info:
+        if item != line[0] + ' ' + line[1]:
+            continue
+        if len(line) == 6:
+            db_instance, db_name, ag_name, is_primary_replica, synch_stat, healthy = line
+        else:
+            return 1, "Part of information missing from agent"
+        state, health_state = health_states.get(healthy, (3, "unhandled[%s]" % healthy))
+
+        infotext = "State is %s, %s, database is %s" % (health_state, replica_states.get(is_primary_replica), synch_stat)
+        if state == 0:
+            if (is_primary_replica == "True" and synch_stat == "SYNCHRONIZED") \
+                or \
+               (is_primary_replica == "False" and synch_stat == "SYNCHRONIZING"):
+                return state, infotext
+        return state, infotext
+    return 3, "Item not found in agent output"
+
+check_info["mssql_ha"] = {
+    'check_function'      : check_mssql_ha,
+    'inventory_function'  : inventory_mssql_ha,
+    'service_description' : 'AlwaysOn Database %s',
+}
