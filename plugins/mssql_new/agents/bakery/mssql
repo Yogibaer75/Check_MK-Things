@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
+#
+# only useable with the
 # .------------------------------------------------------------------------.
 # |                ____ _               _        __  __ _  __              |
 # |               / ___| |__   ___  ___| | __   |  \/  | |/ /              |
@@ -21,14 +23,6 @@
 # |                                                                        |
 # | mathias-kettner.com                                 mathias-kettner.de |
 # '------------------------------------------------------------------------'
-#  This file is part of the Check_MK Enterprise Edition (CEE).
-#  Copyright by Mathias Kettner and Mathias Kettner GmbH.  All rights reserved.
-#
-#  Distributed under the Check_MK Enterprise License.
-#
-#  You should have  received  a copy of the Check_MK Enterprise License
-#  along with Check_MK. If not, email to mk@mathias-kettner.de
-#  or write to the postal address provided at www.mathias-kettner.de
 
 def bake_mssql(opsys, conf, conf_dir, plugins_dir):
     if conf:
