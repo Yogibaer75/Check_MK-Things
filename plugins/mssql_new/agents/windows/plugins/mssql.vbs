@@ -103,6 +103,7 @@ sections.add "datafiles", "<<<mssql_datafiles>>>"
 sections.add "clusters", "<<<mssql_clusters>>>"
 sections.add "highavailability", "<<<mssql_ha>>>"
 sections.add "dbbackup", "<<<mssql_dbbackup>>>"
+sections.add "jobs", "<<<mssql_jobs>>>"
 ' Has been deprecated with 1.4.0i1. Keep this for nicer transition for some versions.
 sections.add "versions", "<<<mssql_versions:sep(124)>>>"
 
@@ -484,6 +485,20 @@ For Each instance_id In instances.Keys: Do ' Continue trick
     Loop	
 	RS.Close
 	
+    addOutput(sections("jobs"))
+    RS.Open "SELECT name, sjh.run_status, sjh.run_date, sjh.run_time" &_
+            " FROM msdb.dbo.sysjobs sj" &_
+            " INNER JOIN msdb.dbo.sysjobhistory sjh ON sj.job_id = sjh.job_id" &_
+            " INNER JOIN msdb.dbo.sysjobsteps s ON sjh.job_id = s.job_id" &_
+            " AND sjh.step_id = s.step_id" &_
+            " WHERE CONVERT(VARCHAR(8), sjh.run_date) > GETDATE() - 1" &_
+            " AND sjh.run_status = 0", CONN
+    Do While Not RS.Eof
+        addOutput( instance_id & " " & Replace(RS("name"), " ", "_") &" " & Replace(RS("run_status"), " ", "_") & " " & Replace(RS("run_date"), " ", "_") & " " & Replace(RS("run_time"), " ", "_"))
+        RS.MoveNext
+    Loop
+    RS.Close
+
     ' Now gather the db size and unallocated space
     addOutput(sections("tablespaces"))
     Dim dbSize, unallocated, reserved, data, indexSize, unused, continue
