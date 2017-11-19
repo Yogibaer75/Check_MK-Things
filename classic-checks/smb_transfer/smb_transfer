@@ -1,0 +1,285 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# Attention: Please use minimum pysmb 1.1.14
+
+import sys
+import os
+import getopt
+import time
+import datetime
+import re
+from cStringIO import StringIO
+from smb.SMBConnection import SMBConnection
+from smb import smb_structs
+from nmb.NetBIOS import NetBIOS
+from socket import gethostname
+from socket import gethostbyname
+
+
+def usage():
+    sys.stderr.write("""SMB Read Write Check
+
+USAGE: smb_transfer [OPTIONS] HOST
+       smb_transfer -h
+
+ARGUMENTS:
+  HOST                          Host name or IP address of SMB server
+
+OPTIONS:
+  -h, --help                    Show this help message and exit
+  -u USER, --user=USER          Username for SMB login
+  -p PASSWORD, --password=PASSWORD    Password for SMB login
+  -H HOSTNAME, --hostname=HOSTNAME    SMB server hostname
+  -i IP, --ip=IP                      SMB server IP
+  -r PATH, --remotepath=PATH          Path on SMB server
+  -f FILE, --filename=FILE            Filename to transfer
+  -s SERVICE, --service=SERVICE       Servicename on SMB server
+  -d DIR, --uploaddir=DIR             Local directory with file to transfer
+  -w WARNING, --warning WARNING       Time for warning status at upload
+  -c CRITICAL, --critical CRITICAL    Time for critical at upload
+
+""")
+
+
+short_options = "hu:p:H:i:r:f:s:d:w:c:"
+long_options = [
+    "help", "user=", "password=", "hostname=", "ip=", "remotepath=", "filename=",
+    "service=", "uploaddir=", "warning=", "critical="
+]
+
+error = None
+error_exit = 1
+
+hostname = None
+ip = None
+user = None
+password = None
+remotepath = None
+filename = None
+service = None
+uploaddir = None
+crit = 5.0
+warn = 2.5
+pattern = '*'
+
+try:
+    opts, args = getopt.getopt(sys.argv[1:], short_options, long_options)
+except getopt.GetoptError, err:
+    sys.stderr.write("%s\n" % err)
+    sys.exit(1)
+
+for o, a in opts:
+    if o in ['-u', '--user']:
+        user = a
+    elif o in ['-p', '--password']:
+        password = a
+    elif o in ['-H', '--hostname']:
+        hostname = a
+    elif o in ['-i', '--ip']:
+        ip = a
+    elif o in ['-r', '--remotepath']:
+        remotepath = a
+    elif o in ['-f', '--filename']:
+        filename = a
+    elif o in ['-s', '--service']:
+        service = a
+    elif o in ['-d', '--uploaddir']:
+        uploaddir = a
+    elif o in ['-w', '--warning']:
+        warn = a
+    elif o in ['-c', '--critical']:
+        crit = a
+    elif o in ['-h', '--help']:
+        usage()
+        sys.exit(0)
+
+if len(opts) < 8:
+    sys.stderr.write("Please set all options.\n")
+    usage()
+    sys.exit(1)
+
+
+def getBIOSName(remote_smb_ip, timeout=5):
+    try:
+        bios = NetBIOS()
+        srv_name = bios.queryIPForName(remote_smb_ip, timeout=timeout)
+    except:
+        print 'getBIOSName: timeout too short?'
+    finally:
+        bios.close()
+        return srv_name[0]
+
+
+def getServiceName(username, password, my_name, remote_name, remote_ip):
+    conn = connect(username, password, my_name, remote_name, remote_ip)
+    if conn:
+        shares = conn.listShares()
+        for s in shares:
+            if s.type == 0:
+                return s.name
+        conn.close()
+    else:
+        return ''
+
+
+def getRemoteDir(username, password, my_name, remote_name, remote_ip, path, pattern, service_name):
+    """Get remote dir from SMB resource"""
+    print'getRemoteDir() starts...'
+    conn = connect(username, password, my_name, remote_name, remote_ip)
+    if conn:
+        try:
+            files = conn.listPath(service_name, path, pattern=pattern)
+            #files = conn.listPath(service_name, path)
+            #print('returning: {}'.format(files))
+            return files
+        except Exception, e:
+            fmt = 'conn.listPath({}, {}, {}) threw {}: {}'
+            print fmt.format(service_name, path, pattern, type(e), e)
+            # print(type(e))
+        finally:
+            conn.close()
+    else:
+        print'connect() failed!'
+    return None
+
+
+def connect(username, password, my_name, remote_name, remote_ip):
+    """Connect to SMB Resource"""
+    smb_structs.SUPPORT_SMB2 = True
+    conn = SMBConnection(username, password, my_name,
+                         remote_name, use_ntlm_v2=True)
+    try:
+        conn.connect(remote_ip, 139)  # 139=NetBIOS / 445=TCP
+    except Exception, e:
+        print e
+    return conn
+
+
+def download(username, password, my_name, remote_name, remote_ip, path, filename, service_name):
+    conn = connect(username, password, my_name, remote_name, remote_ip)
+    if conn:
+        print 'Download = ' + path + filename
+        attr = conn.getAttributes(service_name, path + filename)
+        print 'Size = %.1f kB' % (attr.file_size / 1024.0)
+        print 'start download'
+        file_obj = StringIO()
+        file_attributes, filesize = conn.retrieveFile(
+            service_name, path + filename, file_obj)
+        fw = open(filename, 'w')
+        file_obj.seek(0)
+        for line in file_obj:
+            fw.write(line)
+        os.unlink(fw.name)
+        fw.close()
+        print 'download finished'
+        conn.close()
+
+
+def upload(username, password, my_name, remote_name, remote_ip, path, filename, service_name, uploaddir):
+    conn = connect(username, password, my_name, remote_name, remote_ip)
+    if conn:
+        with open(uploaddir + filename, 'r') as file_obj:
+            conn.storeFile(service_name, path + filename, file_obj)
+        conn.close()
+
+
+def delete_remote_file(username, password, my_name, remote_name, remote_ip, path, filename, service_name):
+    conn = connect(username, password, my_name, remote_name, remote_ip)
+    if conn:
+        conn.deleteFiles(service_name, path + filename)
+        conn.close()
+
+
+def createRemoteDir(username, password, my_name, remote_name, remote_ip, path, service_name):
+    conn = connect(username, password, my_name, remote_name, remote_ip)
+    if conn:
+        try:
+            conn.createDirectory(service_name, path)
+        except Exception, e:
+            fmt = 'conn.listPath({}, {}, {}) threw {}: {}'
+            print(fmt.format(service_name, path, pattern, type(e), e))
+        finally:
+            conn.close()
+    else:
+        print('connect() failed!')
+    return None
+
+
+def removeRemoteDir(username, password, my_name, remote_name, remote_ip, path, service_name):
+    conn = connect(username, password, my_name, remote_name, remote_ip)
+    if conn:
+        try:
+            conn.deleteDirectory(service_name, path)
+        except Exception, e:
+            fmt = 'conn.listPath({}, {}, {}) threw {}: {}'
+            print(fmt.format(service_name, path, pattern, type(e), e))
+        finally:
+            conn.close()
+    else:
+        print('connect() failed!')
+    return None
+
+
+def renameRemoteDir(username, password, my_name, remote_name, remote_ip, old_path, new_path, service_name):
+    conn = connect(username, password, my_name, remote_name, remote_ip)
+    if conn:
+        try:
+            conn.rename(service_name, old_path, new_path)
+        except Exception, e:
+            fmt = 'conn.listPath({}, {}, {}) threw {}: {}'
+            print(fmt.format(service_name, old_path, new_path, type(e), e))
+        finally:
+            conn.close()
+    else:
+        print('connect() failed!')
+    return None
+
+
+my_name = gethostname()
+
+# files = getRemoteDir(user, password, my_name, remote_name,
+#                     remote_ip, path, pattern, service_name)
+# if files:
+#    for file in files:
+#        if file.filename == "check_mk_check_share.txt":
+#            delete_remote_file(username, password, my_name,
+#                               remote_name, remote_ip, path, filename, service_name)
+#        print "Old Testfile removed"
+
+
+#removeRemoteDir(username, password, my_name, remote_name, remote_ip, path + filename, path + new_filename, service_name)
+#removeRemoteDir(username, password, my_name, remote_name, remote_ip, path, service_name)
+#createRemoteDir(username, password, my_name, remote_name, remote_ip, path, service_name)
+#download(username, password, my_name, remote_name, remote_ip, path, filename, service_name)
+start_time = time.time()
+
+if ip == None:
+    ip = gethostbyname(hostname)
+
+upload(user, password, my_name, hostname, ip,
+       remotepath, filename, service, uploaddir)
+# print "New Testfile transfered"
+end_time = time.time()
+
+run_time = end_time - start_time
+if run_time >= float(crit):
+    status = 2
+elif run_time >= float(warn):
+    status = 1
+else:
+    status = 0
+
+print "File transfer completed - Time %f/s | time=%.3f;%.1f;%.1f;;" % (run_time, run_time, float(warn), float(crit))
+
+delete_remote_file(user, password, my_name, hostname,
+                   ip, remotepath, filename, service)
+
+
+#files = getRemoteDir(username, password, my_name, remote_name, remote_ip, path, pattern, service_name)
+# if files:
+#  for file in files:
+#    if file.filename == "check_mk_check_share.txt":
+#        download(username, password, my_name, remote_name, remote_ip, path, filename, service_name)
+#        print "Testfile found and downloaded"
+
+sys.exit(status)
