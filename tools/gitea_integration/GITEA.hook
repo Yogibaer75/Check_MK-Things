@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Alias: Start gitea webinterface
+# Menu: Addons
+# Description:
+#  Start the gitea webinterface for managing WATO configuration.
+
+case "$1" in
+    default)
+        echo "on"
+    ;;
+    choices)
+        echo "on: Start gitea webinterface at boot time"
+        echo "off: Don´t start gitea"
+    ;;
+esac
