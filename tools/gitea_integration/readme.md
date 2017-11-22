@@ -1,4 +1,4 @@
-# Gitea als Webfronend im Check_MK mit aktiviertem Gitea
+# Gitea als Webfronend im Check_MK mit aktiviertem Git
 
 Download Gitea
 `wget https://dl.gitea.io/gitea/1.3/gitea-1.3-linux-amd64`
