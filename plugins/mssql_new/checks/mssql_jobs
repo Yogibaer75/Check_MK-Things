@@ -1,0 +1,32 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+import datetime
+
+def inventory_mssql_jobs(info):
+    return [ (None, {}) ]
+
+def check_mssql_jobs(item, params, info):
+    b = {}
+    a = 0
+    for line in info:
+        dt = datetime.datetime.strptime(line[3]+line[4].zfill(6), '%Y%m%d%H%M%S')
+        if line[0] in b:
+            b.setdefault(line[0], []).append([line[1], dt])
+        else:
+            b[line[0]] = ([[line[1], dt]])
+        a = a + 1
+    infotext = ""
+    for line in b:
+        infotext += "DB %s - Failed Jobs - " % line
+        for element in b[line]:
+            infotext += "%s - Runtime - %s - " % (element[0],element[1])
+        infotext += "<br> - "
+    if a >= 1:
+        return 1, "%s Failed Jobs in the last 24 hours <br> %s" % (a, infotext)
+    return 0, "No Failed Jobs found"
+
+check_info["mssql_jobs"] = {
+    "check_function"         : check_mssql_jobs,
+    "inventory_function"     : inventory_mssql_jobs,
+    "service_description"    : "MSSQL-Failed Jobs",
+}
