@@ -34,7 +34,6 @@ Dim WMI, FSO, SHO, items, objItem, prop, instVersion, registry
 Dim sources, instances, instance, instance_id, instance_name
 Dim cfg_dir, cfg_file, hostname, tcpport
 
-
 Const HKLM = &H80000002
 
 ' Directory of all database instance names
@@ -164,7 +163,7 @@ For Each rk In regkeys
                 If instance_id = "MSSQLSERVER" Then
                     sources.add instance_id, "(local)"
                 Else
-                    If isNull(tcpport) Then
+                    If isNull(tcpport) or len(tcpport) = 0 Then
                         sources.add instance_id, hostname & "\" & instance_id
                     Else
                         sources.add instance_id, hostname & "," & tcpport
@@ -175,7 +174,7 @@ For Each rk In regkeys
                 If instance_id = "MSSQLSERVER" Then
                     sources.add instance_id, cluster_name
                 Else
-                    If isNull(tcpport) Then
+                    If isNull(tcpport) or len(tcpport) = 0 Then
                         sources.add instance_id, cluster_name & "\" & instance_id
                     Else
                         sources.add instance_id, cluster_name & "," & tcpport
@@ -305,10 +304,10 @@ For Each instance_id In instances.Keys: Do ' Continue trick
     Loop
     RS.Close
 
+    addOutput(sections("blocked_sessions"))
     RS.Open "SELECT session_id, wait_duration_ms, wait_type, blocking_session_id " & _
             "FROM sys.dm_os_waiting_tasks " & _
             "WHERE blocking_session_id <> 0 ", CONN
-    addOutput(sections("blocked_sessions"))
     Dim session_id, wait_duration_ms, wait_type, blocking_session_id
     Do While NOT RS.Eof
         session_id = Trim(RS("session_id"))
@@ -406,6 +405,7 @@ For Each instance_id In instances.Keys: Do ' Continue trick
     Next
 
     If section_ha = 1 Then
+        addOutput(sections("highavailability"))
         RS.Open "SELECT " &_
 	        " ar.replica_server_name," &_
 	        " adc.database_name," &_
@@ -439,12 +439,8 @@ For Each instance_id In instances.Keys: Do ' Continue trick
 	        " ag.name," &_ 
 	        " ar.replica_server_name," &_
 	        " adc.database_name;", CONN
-        addOutput(sections("highavailability"))
 
         Do While NOT RS.EoF
-            'For Each x in RS.fields
-            '    wscript.echo x.name & " " & x.value
-            'Next
             addOutput("MSSQL_" & instance_id & " " & Replace(RS("database_name"), " ", "_") & " " & Replace(RS("ag_name"), " ", "_") & " " & _
                           RS("is_primary_replica") & " " & Replace(RS("synchronization_state_desc"), " ", "_") & " " & Replace(RS("synchronization_health_desc"), " ", "_"))
             RS.MoveNext
@@ -452,38 +448,43 @@ For Each instance_id In instances.Keys: Do ' Continue trick
         RS.Close
     End If
 
-    RS.Open "SELECT " &_
-		" CONVERT(CHAR(100), SERVERPROPERTY('Servername')) AS Server, " &_
-		" msdb.dbo.backupset.database_name, " &_
-		" msdb.dbo.backupset.backup_start_date, " &_
-		" msdb.dbo.backupset.backup_finish_date, " &_
-		" msdb.dbo.backupset.expiration_date, " &_
-		" CASE msdb..backupset.type " &_
-		" WHEN 'D' THEN 'Database' " &_
-		" WHEN 'L' THEN 'Log' " &_
-		" END AS backup_type, " &_
-		" msdb.dbo.backupset.backup_size, " &_
-		" msdb.dbo.backupmediafamily.logical_device_name, " &_
-		" msdb.dbo.backupmediafamily.physical_device_name, " &_
-		" msdb.dbo.backupset.name AS backupset_name, " &_
-		" msdb.dbo.backupset.description " &_
-		" FROM msdb.dbo.backupmediafamily " &_
-		" INNER JOIN msdb.dbo.backupset ON msdb.dbo.backupmediafamily.media_set_id = msdb.dbo.backupset.media_set_id " &_
-		" WHERE (CONVERT(datetime, msdb.dbo.backupset.backup_start_date, 102) >= GETDATE() - 2) AND msdb..backupset.type = 'D' " &_
-		" ORDER BY " &_
-		" msdb.dbo.backupset.database_name, " &_
-		" msdb.dbo.backupset.backup_finish_date;", CONN
 	addOutput(sections("dbbackup"))
-	
+    RS.Open "WITH    backupsetSummary " &_
+            "AS ( SELECT   bs.database_name , " &_
+            "            bs.type bstype , " &_
+            "            MAX(backup_finish_date) MAXbackup_finish_date " &_
+            "   FROM     msdb.dbo.backupset bs " &_
+            "   GROUP BY bs.database_name , " &_
+            "            bs.type " &_
+            " ), " &_
+            "MainBigSet " &_
+            "   AS ( SELECT   db.name , " &_
+            "            db.state_desc , " &_
+            "            db.recovery_model_desc , " &_
+            "            bs.type , " &_
+            "            bs.name AS BackupSetName , " &_
+            "            bs.backup_size , " &_
+            "            bs.backup_finish_date " &_
+            "   FROM     master.sys.databases db " &_
+            "            LEFT OUTER JOIN backupsetSummary bss ON bss.database_name = db.name " &_
+            "            LEFT OUTER JOIN msdb.dbo.backupset bs ON bs.database_name = db.name " &_
+            "                                                  AND bss.bstype = bs.type " &_
+            "                                                  AND bss.MAXbackup_finish_date = bs.backup_finish_date " &_
+            "       ) " &_
+            "SELECT  * " &_
+            "FROM    MainBigSet ", CONN
+
     Do While NOT RS.EoF
-        'For Each x in RS.fields
-        '    wscript.echo x.name & " " & x.value
-        'Next
-        addOutput("MSSQL_" & instance_id & " " & Replace(RS("database_name"), " ", "_") & " " & Replace(RS("backup_start_date"), " ", "_") & " " & _
-                  Replace(RS("backup_finish_date"), " ", "_") & " " & RS("backup_size") & " " & RS("backupset_name"))
+        If NOT isnull(RS("backup_finish_date")) then
+            addOutput("MSSQL_" & instance_id & " " & Replace(RS("name"), " ", "_") & " " & RS("backup_finish_date") & " " & RS("type") & " " & _
+                       RS("backup_size") & " " & Replace(RS("BackupSetName"), " ", "_") & " " & RS("recovery_model_desc"))
+        Else
+            addOutput("MSSQL_" & instance_id & " " & Replace(RS("name"), " ", "_"))
+        End If
         RS.MoveNext
     Loop	
-	RS.Close
+    RS.Close
+
 	
     addOutput(sections("jobs"))
     RS.Open "SELECT name, sjh.run_status, sjh.run_date, sjh.run_time" &_
@@ -494,7 +495,8 @@ For Each instance_id In instances.Keys: Do ' Continue trick
             " WHERE CONVERT(VARCHAR(8), sjh.run_date) > GETDATE() - 1" &_
             " AND sjh.run_status = 0", CONN
     Do While Not RS.Eof
-        addOutput( instance_id & " " & Replace(RS("name"), " ", "_") &" " & Replace(RS("run_status"), " ", "_") & " " & Replace(RS("run_date"), " ", "_") & " " & Replace(RS("run_time"), " ", "_"))
+        addOutput( instance_id & " " & Replace(RS("name"), " ", "_") &" " & Replace(RS("run_status"), " ", "_") & " " & Replace(RS("run_date"), " ", "_") & _
+                  " " & Replace(RS("run_time"), " ", "_"))
         RS.MoveNext
     Loop
     RS.Close
