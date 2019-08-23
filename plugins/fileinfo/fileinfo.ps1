@@ -3,7 +3,7 @@ $date1 = Get-Date -Date "01/01/1970"
 $filepath = "C:\Temp"
 $date_now = [int]([DateTime]::UtcNow - $date1).TotalSeconds
 Write-Output $date_now
-$dirs = Get-ChildItem $filepath -rec | Where-Object {$_.PSIsContainer -eq $True}
+$dirs = @(Get-Item $filepath) + @(Get-ChildItem $filepath -rec | Where-Object {$_.PSIsContainer -eq $True})
 foreach($object in $dirs)
 {
     if ($object.GetFiles().Count -eq 0) {
