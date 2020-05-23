@@ -1,0 +1,34 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+
+def inventory_force10_fan(info):
+    for line in info:
+        yield line[0], None
+
+
+def check_force10_fan(item, no_params, info):
+    force10_fan_status_codes = {
+        1: (0, "up"),
+        2: (2, "down"),
+        3: (1, "absent"),
+    }
+
+    for line in info:
+        if line[0] == item:
+            status, name = force10_fan_status_codes.get(int(line[1]), ("3", "unknown"))
+            return status, "Fan status is %s" % (name)
+
+
+check_info["force10_fan"] = {
+    "check_function": check_force10_fan,
+    "inventory_function": inventory_force10_fan,
+    "service_description": "FAN %s",
+    "snmp_scan_function": lambda oid: ".1.3.6.1.4.1.6027.1.3.13" in oid(".1.3.6.1.2.1.1.2.0"),
+    "snmp_info": (
+        ".1.3.6.1.4.1.6027.3.10.1.2.4.1",
+        [
+            OID_END,  # ID of switch and FAN
+            2,  # chSysFanTrayOperStatus
+        ]),
+}
