@@ -1,0 +1,41 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+
+def inventory_force10_psu(info):
+    for line in info:
+        yield line[0], None
+
+
+def check_force10_psu(item, no_params, info):
+    force10_psu_status_codes = {
+        1: (0, "up"),
+        2: (2, "down"),
+        3: (1, "absent"),
+    }
+
+    force10_psu_type = {
+        1: "ac",
+        2: "dc",
+    }
+
+    for line in info:
+        if line[0] == item:
+            status, name = force10_psu_status_codes.get(int(line[1]), ("3", "unknown"))
+            return status, "Power supply status is %s - type is %s" % (
+                name, force10_psu_type.get(int(line[2]), "unknown"))
+
+
+check_info["force10_psu"] = {
+    "check_function": check_force10_psu,
+    "inventory_function": inventory_force10_psu,
+    "service_description": "PSU %s",
+    "snmp_scan_function": lambda oid: ".1.3.6.1.4.1.6027.1.3.13" in oid(".1.3.6.1.2.1.1.2.0"),
+    "snmp_info": (
+        ".1.3.6.1.4.1.6027.3.10.1.2.3.1",
+        [
+            OID_END,  # ID of switch and PSU
+            2,  # chSysPowerSupplyOperStatus
+            3,  # chSysPowerSupplyType
+        ]),
+}

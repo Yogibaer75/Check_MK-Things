@@ -2,10 +2,10 @@
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
 <checkname>_status_codes = {
-    1 : (0, "ok")
-    2 : (1, "warning")
-    3 : (2, "critical")
-    4 : (3, "unknown")
+    1 : (0, "ok"),
+    2 : (1, "warning"),
+    3 : (2, "critical"),
+    4 : (3, "unknown"),
 }
 
 def inventory_<checkname>(info):
@@ -17,7 +17,6 @@ def check_<checkname>(item, no_params, info):
         if line[0] == item:
             status, name = <checkname>_status_codes[int(line[1])]
             return status, "Item status: %s" % name
-    return 3, "Item not found in agent output"
 
 check_info["<checkname>"] = {
     "check_function"         : check_<checkname>,
