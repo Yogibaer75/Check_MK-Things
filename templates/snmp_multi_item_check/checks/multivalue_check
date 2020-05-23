@@ -1,29 +1,35 @@
 #!/usr/bin/python
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
-<checkname>_status_codes = {
-    1 : (0, "ok"),
-    2 : (1, "warning"),
-    3 : (2, "critical"),
-    4 : (3, "unknown"),
+CHECKNAME_status_codes = {
+    1: (0, "ok"),
+    2: (1, "warning"),
+    3: (2, "critical"),
+    4: (3, "unknown"),
 }
 
-def inventory_<checkname>(info):
+
+def inventory_CHECKNAME(info):
     for line in info:
         yield line[0], None
 
-def check_<checkname>(item, no_params, info):
+
+def check_CHECKNAME(item, no_params, info):
     for line in info:
         if line[0] == item:
-            status, name = <checkname>_status_codes[int(line[1])]
+            status, name = CHECKNAME_status_codes[int(line[1])]
             return status, "Item status: %s" % name
 
-check_info["<checkname>"] = {
-    "check_function"         : check_<checkname>,
-    "inventory_function"     : inventory_<checkname>,
-    "service_description"    : "<Itemname> %s",
-    "snmp_scan_function"     : lambda oid: "<specific OID>" in oid(".1.3.6.1.2.1.1.2.0"),
-    "snmp_info"              : ( "<target OID>", [ 1,   # suboid number one inside table
-                                                   2,   # suboid number two inside table
-                               ]),
+
+check_info["CHECKNAME"] = {
+    "check_function": check_CHECKNAME,
+    "inventory_function": inventory_CHECKNAME,
+    "service_description": "<Itemname> %s",
+    "snmp_scan_function": lambda oid: "<specific OID>" in oid(".1.3.6.1.2.1.1.2.0"),
+    "snmp_info": (
+        "<target OID>",
+        [
+            1,  # suboid number one inside table
+            2,  # suboid number two inside table
+        ]),
 }

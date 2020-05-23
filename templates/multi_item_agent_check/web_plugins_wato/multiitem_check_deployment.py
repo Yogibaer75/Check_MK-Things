@@ -5,14 +5,11 @@
 
 group = "agents/" + _("Agent Plugins")
 
-register_rule(group,
-    "agent_config:win_<checkname>",
-    DropdownChoice(
-        title = _("<checkname> description (Windows)"),
-        help = _('This plugin checks the status of <checkname> description windows'),
-        choices = [
-            ( True, _("Deploy plugin for <checkname>") ),
-            ( None, _("Do not deploy plugin for <checkname>") ),
-        ]
-    )
-)
+register_rule(
+    group, "agent_config:win_CHECKNAME",
+    DropdownChoice(title=_("CHECKNAME description (Windows)"),
+                   help=_('This plugin checks the status of CHECKNAME description windows'),
+                   choices=[
+                       (True, _("Deploy plugin for CHECKNAME")),
+                       (None, _("Do not deploy plugin for CHECKNAME")),
+                   ]))

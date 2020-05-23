@@ -1,3 +1,3 @@
 "<<<checkname>>>"
-$status = get-random -minimum 0 -maximum 4
+$status = Get-Random -Minimum 0 -Maximum 4
 "status $status this is a sample plugin"
