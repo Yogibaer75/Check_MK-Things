@@ -1,0 +1,30 @@
+#!/usr/bin/python
+# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def inventory_hyperv_cluster_disks(parsed):
+    for disk in parsed.keys():
+        yield disk, {}
+
+
+def check_hyperv_cluster_disks(item, _no_params, parsed):
+
+    disk = parsed.get(item, "")
+
+    if not disk:
+        yield 3, "Disk not found in agent output"
+        return
+    
+    state = 0
+    if disk['cluster.disk.state'] != 'Online':
+        state = 3
+    message = "is %s, with owner %s and group %s." % (disk['cluster.disk.state'], disk['cluster.disk.owner_node'], disk['cluster.disk.owner_group'])
+    yield state, message
+
+
+check_info['hyperv_cluster_disks'] = {
+    "inventory_function": inventory_hyperv_cluster_disks,
+    "check_function": check_hyperv_cluster_disks,
+    "parse_function": parse_hyperv,
+    "service_description": "HyperV Disk %s",
+    "includes": ["hyperv.include"],
+}

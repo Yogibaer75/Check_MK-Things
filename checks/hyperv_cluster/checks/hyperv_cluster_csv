@@ -1,0 +1,36 @@
+#!/usr/bin/python
+# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+
+def inventory_hyperv_cluster_csv(parsed):
+    for csv in parsed.keys():
+        yield csv, {}
+
+
+def check_hyperv_cluster_csv(item, params, parsed):
+    csv = parsed.get(item, "")
+
+    if not csv:
+        yield 3, "CSV not found in agent output"
+        return
+    
+    mega = 1024.0 * 1024.0
+    size_total = int(csv.get("cluster.csv.size")) / mega
+    size_avail = int(csv.get("cluster.csv.free_space")) / mega
+
+    if params.get("ignore_levels"):
+        yield 0, "Total size: %s, Used space is ignored" % get_bytes_human_readable(size_total)
+    else:
+        yield df_check_filesystem_single(item, size_total, size_avail, 0, None, None, params)
+
+
+check_info['hyperv_cluster_csv'] = {
+    "inventory_function": inventory_hyperv_cluster_csv,
+    "check_function": check_hyperv_cluster_csv,
+    "parse_function": parse_hyperv,
+    "has_perfdata": True,
+    "default_levels_variable": "filesystem_default_levels",
+    "service_description": "HyperV CSV %s",
+    "group": "filesystem",
+    "includes": ["hyperv.include", "size_trend.include", "df.include"],
+}

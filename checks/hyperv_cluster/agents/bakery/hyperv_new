@@ -1,0 +1,17 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def bake_hyperv_new(opsys, conf, conf_dir, plugins_dir):
+    if conf:
+        shutil.copy2( cmk.paths.local_agents_dir + "/windows/plugins/hyperv_cluster.ps1",
+                     plugins_dir + "/hyperv_cluster.ps1")
+        shutil.copy2( cmk.paths.local_agents_dir + "/windows/plugins/hyperv_host.ps1",
+                     plugins_dir + "/hyperv_host.ps1")
+        shutil.copy2( cmk.paths.local_agents_dir + "/windows/plugins/hyperv_host_csv_io.ps1",
+                     plugins_dir + "/hyperv_host_csv_io.ps1")
+
+bakery_info["hyperv_new"] = {
+    "bake_function" : bake_hyperv_new,
+    "os"            : [ "windows" ],
+}
+

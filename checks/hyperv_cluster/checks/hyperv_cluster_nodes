@@ -1,0 +1,30 @@
+#!/usr/bin/python
+# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def inventory_hyperv_cluster_nodes(parsed):
+    for node in parsed.keys():
+        yield node, {}
+
+
+def check_hyperv_cluster_nodes(item, _no_params, parsed):
+
+    node = parsed.get(item, "")
+
+    if not node:
+        yield 3, "Node not found in agent output"
+        return
+    
+    state = 0
+    if node['cluster.node.state'] != 'Up':
+        state = 3
+    message = "is %s, has ID %s and weight %s." % (node['cluster.node.state'], node['cluster.node.id'], node['cluster.node.weight'])
+    yield state, message
+
+
+check_info['hyperv_cluster_nodes'] = {
+    "inventory_function": inventory_hyperv_cluster_nodes,
+    "check_function": check_hyperv_cluster_nodes,
+    "parse_function": parse_hyperv,
+    "service_description": "HyperV Node %s",
+    "includes": ["hyperv.include"],
+}

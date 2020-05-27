@@ -1,0 +1,39 @@
+#!/usr/bin/python
+# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def inventory_hyperv_host_io_remote(parsed):
+    for lun in parsed.keys():
+        yield lun, {}
+
+
+def check_hyperv_host_io_remote(item, params, parsed):
+
+    lun = parsed.get(item, "")
+
+    if not lun:
+        return 3, "CSV not found in agent output"
+    
+    disk = { item : {
+            'node': None,
+            'read_ql': float(lun["avg. disk read queue length"].replace(',','.')),
+            'write_ql': float(lun["avg. disk write queue length"].replace(',','.')),
+            'sec_per_read_counter': float(lun["avg. disk sec/read"].replace(',','.')),
+            'sec_per_write_counter': float(lun["avg. disk sec/write"].replace(',','.')),
+            'read_ios': float(lun["disk reads/sec"].replace(',','.')),
+            'write_ios': float(lun["disk writes/sec"].replace(',','.')),
+            'read_throughput': float(lun["disk read bytes/sec"].replace(',','.')),
+            'write_throughput': float(lun["disk write bytes/sec"].replace(',','.')),
+        }
+    }
+    return check_diskstat_dict(item, params, disk)
+
+
+check_info['hyperv_host_io_remote'] = {
+    "inventory_function": inventory_hyperv_host_io_remote,
+    "check_function": check_hyperv_host_io_remote,
+    "parse_function": parse_hyperv_io,
+    "has_perfdata": True,
+    "service_description": "HyperV IO Remote %s",
+    "includes": ["hyperv.include", "diskstat.include"],
+    "group": "disk_io",
+}
