@@ -1,0 +1,151 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# +------------------------------------------------------------------+
+# |             ____ _               _        __  __ _  __           |
+# |            / ___| |__   ___  ___| | __   |  \/  | |/ /           |
+# |           | |   | '_ \ / _ \/ __| |/ /   | |\/| | ' /            |
+# |           | |___| | | |  __/ (__|   <    | |  | | . \            |
+# |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
+# |                                                                  |
+# | Copyright Mathias Kettner 2014             mk@mathias-kettner.de |
+# +------------------------------------------------------------------+
+#
+# This file is part of Check_MK.
+# The official homepage is at http://mathias-kettner.de/check_mk.
+#
+# check_mk is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# tails. You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+#<<<mssql_dbbackup:cached(1512123065,120)>>>
+#MSSQL_INSTANCE master 11/30/2017 6:45:01 PM D 4087808 master_backup_2017_11_30_184501_4130567 SIMPLE
+#MSSQL_INSTANCE tempdb
+#MSSQL_INSTANCE model 11/30/2017 6:45:02 PM D 2709504 model_backup_2017_11_30_184501_4911818 FULL
+#MSSQL_INSTANCE msdb 11/30/2017 6:45:02 PM D 21078016 msdb_backup_2017_11_30_184501_5224319 SIMPLE
+#
+# or
+#
+#<<<mssql_dbbackup>>>
+#MSSQL_INSTANCE master 30.11.2017 19:00:01 D 4284416 master_backup_2017_11_30_190001_4347241 SIMPLE
+#MSSQL_INSTANCE tempdb
+#MSSQL_INSTANCE model 30.11.2017 19:00:01 D 2971648 model_backup_2017_11_30_190001_4972065 FULL
+#MSSQL_INSTANCE model 01.12.2017 11:07:01 L 83968 model_backup_2017_12_01_110701_8001031 FULL
+#MSSQL_INSTANCE msdb 30.11.2017 19:00:02 D 24300544 msdb_backup_2017_11_30_190001_5284528 SIMPLE
+
+# Might be None to have no thresholds or a tuple of two ints
+# (<warn age in seconds>, <crit age in seconds>)
+factory_settings["mssql_backup_default_levels"] = {
+     "database":             (0, 0),
+     "database_diff":        (0, 0),
+     "log":                  (0, 0),
+     "file_or_filegroup":    (0, 0),
+     "file_diff":            (0, 0),
+     "partial":              (0, 0),
+     "partial_diff":         (0, 0),
+     "unspecific":           (0, 0)
+}
+
+
+def inventory_mssql_dbbackup(info):
+    return [ (line[0] + ' ' + line[1], 'mssql_backup_default_levels')
+             for line in info
+             if len(line) in [8, 9] ]
+
+def check_mssql_dbbackup(item, params, info):
+    def get_dbbackup_type_name(backup_type):
+        return {
+            "D": "database ",
+            "I": "database diff ",
+            "L": "log ",
+            "F": "file or filegroup ",
+            "G": "file diff ",
+            "P": "partial ",
+            "Q": "partial diff ",
+            "-": "unspecific ",
+        }.get(backup_type, "")
+
+    found_instance = False
+    for line in info:
+        if len(line) not in [8, 9]:
+            continue
+
+        last_backup_date = False
+        if len(line) == 8:
+            inst, database, last_backup_date, last_backup_time, backup_type, backup_size, backup_name, recovery_model = line
+        elif len(line) == 9:
+            inst, database, last_backup_date, last_backup_time, day_period, backup_type, backup_size, backup_name, recovery_model = line
+
+        if item == inst + ' ' + database:
+            found_instance = True
+            
+            found_time = False 
+            if not found_time and len(line) == 8:
+                try:
+                    last_backup_date = last_backup_date.replace("/",".")
+                    timestamp = time.mktime(time.strptime(last_backup_date + ' ' + last_backup_time,
+                                                          '%d.%m.%Y %H:%M:%S'))
+                    found_time = True
+                except:
+                    timestamp = 0
+
+            if not found_time and len(line) == 9:
+                try:
+                    timestamp = time.mktime(time.strptime(last_backup_date + ' ' + last_backup_time + ' ' + day_period,
+                                                          '%m/%d/%Y %I:%M:%S %p'))
+                    found_time = True
+                except:
+                    timestamp = 0
+
+            backup_type_name = get_dbbackup_type_name(backup_type)
+            state = 0
+            sec_ago = time.time() - timestamp
+
+            if type(params) != dict:
+                params = {"database": params}
+
+            if backup_type_name == "":
+                age_warn, age_crit = params["database"]
+            else:
+                backup_type_var = backup_type_name.strip().replace(" ", "_")
+                age_warn, age_crit = params[backup_type_var]
+
+            if age_warn > 0 and age_crit > 0:
+                if sec_ago >= age_crit:
+                    state = 2
+                elif sec_ago >= age_warn:
+                    state = 1
+
+
+            if backup_type == None:
+                perfkey = "seconds"
+            else:
+                perfkey = "backup_age_%s" % backup_type_name.strip().replace(" ", "_")
+
+            perfdata = [(perfkey, sec_ago, age_warn, age_crit)]
+
+            yield state, 'Last %sbackup was at %s (%s ago)' % \
+                (backup_type_name,
+                 time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp)),
+                 get_age_human_readable(sec_ago)), perfdata
+
+    if not found_instance:
+        # Assume general connection problem to the database, which is reported
+        # by the "X Instance" service and skip this check.
+        raise MKCounterWrapped("Failed to connect to database")
+
+
+check_info['mssql_dbbackup'] = {
+    'check_function':      check_mssql_dbbackup,
+    'inventory_function':  inventory_mssql_dbbackup,
+    'default_levels_variable': 'mssql_backup_default_levels',
+    'service_description': '%s Backup',
+    'has_perfdata':        True,
+    'group':               'mssql_backup',
+}

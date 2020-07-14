@@ -1,0 +1,496 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# +------------------------------------------------------------------+
+# |             ____ _               _        __  __ _  __           |
+# |            / ___| |__   ___  ___| | __   |  \/  | |/ /           |
+# |           | |   | '_ \ / _ \/ __| |/ /   | |\/| | ' /            |
+# |           | |___| | | |  __/ (__|   <    | |  | | . \            |
+# |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
+# |                                                                  |
+# | Copyright Mathias Kettner 2014             mk@mathias-kettner.de |
+# +------------------------------------------------------------------+
+#
+# This file is part of Check_MK.
+# The official homepage is at http://mathias-kettner.de/check_mk.
+#
+# check_mk is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# tails. You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+# There are different types of information. Can we handle them in a
+# general way? There are:
+#  - Percentage values
+#  - Size values in KB
+#  - Counters
+#  - Rate counters (per second)
+
+# <<<mssql_counters>>>
+# MSSQL_SQLEXPRESS:Buffer_Manager Buffer_cache_hit_ratio 12
+# MSSQL_SQLEXPRESS:Databases master Data_File(s)_Size_(KB) 2304
+# MSSQL_SQLEXPRESS:Databases master Transactions/sec 13733
+# MSSQL_SQLEXPRESS:Databases master Percent_Log_Used 57
+# MSSQL_SQLEXPRESS:Databases master Log_File(s)_Size_(KB)
+# FOOBAR 170
+
+
+def mssql_counters_item(line, add_counter_name):
+    if len(line) < 3:
+        return None
+
+    obj, counter, instance = line[:3]
+    if obj.endswith(':Databases'):
+        obj = obj[:-10]
+
+    if add_counter_name:
+        return obj + ' ' + instance + ' ' + counter
+    else:
+        return obj + ' ' + instance
+
+
+def inventory_mssql_counters(info, want_counters, perc_w_base, add_counter_name, dflt = None):
+    inventory = []
+    for line in info:
+        if line[1] in want_counters:
+            this_counter = line[1]
+
+            # Get the base value for perc values
+            if perc_w_base:
+                base = 0.0
+                for line2 in info:
+                    if mssql_counters_item(line2, add_counter_name) == \
+                       mssql_counters_item(line, add_counter_name) + '_base':
+                        base = float(line2[-1])
+                        break
+                if base == 0.0:
+                    continue # Skip counters where base is "0"
+
+            inventory.append((mssql_counters_item(line, add_counter_name), dflt))
+    return inventory
+
+#   .--Percentage based values---------------------------------------------.
+#   |          ____                         _                              |
+#   |         |  _ \ ___ _ __ ___ ___ _ __ | |_ __ _  __ _  ___            |
+#   |         | |_) / _ \ '__/ __/ _ \ '_ \| __/ _` |/ _` |/ _ \           |
+#   |         |  __/  __/ | | (_|  __/ | | | || (_| | (_| |  __/           |
+#   |         |_|   \___|_|  \___\___|_| |_|\__\__,_|\__, |\___|           |
+#   |                                                |___/                 |
+#   |      _                        _              _                       |
+#   |     | |__   __ _ ___  ___  __| | __   ____ _| |_   _  ___  ___       |
+#   |     | '_ \ / _` / __|/ _ \/ _` | \ \ / / _` | | | | |/ _ \/ __|      |
+#   |     | |_) | (_| \__ \  __/ (_| |  \ V / (_| | | |_| |  __/\__ \      |
+#   |     |_.__/ \__,_|___/\___|\__,_|   \_/ \__,_|_|\__,_|\___||___/      |
+#   |                                                                      |
+#   '----------------------------------------------------------------------'
+
+def check_mssql_counters_perc(item, params, info, perc_w_base = True):
+    counter_name = None
+    value = None
+    base  = None
+
+    for line in info:
+        if mssql_counters_item(line, True) == item:
+            value        = float(line[-1])
+            counter_name = line[1]
+        elif mssql_counters_item(line, True) == item + '_base':
+            base = float(line[-1])
+
+    if value is None or (perc_w_base and base is None):
+        # Assume general connection problem to the database, which is reported
+        # by the "X Instance" service and skip this check.
+        raise MKCounterWrapped("Failed to connect to database")
+
+    if perc_w_base:
+        if base == 0:
+            base = 1
+        perc = value / base * 100.0
+    else:
+        perc = value
+
+    state = 0
+    if params:
+        if perc <= params[1]:
+            state = 2
+        elif perc <= params[0]:
+            state = 1
+
+    return (state, '%d%%' % (perc), [(counter_name, perc)])
+
+check_info['mssql_counters.cache_hits'] = {
+    'check_function':      check_mssql_counters_perc,
+    'inventory_function':  lambda info: inventory_mssql_counters(info,
+        ['cache_hit_ratio', 'log_cache_hit_ratio', 'buffer_cache_hit_ratio'], True, True),
+    'service_description': "%s",
+    'has_perfdata':        True,
+}
+
+#.
+#   .--Rates---------------------------------------------------------------.
+#   |                       ____       _                                   |
+#   |                      |  _ \ __ _| |_ ___  ___                        |
+#   |                      | |_) / _` | __/ _ \/ __|                       |
+#   |                      |  _ < (_| | ||  __/\__ \                       |
+#   |                      |_| \_\__,_|\__\___||___/                       |
+#   |                                                                      |
+#   '----------------------------------------------------------------------'
+
+
+def mssql_time_from_counter(info):
+    for line in info:
+        if line[1] == "utc_time":
+            # mssql returns localized format. great! let's try ...
+            try:
+                # ... iso 8601
+                return utc_mktime(time.strptime(" ".join(line[3:]).split(".")[0],
+                                                "%Y-%m-%d %H:%M:%S"))
+            except ValueError:
+                try:
+                    # ... german
+                    return utc_mktime(time.strptime(" ".join(line[3:]),
+                                                    "%d.%m.%Y %H:%M:%S"))
+                except:
+                    pass
+    return None
+
+def check_mssql_counters_transactions(item, params, info):
+    output   = []
+    perfdata = []
+    now = mssql_time_from_counter(info)
+    if now is None:
+        now = time.time()
+
+    for line in info:
+        if mssql_counters_item(line, False) != item:
+            continue
+
+        for counter, label in [
+            ('transactions/sec', 'Transactions'),
+            ('write_transactions/sec', 'Write Transactions'),
+            ('tracked_transactions/sec', 'Tracked Transactions'),
+            ]:
+            if line[1] == counter:
+                value = int(line[-1])
+                countername = "mssql_counters.%s.%s" % (item, counter)
+                persec = get_rate(countername, now, value)
+                output.append('%s: %.1f/s' % (label, persec))
+                perfdata.append((counter, persec))
+
+    if output:
+        return (0, '%s' % ', '.join(output), perfdata)
+    else:
+        # Assume general connection problem to the database, which is reported
+        # by the "X Instance" service and skip this check.
+        raise MKCounterWrapped("Failed to connect to database")
+
+check_info['mssql_counters.transactions'] = {
+    'check_function':      check_mssql_counters_transactions,
+    'inventory_function':  lambda info: inventory_mssql_counters(info,
+        [ 'transactions/sec', 'write_transactions/sec', 'tracked_transactions/sec' ], False, False),
+    'service_description': "%s Transactions",
+    'has_perfdata':        True,
+}
+
+def check_mssql_counters_locks(item, params, info):
+    state    = 0
+    output   = []
+    perfdata = []
+    now = mssql_time_from_counter(info)
+    if now is None:
+        now = time.time()
+
+    for line in info:
+        if mssql_counters_item(line, False) != item:
+            continue
+
+        for counter, label in [
+            ('lock_requests/sec', 'Requests'),
+            ('lock_timeouts/sec', 'Timeouts'),
+            ('number_of_deadlocks/sec', 'Deadlocks'),
+            ('lock_waits/sec', 'Waits'),
+            ]:
+            if line[1] == counter:
+                prob_txt = ''
+                value = float(line[-1])
+                # compute rate from counter value
+                countername = "mssql_counters.%s.%s" % (item, counter)
+                persec = get_rate(countername, now, value)
+
+                p = params.get(counter)
+                if p:
+                    warn, crit = p
+                    if persec > crit:
+                        state = max(state, 1)
+                        prob_txt = '(!)'
+                    elif persec > warn:
+                        state = max(state, 2)
+                        prob_txt = '(!!)'
+                else:
+                    warn, crit = None, None
+
+                output.append('%s: %.1f/s%s' % (label, persec, prob_txt))
+                perfdata.append((counter, persec, warn, crit))
+
+    if output:
+        return (state, ', '.join(output), perfdata)
+    else:
+        # Assume general connection problem to the database, which is reported
+        # by the "X Instance" service and skip this check.
+        raise MKCounterWrapped("Failed to connect to database")
+
+check_info['mssql_counters.locks'] = {
+    'check_function':      check_mssql_counters_locks,
+    'inventory_function':  lambda info: inventory_mssql_counters(info,
+        [ 'number_of_deadlocks/sec', 'lock_requests/sec', 'lock_timeouts/sec', 'lock_waits/sec' ],
+        False, False, {}),
+    'service_description': "%s Locks",
+    'has_perfdata':        True,
+    'group':               'mssql_counters_locks',
+}
+
+
+def check_mssql_counters_sqlstats(item, params, info):
+    now = mssql_time_from_counter(info)
+    if now is None:
+        now = time.time()
+    for line in info:
+        if mssql_counters_item(line, True) == item:
+            counter_type = item.split()[-1]
+            rate = get_rate("mssql_counters_sqlstats.%s.%s" % \
+                (counter_type, item), now, float(line[-1]))
+            status = 0
+            infotext = "%.1f/sec" % rate
+
+            if params.get(counter_type):
+                warn, crit = params[counter_type]
+                levelstext = " (warn/crit at %.1f/%.1f per second)" % (warn, crit)
+                if rate >= crit:
+                    status = 2
+                    infotext += levelstext
+                elif rate >= warn:
+                    status = 1
+                    infotext += levelstext
+                perfdata = [ (counter_type, rate, warn, crit) ]
+            else:
+                perfdata = [ (counter_type, rate) ]
+
+            return status, infotext, perfdata
+
+    # Assume general connection problem to the database, which is reported
+    # by the "X Instance" service and skip this check.
+    raise MKCounterWrapped("Failed to connect to database")
+
+
+check_info["mssql_counters.sqlstats"] = {
+    "check_function"        : check_mssql_counters_sqlstats,
+    "inventory_function"    : lambda info: inventory_mssql_counters(info,
+        [ "batch_requests/sec", "sql_compilations/sec", "sql_re-compilations/sec" ],
+        perc_w_base = False, add_counter_name = True, dflt = {}),
+    "service_description"   : "%s",
+    "has_perfdata"          : True,
+    "group"                 : "mssql_stats",
+}
+
+
+mssql_pageactivity_counters = [
+    ("page_reads/sec", "Reads"),
+    ("page_writes/sec", "Writes"),
+    ("page_lookups/sec", "Lookups")
+]
+
+
+def check_mssql_counters_pageactivity(item, params, info):
+    now = mssql_time_from_counter(info)
+    if now is None:
+        now = time.time()
+
+    for line in info:
+        if mssql_counters_item(line, False) != item:
+            continue
+
+        for counter, label in mssql_pageactivity_counters:
+            if line[1] == counter:
+                reading = float(line[-1])
+                countername = "mssql_counters_pageactivity.%s.%s" % (item, counter)
+                rate = get_rate(countername, now, reading)
+                state = 0
+                infotext = "%s %.1f/sec" % (label, rate)
+
+                if params.get(counter):
+                    warn, crit = params[counter]
+                    levelstext = " (warn/crit at %.1f/%.1f per second)" % (warn, crit)
+                    if rate >= crit:
+                        state = 2
+                        infotext += levelstext
+                    elif rate >= warn:
+                        state = 1
+                        infotext += levelstext
+                    perfdata = [ (counter, rate, warn, crit) ]
+                else:
+                    perfdata = [ (counter, rate) ]
+
+
+                yield state, infotext, perfdata
+
+    # Assume general connection problem to the database, which is reported
+    # by the "X Instance" service and skip this check.
+    raise MKCounterWrapped("Failed to connect to database")
+
+
+check_info['mssql_counters.pageactivity'] = {
+    'check_function'      : check_mssql_counters_pageactivity,
+    'inventory_function'  : lambda info: inventory_mssql_counters(info,
+        [k for k, n in mssql_pageactivity_counters], False, False, {}),
+    'service_description' : "%s Page Activity",
+    'has_perfdata'        : True,
+    'group'               : "mssql_page_activity",
+}
+
+
+def parse_mssql_counters(info):
+    parsed = {}
+    for line in info:
+        if len(line) != 4:
+            # agent produces broken lines...
+            continue
+        obj, key, instance, value = line
+        if ":" not in obj:
+            continue
+        database, obj = obj.split(":")
+        parsed.\
+            setdefault(database, {}).\
+            setdefault(obj, {}).\
+            setdefault(instance, {})\
+            [key] = value
+    return parsed
+
+
+def mssql_status(value, params):
+    if params is None:
+        return 0, "", None, None
+
+    warn, crit = params
+    warntext = "(warn/crit at %s/%s)" % (warn, crit)
+    if value >= crit:
+        status = 2
+    elif value >= warn:
+        status = 1
+    else:
+        status = 0
+        warntext = ""
+    return status, warntext, warn, crit
+
+
+def inventory_mssql_counters_locks_per_batch(info):
+    parsed = parse_mssql_counters(info)
+    for db_name, db_object in parsed.iteritems():
+        if "lock_requests/sec" in db_object.get("Locks", {}).get("_Total", {}) \
+                and "batch_requests/sec" in db_object.get("SQL_Statistics").get("None", {}):
+            yield db_name, {}
+
+
+def check_mssql_counters_locks_per_batch(item, params, info):
+    parsed = parse_mssql_counters(info)
+
+    now = mssql_time_from_counter(info)
+    if now is None:
+        now = time.time()
+
+    # Assume general connection problem to the database, which is reported
+    # by the "X Instance" service and skip this check.
+    if item not in parsed:
+        raise MKCounterWrapped("Failed to connect to database")
+
+    locks = float(parsed[item]["Locks"]["_Total"]["lock_requests/sec"])
+    batches = float(parsed[item]["SQL_Statistics"]["None"]["batch_requests/sec"])
+
+    lock_counter = "mssql_counters_locks_per_batch.%s.locks" % item
+    batch_counter = "mssql_counters_locks_per_batch.%s.batches" % item
+    lock_rate = get_rate(lock_counter, now, locks)
+    batch_rate = get_rate(batch_counter, now, batches)
+
+    if batch_rate == 0:
+        factor = 0
+    else:
+        factor = int(lock_rate / batch_rate)
+
+    status, warn_text, warn, crit = mssql_status(factor, params.get("locks_per_batch"))
+
+    return status, "Locks per batch: %d%s" % (factor, warn_text),\
+        [("locks_per_batch", factor, warn, crit)]
+
+
+check_info["mssql_counters.locks_per_batch"] = {
+    "check_function"      : check_mssql_counters_locks_per_batch,
+    "inventory_function"  : inventory_mssql_counters_locks_per_batch,
+    "service_description" : "%s Locks per Batch",
+    "has_perfdata"        : True,
+    "group"               : "mssql_stats"
+}
+
+
+#.
+#   .--File Sizes----------------------------------------------------------.
+#   |                _____ _ _        ____  _                              |
+#   |               |  ___(_) | ___  / ___|(_)_______  ___                 |
+#   |               | |_  | | |/ _ \ \___ \| |_  / _ \/ __|                |
+#   |               |  _| | | |  __/  ___) | |/ /  __/\__ \                |
+#   |               |_|   |_|_|\___| |____/|_/___\___||___/                |
+#   |                                                                      |
+#   '----------------------------------------------------------------------'
+
+
+def check_mssql_file_sizes(item, params, info):
+    if not params:
+        params = {}
+    values = {}
+    for line in info:
+        if mssql_counters_item(line, False) == item:
+            if line[1] == 'data_file(s)_size_(kb)':
+                values['data_files'] = int(line[-1]) * 1024
+            elif line[1] == 'log_file(s)_size_(kb)':
+                values['log_files'] = int(line[-1]) * 1024
+            elif line[1] == 'log_file(s)_used_size_(kb)':
+                values['log_files_used'] = int(line[-1]) * 1024
+
+    # Assume general connection problem to the database, which is reported
+    # by the "X Instance" service and skip this check.
+    if not values:
+        raise MKCounterWrapped("Failed to connect to database")
+
+    if len(values.keys()) == 3:
+        for what, name in [ ("data_files", "Data Files"),
+                            ("log_files_used", "Log files Used"),
+                            ("log_files", "Log Files total"),]:
+            state = 0
+            levels = ""
+            if what in params:
+                warn, crit = params[what]
+                if values[what] >= crit:
+                    state = 2
+                elif values[what] >= warn:
+                    state = 1
+                if state > 0:
+                    levels = " (Warn/ Crit at %s/ %s)" % \
+                                            (get_bytes_human_readable(warn),
+                                            get_bytes_human_readable(crit))
+            else:
+                warn, crit = None, None
+
+            perfdata = [ (what, values[what], warn, crit ) ]
+            yield state, "%s: %s%s" % ( name, levels, get_bytes_human_readable(values[what]) ), perfdata
+
+
+check_info['mssql_counters.file_sizes'] = {
+    'check_function'            : check_mssql_file_sizes,
+    'inventory_function'        : lambda info: inventory_mssql_counters(info,
+        [ 'data_file(s)_size_(kb)', 'log_file(s)_size_(kb)', 'log_file(s)_used_size_(kb)' ], False, False, {} ),
+    'service_description'       : "%s File Sizes",
+    'has_perfdata'              : True,
+    'group'                     : "mssql_file_sizes",
+}

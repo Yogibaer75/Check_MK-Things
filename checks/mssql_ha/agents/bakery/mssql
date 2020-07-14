@@ -1,0 +1,37 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def _sanitize_instance_for_filename(instance):
+    # we can't have backslashes. Make sure this function
+    # is mirrored in mssql.vbs!
+    return instance.replace('\\', '_').replace(',', '_')
+
+
+def bake_mssql(opsys, conf, conf_dir, plugins_dir):
+    if conf:
+        shutil.copy2(cmk.utils.paths.local_agents_dir + "/windows/plugins/mssql.vbs",
+                     plugins_dir + "/mssql.vbs")
+
+    # convert old configuration (just enable/disable) to new dict params
+    if conf is True:
+        conf = {}
+
+    def write_mssql_ini(path, auth):
+        f = file(path, "w")
+        f.write("[auth]\n")
+        if auth == "system":
+            f.write("type = system\n")
+        else:
+            f.write("type = db\n" "username = %s\n" "password = %s\n" % auth[1])
+
+    write_mssql_ini(conf_dir + "/mssql.ini", conf.get("auth_default", "system"))
+
+    for instance, auth_conf in conf.get("auth_instances", []):
+        sane_id = _sanitize_instance_for_filename(instance)
+        write_mssql_ini(conf_dir + "/mssql_%s.ini" % sane_id, auth_conf)
+
+
+bakery_info["mssql"] = {
+    "bake_function": bake_mssql,
+    "os": ["windows"],
+}
