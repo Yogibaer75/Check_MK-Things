@@ -1,0 +1,52 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# Example Output:
+# <<<win_cert:sep(58):cached(1480065612,90000)>>>
+# 
+# Subject  : CN=SUPERSERVER1, DC=group, DC=de
+# Issuer   : O=COMPANY, OU=IT, DC=COMPANY, DC=group, DC=de
+# NotAfter : 31.01.2017 15:49:44
+# 
+# Subject  : CN=SUPERSERVER2, DC=group, DC=de
+# Issuer   : O=COMPANY, OU=IT, DC=COMPANY, DC=group, DC=de
+# NotAfter : 11.01.2017 15:17:35
+
+win_cert_default_params = (30, 15)
+
+def win_cert_convert(info):
+    data = {}
+    last_cert = False
+    for line in info:
+        key = line[0].strip()
+        val = ":".join(line[1:]).strip()
+        if last_cert and key != "Subject":
+            data[last_cert][key] = val
+        if key == "Subject":
+            last_cert = val
+            data[last_cert] = {}
+    return data
+
+def inventory_win_cert(info):
+    return [(None, win_cert_default_params)]
+
+def check_win_cert(item, params, info):
+    info = win_cert_convert(info)
+    warn, crit = params
+    count = 0
+    message = ""
+    for name, values in info.items():
+        message += "Certificate %s is going to run out at %s " % (name,values["NotAfter"])
+        count += 1
+    if count == 0:
+        message += "No certificate will run out the next %d days" % warn
+    return 0, message
+
+check_info['win_cert'] = {
+    "inventory_function"    : inventory_win_cert,
+    "check_function"        : check_win_cert,
+    "group"                 : "win_cert",
+    "service_description"   : "System Certificates",
+    "handle_empty_info"     : True,
+}
+
