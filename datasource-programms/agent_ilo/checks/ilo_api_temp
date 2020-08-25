@@ -1,18 +1,23 @@
 #!/usr/bin/python
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
-#
-# check_mk is free software;  you can redistribute it and/or modify it
+
+# (c) 2020 
+# Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# This is free software;  you can redistribute it and/or modify it
 # under the  terms of the  GNU General Public License  as published by
-# the Free Software Foundation in version 2.  check_mk is  distributed
+# the Free Software Foundation in version 2.  This file is distributed
 # in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
 # out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
 # PARTICULAR PURPOSE. See the  GNU General Public License for more de-
-# tails. You should have  received  a copy of the  GNU  General Public
+# ails.  You should have  received  a copy of the  GNU  General Public
 # License along with GNU Make; see the file  COPYING.  If  not,  write
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-# Author: Andreas Doehlern <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+#<<<ilo_api_temp:sep(124)>>>
+#01-Inlet Ambient|21|Celsius|42|47|Enabled|OK
+#Name | Value | Unit | warn | crit | State | Health
 
 def inventory_ilo_api_temp(info):
     for line in info:
@@ -41,4 +46,3 @@ check_info["ilo_api_temp"] = {
     'group'              : 'temperature',
     'includes'           : [ 'temperature.include', 'hp_proliant.include' ]
 }
-

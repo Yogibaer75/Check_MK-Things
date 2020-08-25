@@ -1,0 +1,12 @@
+title: HPE iLO: General Status
+agents: ilo
+catalog: hw/server/hpe
+license: GPL
+distribution: check_mk
+description:
+ This checks shows the Serial, Type and BIOS version of the
+ host system of this iLO interface.
+ The general system state is used as check state.
+
+inventory:
+ Only one service is created to the system.
