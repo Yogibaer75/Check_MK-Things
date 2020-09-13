@@ -31,7 +31,7 @@ def parse_f5_bigip_certs(info):
 
 # check the expiration dates and return crit, warn, ok based on defined thresholds
 @get_parsed_item_data
-def check_f5_bigip_certs(_item, params, data):
+def check_f5_bigip_certs(item, params, data):
     crit, warn = params.get("expire_lower")
     state = 0
     now = time.time()
