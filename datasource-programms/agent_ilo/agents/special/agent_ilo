@@ -32,10 +32,10 @@ from redfish.rest.v1 import ServerDownOrUnreachableError
 #############################################################################
 def usage():
 #############################################################################
-    sys.stderr.write("""Check_MK HP iLO 4 Agent
+    sys.stderr.write("""Check_MK HP iLO Agent
 
-USAGE: agent_ilo4 [OPTIONS] HOST
-       agent_ilo4 -h
+USAGE: agent_ilo [OPTIONS] HOST
+       agent_ilo -h
 
 ARGUMENTS:
   HOST                          Host name or IP address of the target iLO 4
@@ -69,6 +69,15 @@ def get_resource_directory(redfishobj, ilogen):
 
     return resources
 
+def dropnonascii(input_str):
+    output_str= ""
+    for i in input_str:
+        num = ord(i)
+        if (num >=0) :
+            if (num <= 127):
+                output_str= output_str + i
+    
+    return output_str
 
 def get_gen(_redfishobj):
     rootresp = _redfishobj.root.obj
@@ -103,18 +112,16 @@ def get_information(redfishobj):
 
     for instance in resource_instances:
         if '#FwSwVersionInventory' in instance.get('@odata.type', ''):
-            response = redfishobj.get(instance['@odata.id'])
+            firmwares = redfishobj.get(instance['@odata.id']).dict["Current"]
             sys.stdout.write("<<<ilo_firmware:sep(124)>>>\n")
-            firmwares = response.dict["Current"]
             for element in firmwares:
                 for entry in firmwares[element]:
-                    sys.stdout.write("%s|%s %s\n" % (entry["VersionString"], entry["Location"], entry["Name"]))
+                    sys.stdout.write("%s|%s %s\n" % (dropnonascii(entry["VersionString"]), entry["Location"], entry["Name"]))
 
-        if '#SoftwareInventoryCollection.' in instance.get('@odata.type', ''):
-            if prefix == "Hp" or 'UpdateService/SoftwareInventory' in instance['@odata.id']:
+        if '#SoftwareInventoryCollection.' in instance.get('@odata.type', '') and prefix == "Hpe":
+            if 'UpdateService/SoftwareInventory' in instance.get('@odata.id', ''):
                 continue
-            response = redfishobj.get(instance['@odata.id']+'?$expand=.')
-            firmwares = response.dict['Members']
+            firmwares = redfishobj.get(instance['@odata.id']+'?$expand=.').dict['Members']
             if len(firmwares) == 0:
                 continue
             sys.stdout.write("<<<ilo_firmware:sep(124)>>>\n")
@@ -123,7 +130,6 @@ def get_information(redfishobj):
 
         if '#Thermal.' in instance.get('@odata.type', ''):
             response = redfishobj.get(instance['@odata.id'])
-
             sys.stdout.write("<<<ilo_api_fans:sep(124)>>>\n")
             fans = response.dict["Fans"]
             for entry in fans:
@@ -143,13 +149,12 @@ def get_information(redfishobj):
                     health = "NP"
                 else:
                     health = entry["Status"]["Health"]
-                
                 warn = entry.get("UpperThresholdCritical", 0)
                 crit = entry.get("UpperThresholdFatal", 0)
-                warn_lower = entry.get("LowerThresholdNonCritical", 0)
-                crit_lower = entry.get("LowerThresholdCritical", 0)
-                warn, crit, warn_lower, crit_lower = list(map(lambda x: 0 if x == None else x, [warn, crit, warn_lower, crit_lower]))
-
+                warn_low = entry.get("LowerThresholdNonCritical", 0)
+                crit_low = entry.get("LowerThresholdCritical", 0)
+                warn, crit, warn_low, crit_low = map(lambda x: 0 if x == None else x, [warn, crit, warn_low, crit_low])
+                
                 if crit <= warn:
                     crit = warn
 
@@ -157,6 +162,8 @@ def get_information(redfishobj):
 
         if '#Power.' in instance.get('@odata.type', ''):
             response = redfishobj.get(instance['@odata.id'])
+            if len(response) == 0:
+                continue
             sys.stdout.write("<<<ilo_api_power:sep(124)>>>\n")
             psus = response.dict["PowerSupplies"]
             for entry in psus:
@@ -198,14 +205,13 @@ def get_information(redfishobj):
                 module = redfishobj.get(element["@odata.id"]).dict
                 sys.stdout.write("%s|%s|%d|%s\n" % (module["Name"], module["DIMMType"], module["SizeMB"], module["DIMMStatus"]))
 
-        if '#MemoryCollection.' in instance.get('@odata.type', ''):
+        if '#MemoryCollection.' in instance.get('@odata.type', '') and prefix == "Hpe":
             sys.stdout.write("<<<ilo_api_mem:sep(124)>>>\n")
-            memory = redfishobj.get(instance["@odata.id"]).dict["Members"]
+            memory = redfishobj.get(instance["@odata.id"]+'?$expand=.').dict["Members"]
             for element in memory:
-                module = redfishobj.get(element["@odata.id"]).dict
-                if module["Status"]["State"] == "Absent":
+                if element["Status"]["State"] == "Absent":
                     continue
-                sys.stdout.write("%s|%s|%d|%s\n" % (module["Name"], module["MemoryDeviceType"], module["CapacityMiB"], module["Status"]["Health"]))
+                sys.stdout.write("%s|%s|%d|%s\n" % (element["Name"], element["MemoryDeviceType"], element["CapacityMiB"], element["Status"]["Health"]))
 
         if '#ComputerSystem.' in instance.get('@odata.type', ''):
             cpu = redfishobj.get(instance["@odata.id"]).dict
