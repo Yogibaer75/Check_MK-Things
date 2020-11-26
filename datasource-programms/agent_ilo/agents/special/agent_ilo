@@ -86,6 +86,7 @@ def get_gen(_redfishobj):
     gencompany = next(iter(rootresp.get("Oem", {}).keys()), None) in ('Hpe', 'Hp')
     comp = 'Hp' if gencompany else None
     comp = 'Hpe' if rootresp.get("Oem", {}).get('Hpe', None) else comp
+    iloversion = None
     if comp and next(iter(rootresp.get("Oem", {}).get(comp, {}).get("Manager", {}))).\
                                                                 get('ManagerType', None):
         ilogen = next(iter(rootresp.get("Oem", {}).get(comp, {}).get("Manager", {})))\
@@ -162,7 +163,7 @@ def get_information(redfishobj):
 
         if '#Power.' in instance.get('@odata.type', ''):
             response = redfishobj.get(instance['@odata.id'])
-            if len(response) == 0:
+            if "PowerSupplies" not in response.dict.keys():
                 continue
             sys.stdout.write("<<<ilo_api_power:sep(124)>>>\n")
             psus = response.dict["PowerSupplies"]
