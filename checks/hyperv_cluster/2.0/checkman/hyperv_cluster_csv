@@ -1,0 +1,24 @@
+title: Hyper-V Cluster Shared Volumes
+agents: windows
+catalog: os/storage
+license: GPL
+distribution: check_mk
+description:
+ This check monitors the filesystem usage on Hyper-V Cluster Shared
+ Volumes (CSV). 
+ 
+ The check makes use of the general check framework of the {df} check. Please
+ refer to the man page of the {df} check for the detailed description of
+ the check and its numerous features.
+
+ In order to run, its needed to copy the hyperv_cluster.ps1 script to the plugin
+ folder of the agent.
+
+item:
+ Name of the CSV.
+
+
+inventory:
+ All CSVs found will be inventorized. The CSVs are only visible on the
+ cluster owner.
+

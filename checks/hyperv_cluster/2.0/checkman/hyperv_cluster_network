@@ -1,0 +1,17 @@
+title: Hyper-V Cluster Networks
+agents: windows
+catalog: os/windows
+license: GPL
+distribution: check_mk
+description:
+ This check monitors the defined networks on a Hyper-V cluster.
+
+ In order to run, its needed to copy the hyperv_cluster.ps1 script to the plugin
+ folder of the agent.
+
+item:
+ Name of the network.
+
+inventory:
+ All cluster networks found will be inventorized.
+

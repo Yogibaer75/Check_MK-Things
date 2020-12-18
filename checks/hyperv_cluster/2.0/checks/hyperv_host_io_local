@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+from cmk.base.check_legacy_includes.diskstat import *
+
+
+def inventory_hyperv_host_io_local(parsed):
+    for lun in parsed.keys():
+        yield lun, {}
+
+
+def check_hyperv_host_io_local(item, params, parsed):
+
+    lun = parsed.get(item, "")
+
+    if not lun:
+        return 3, "CSV not found in agent output"
+    
+    disk = { item : {
+            'node': None,
+            'read_ql': float(lun["avg. disk read queue length"].replace(',','.')),
+            'write_ql': float(lun["avg. disk write queue length"].replace(',','.')),
+            'sec_per_read_counter': float(lun["avg. disk sec/read"].replace(',','.')),
+            'sec_per_write_counter': float(lun["avg. disk sec/write"].replace(',','.')),
+            'read_ios': float(lun["disk reads/sec"].replace(',','.')),
+            'write_ios': float(lun["disk writes/sec"].replace(',','.')),
+            'read_throughput': float(lun["disk read bytes/sec"].replace(',','.')),
+            'write_throughput': float(lun["disk write bytes/sec"].replace(',','.')),
+        }
+    }
+    return check_diskstat_dict(item, params, disk)
+
+
+check_info['hyperv_host_io_local'] = {
+    "inventory_function": inventory_hyperv_host_io_local,
+    "check_function": check_hyperv_host_io_local,
+    "parse_function": parse_hyperv_io,
+    "has_perfdata": True,
+    "service_description": "HyperV IO Local %s",
+    "includes": ["hyperv.include"],
+    "group": "disk_io",
+}

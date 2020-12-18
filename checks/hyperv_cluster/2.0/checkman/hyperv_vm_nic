@@ -1,0 +1,18 @@
+title: Hyper-V NIC
+agents: windows
+catalog: os/windows
+license: GPL
+distribution: check_mk
+description:
+ This check provides information about NICs configured on every virtual machine.
+
+ In order to run, its needed to copy the hyperv_host.ps1 script to the plugin
+ folder. The plugin sends data for all virutal machines as piggyback data in the
+ agent output of the Hyper-V host.
+
+item:
+ Name of the NIC.
+
+inventory:
+ All NICs found will be inventorized.
+

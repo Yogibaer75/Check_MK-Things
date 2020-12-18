@@ -1,0 +1,42 @@
+#!/usr/bin/python
+# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+factory_settings["hyperv_cluster_roles_default_levels"] = {
+    "states" : {
+        "Online": 0,
+        "Offline": 1,
+    }
+}
+
+
+def inventory_hyperv_cluster_roles(parsed):
+    for vm in parsed.keys():
+        yield vm, {}
+
+
+def check_hyperv_cluster_roles(item, params, parsed):
+    vm = parsed.get(item, "")
+
+    if not vm:
+        yield 3, "VM not found in agent output"
+        return
+
+    state = params.get("states", {}).get(vm.get("cluster.vm.state"),3)
+    yield state, "power state: %s" % vm.get("cluster.vm.state")
+
+    if vm.get("cluster.vm.owner"):
+        if vm.get("cluster.vm.state") == "Online":
+            yield 0, 'running on [%s]' % vm.get("cluster.vm.owner")
+        else:
+            yield 0, 'defined on [%s]' % vm.get("cluster.vm.owner")
+
+
+check_info['hyperv_cluster_roles'] = {
+    "inventory_function": inventory_hyperv_cluster_roles,
+    "check_function": check_hyperv_cluster_roles,
+    "parse_function": parse_hyperv,
+    "default_levels_variable": "hyperv_cluster_roles_default_levels",
+    "service_description": "HyperV VM %s",
+    "includes": ["hyperv.include"],
+    "group": "hyperv_cluster_roles",
+}

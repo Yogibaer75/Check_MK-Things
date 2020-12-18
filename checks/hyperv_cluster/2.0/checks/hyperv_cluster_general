@@ -1,0 +1,26 @@
+#!/usr/bin/python
+# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def inventory_hyperv_cluster_general(parsed):
+    yield None, None 
+
+
+def check_hyperv_cluster_general(_no_item, _no_params, parsed):
+    if parsed:
+        name = parsed.get("cluster.name", "")
+        quorum = parsed.get("quorum.resourcename", "")
+        ip = parsed.get("cluster.ip", "")
+        quorum_typ = parsed.get("quorum.type", "")
+
+        message = "HyperV Cluster %s with IP %s and quorum %s as %s quorum." % (name, ip, quorum, quorum_typ)
+
+        yield 0, message
+
+
+check_info['hyperv_cluster_general'] = {
+    "inventory_function": inventory_hyperv_cluster_general,
+    "check_function": check_hyperv_cluster_general,
+    "parse_function": hyperv_vm_convert,
+    "service_description": "HyperV Cluster Status",
+    "includes": ["hyperv.include"],
+}

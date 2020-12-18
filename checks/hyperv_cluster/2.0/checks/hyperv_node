@@ -1,0 +1,27 @@
+#!/usr/bin/python
+# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+
+def inventory_hyperv_node(parsed):
+    if "vms" in parsed:
+        yield None, None 
+
+
+def check_hyperv_node(item, _no_params, parsed):
+    if not parsed:
+        yield 3, "Node information is missing"
+
+    machines = int(parsed["vms"][0])
+    message = "%s machines defined on host" % machines
+
+    yield 0, message   
+
+
+check_info['hyperv_node'] = {
+    "inventory_function": inventory_hyperv_node,
+    "check_function": check_hyperv_node,
+    "parse_function": parse_hyperv_single,
+    "service_description": "HyperV Node",
+    "includes": ["hyperv.include"],
+}
+

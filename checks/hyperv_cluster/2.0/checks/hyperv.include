@@ -1,0 +1,61 @@
+#!/usr/bin/python
+# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def hyperv_vm_convert(info):
+    parsed = {}
+    for line in info:
+        parsed[line[0]] = " ".join(line[1:])
+
+    return parsed
+
+
+def parse_hyperv_io(info):
+    parsed = {}
+    for line in info:
+        value = line[-1]
+        data = " ".join(line[:-1])
+        lun, name = data.split('\\', 1)
+        if lun not in parsed:
+            parsed[lun] = {}
+        parsed[lun][name] = value
+
+    return parsed
+
+def parse_hyperv(info):
+    datatypes = {
+        "vhd" : "vhd.name",
+        "nic" : "nic.name",
+        "checkpoints" : "checkpoint.name",
+        "cluster.number_of_nodes" : "cluster.node.name",
+        "cluster.number_of_csv" : "cluster.csv.name",
+        "cluster.number_of_disks" : "cluster.disk.name",
+        "cluster.number_of_vms" : "cluster.vm.name",
+        "cluster.number_of_roles" : "cluster.role.name",
+        "cluster.number_of_networks" : "cluster.network.name",
+    }
+
+    parsed = {}
+    if len(info) == 0:
+        return parsed
+
+    datatype = datatypes.get(info[0][0])
+    element = ""
+    start = False
+    for line in info:
+        if line[0] == datatype:
+            start = True
+            element = " ".join(line[1:])
+            parsed[element] = {}
+        elif start == True:
+            parsed[element][line[0]] = " ".join(line[1:])
+
+    return parsed
+
+def parse_hyperv_single(info,key):
+    parsed = {}
+    for i in info[1:]:
+        element = dict(zip(info[0], i))
+        parsed[element[key]] = element
+   
+    return parsed
+

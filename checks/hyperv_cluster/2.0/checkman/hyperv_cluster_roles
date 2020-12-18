@@ -1,0 +1,20 @@
+title: Hyper-V Cluster Roles (VMs)
+agents: windows
+catalog: os/windows
+license: GPL
+distribution: check_mk
+description:
+ This check monitors the defined VMs on a Hyper-V cluster. 
+ 
+ In order to run, its needed to copy the hyperv_cluster.ps1 script to the plugin
+ folder of the agent. Inside the script is a filter that only cluster roles of type
+ 'VirtualMachine' are given as result.
+
+item:
+ Name of the VM.
+
+
+inventory:
+ All cluster roles (VMs)  found will be inventorized. The roles are only visible 
+ on the cluster owner.
+

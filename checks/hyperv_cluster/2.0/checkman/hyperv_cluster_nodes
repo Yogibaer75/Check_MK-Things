@@ -1,0 +1,17 @@
+title: Hyper-V Cluster Nodes
+agents: windows
+catalog: os/windows
+license: GPL
+distribution: check_mk
+description:
+ This check monitors the defined nodes on a Hyper-V cluster.
+
+ In order to run, its needed to copy the hyperv_cluster.ps1 script to the plugin
+ folder of the agent.
+
+item:
+ Name of the node.
+
+inventory:
+ All cluster nodes found will be inventorized.
+

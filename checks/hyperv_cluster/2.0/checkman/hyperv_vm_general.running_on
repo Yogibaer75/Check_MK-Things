@@ -1,0 +1,18 @@
+title: Hyper-V Running On
+agents: windows
+catalog: os/windows
+license: GPL
+distribution: check_mk
+description:
+ This check provides the name of the host a VM is running on.
+
+ In order to run, its needed to copy the hyperv_host.ps1 script to the plugin
+ folder. The plugin sends data for all virutal machines as piggyback data in the
+ agent output of the Hyper-V host.
+
+item:
+ None
+
+inventory:
+ One check for host name information.
+
