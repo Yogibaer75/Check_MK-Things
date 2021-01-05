@@ -11,10 +11,7 @@ from cmk.gui.plugins.wato import (
 from cmk.gui.plugins.wato.check_mk_configuration import (
     RulespecGroupMonitoringAgents,)
 from cmk.gui.valuespec import (
-    Alternative,
-    Dictionary,
-    FixedValue,
-    TextAscii,
+    DropdownChoice,
 )
 
 
@@ -33,35 +30,59 @@ class RulespecGroupMonitoringAgentsOwnAgentPlugins(RulespecSubGroup):
         return _("Own Agent Plugins")
 
 
-def _valuespec_agent_config_win_hyperv():
-    return Alternative(
-        title=_("HyperV Cluster (Windows)"),
+def _valuespec_agent_config_win_hyperv_cluster():
+    return DropdownChoice(
+        title=_("Hyper-V Cluster (Windows)"),
         help=_("This plugin monitors HyperV Clusters"),
-        elements=[
-            Dictionary(
-                title=_("Deploy HyperV Cluster plugin"),
-                elements=[
-                    ("clustername",
-                     TextAscii(
-                         title=_("HyperV Cluster to connect to"),
-                         help=_("Put the name of the cluster here, e.g. cluster1"),
-                         allow_empty=False,
-                         regex=r"^[A-Za-z0-9_\\]+$",
-                         regex_error=_("You have used an invalid character"),
-                     )),
-                ],
-                optional_keys=False,
-            ),
-            FixedValue(None, title=_("Do not deploy the HyperV Cluster plugin"), totext=_("(disabled)")),
+        choices=[
+            (True, _("Deploy plugin for Hyper-V Clusters")),
+            (None, _("Do not deploy plugin for Hyper-V Clusters")),
         ],
-        default_value={"clustername": r"cluster1"},
     )
 
 
 rulespec_registry.register(
     HostRulespec(
         group=RulespecGroupMonitoringAgentsOwnAgentPlugins,
-        name="agent_config:win_hyperv",
-        valuespec=_valuespec_agent_config_win_hyperv,
+        name="agent_config:win_hyperv_cluster",
+        valuespec=_valuespec_agent_config_win_hyperv_cluster,
+    ))
+
+
+def _valuespec_agent_config_win_hyperv_host():
+    return DropdownChoice(
+        title=_("Hyper-V Hosts (Windows)"),
+        help=_("This plugin monitors HyperV Hosts"),
+        choices=[
+            (True, _("Deploy plugin for Hyper-V Hosts")),
+            (None, _("Do not deploy plugin for Hyper-V Hosts")),
+        ],
+    )
+
+
+rulespec_registry.register(
+    HostRulespec(
+        group=RulespecGroupMonitoringAgentsOwnAgentPlugins,
+        name="agent_config:win_hyperv_host",
+        valuespec=_valuespec_agent_config_win_hyperv_host,
+    ))
+
+
+def _valuespec_agent_config_win_hyperv_csv_io():
+    return DropdownChoice(
+        title=_("Hyper-V CSV I/O (Windows)"),
+        help=_("This plugin monitors HyperV CSV I/O"),
+        choices=[
+            (True, _("Deploy plugin for Hyper-V CSV I/O")),
+            (None, _("Do not deploy plugin for Hyper-V CSV I/O")),
+        ],
+    )
+
+
+rulespec_registry.register(
+    HostRulespec(
+        group=RulespecGroupMonitoringAgentsOwnAgentPlugins,
+        name="agent_config:win_hyperv_csv_io",
+        valuespec=_valuespec_agent_config_win_hyperv_csv_io,
     ))
 
