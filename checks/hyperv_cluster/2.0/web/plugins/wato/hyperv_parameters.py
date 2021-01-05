@@ -42,7 +42,46 @@ def _parameter_valuespec_hyperv_vm_integration():
     )
 
 
+def _parameter_valuespec_hyperv_cluster_roles():
+    return Dictionary(
+        title=_("HyperV Cluster Role Status"),
+        elements = [
+            ( "states", DropdownChoice(
+                    choices=[
+                        ("Online", _("Online")),
+                        ("Offline", _("Offline")),
+                    ],
+                title=_("Default State"),),
+            ),
+            ( "match_services",
+                ListOf(
+                    Tuple(
+                        elements = [
+                            TextAscii(title=_("Role name")),
+                            DropdownChoice(
+                                choices=[
+                                    ("Online", _("Online")),
+                                    ("Offline", _("Offline")),
+                                ],
+                            title=_("State"),),
+                        ]),
+                title=_("Special States"),),
+            ),
+        ],
+        help=_('This defines the status of the cluster role'),
+        optional_keys=[],
+    )
+
+
 def _item_spec_hyperv_vm_integration():
+    return TextAscii(
+        title=_("Name of the VM"),
+        help=_("Specify the name of the VM, for example z4065012."),
+        allow_empty=False,
+    )
+
+
+def _item_spec_hyperv_cluster_roles():
     return TextAscii(
         title=_("Name of the VM"),
         help=_("Specify the name of the VM, for example z4065012."),
@@ -58,5 +97,16 @@ rulespec_registry.register(
         match_type="dict",
         parameter_valuespec=_parameter_valuespec_hyperv_vm_integration,
         title=lambda: _("HyperV Integration Services Status"),
+    ))
+
+
+rulespec_registry.register(
+    CheckParameterRulespecWithItem(
+        check_group_name="hyperv_cluster_roles",
+        group=RulespecGroupCheckParametersApplications,
+        item_spec=_item_spec_hyperv_cluster_roles,
+        match_type="dict",
+        parameter_valuespec=_parameter_valuespec_hyperv_cluster_roles,
+        title=lambda: _("HyperV Cluster Role Status"),
     ))
 

@@ -15,13 +15,27 @@ def inventory_hyperv_cluster_roles(parsed):
 
 
 def check_hyperv_cluster_roles(item, params, parsed):
+
     vm = parsed.get(item, "")
+    special_state = params.get('match_services', [])
 
     if not vm:
         yield 3, "VM not found in agent output"
         return
 
-    state = params.get("states", {}).get(vm.get("cluster.vm.state"),3)
+    default_state = params.get("states", {})
+    actual_state = vm.get("cluster.vm.state")
+    state = None
+    
+    for i in special_state:
+        vm_name, desired_state = i
+        if vm_name == item and vm.get("cluster.vm.state") == desired_state:
+            state = 0
+        elif vm_name == item:
+            state = 1
+    
+    if state is None:
+        state = params.get("states", {}).get(vm.get("cluster.vm.state"),3)
     yield state, "power state: %s" % vm.get("cluster.vm.state")
 
     if vm.get("cluster.vm.owner"):
