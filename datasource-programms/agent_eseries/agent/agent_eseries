@@ -1,0 +1,117 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+from netapp.santricity.configuration import Configuration
+from netapp.santricity.api_client import ApiClient
+from netapp.santricity.api.v2.storage_systems_api import StorageSystemsApi
+from netapp.santricity.api.v2.volumes_api import VolumesApi
+from netapp.santricity.api.v2.hardware_api import HardwareApi
+
+from pprint import pprint
+import json
+
+
+config = Configuration()
+config.host = "http://localhost:8080"  # Add ip address of the proxy here
+config.username = "ro"
+config.password = "ro"
+
+api_client = ApiClient()
+config.api_client = api_client
+
+storage_system = StorageSystemsApi(api_client=api_client)
+
+# Get storage system status
+ssr = storage_system.get_all_storage_systems()
+
+for ss in ssr:
+    print "<<<<%s.envia-tel.priv>>>>" % ss.name
+    hardware_api = HardwareApi(api_client=api_client)
+    print "\n<<<eseries_storage_system>>>\n" \
+          "\nStorageSystem " + ss.wwn + "\nStatus " + ss.status
+
+    # Get controller & product info
+    controllers = hardware_api.get_all_controllers(system_id=ss.id)
+    for controller in controllers:
+        print "Controller " + controller.controller_ref
+        print "ControllerStatus " + controller.status
+        print "ControllerType " + controller.board_id
+        print "FirmwareVersion " + controller.app_version
+
+        print "ControllerHostInterfaces "
+        for host_interface in controller.host_interfaces:
+            interface_type = host_interface.interface_type
+            if interface_type == 'iscsi':
+                print "iSCSI " + host_interface.iscsi.id
+            elif interface_type == 'fibre':
+                print "PortWWN " + host_interface.fibre.nice_address_id
+            else:
+                print "Port " + interface_type
+
+    # Get all volumes info for each storage system
+    volume_api = VolumesApi(api_client=api_client)
+    volumes = volume_api.get_all_volumes(system_id=ss.id)
+    print "\n<<<eseries_volume>>>\n"
+    for vol in volumes:
+        print "\nVolume " + vol.wwn
+        data = " ".join(str(vol).replace('\n', ' ').replace('\r', '').split())
+        print (data)
+
+    # Get all volume group info for each storage system
+    vgs = volume_api.get_all_storage_pools(system_id=ss.id)
+    print "\n<<<eseries_volume_group>>>\n"
+    for vg in vgs:
+        print "\nVolumeGroup " + vg.world_wide_name
+        data = " ".join(str(vg).replace('\n', ' ').replace('\r', '').split())
+        print (data)
+
+    # Get all drives info for each storage system
+    drives = hardware_api.get_all_drives(system_id=ss.id)
+    print "\n<<<eseries_drives>>>\n"
+    for drive in drives:
+        print "\nDrive " + drive.world_wide_name
+        data = " ".join(str(drive).replace('\n', ' ').replace('\r', '').split())
+        print (data)
+
+    # Get FC Port WWN:
+    hardware_inventory = hardware_api.get_hardware_information(system_id=ss.id)
+    fibre_ports = hardware_inventory.fibre_ports
+    for fiber_port in fibre_ports:
+        print "fiber Port WWN: " + fiber_port.nice_address_id
+
+    # Get object bundle
+    object_graph = storage_system.get_object_graph(system_id=ss.id)
+    component_bundle = object_graph.component_bundle
+
+    # Get Thermal Sensor info
+    thermal_sensors = component_bundle.thermal_sensor
+    print "\n<<<eseries_temp>>>\n"
+    for sensor in thermal_sensors:
+        print "Sensor " + sensor.thermal_sensor_ref
+        data = " ".join(str(sensor).replace('\n', ' ').replace('\r', '').split())
+        print(data)
+
+    # Get power supply info
+    power_supplies = component_bundle.power_supply
+    print "\n<<<eseries_power>>>\n"
+    for power in power_supplies:
+        print "PSU " + power.power_supply_ref
+        data = " ".join(str(power).replace('\n', ' ').replace('\r', '').split())
+        print(data)
+
+    # Get fan info
+    fans = component_bundle.fan
+    print "\n<<<eseries_fans>>>\n"
+    for fan in fans:
+        print "Fan " + fan.fan_ref
+        data = " ".join(str(fan).replace('\n', ' ').replace('\r', '').split())
+        print(data)
+
+    # Get battery info
+    batteries = component_bundle.battery
+    print "\n<<<eseries_battery>>>\n"
+    for battery in batteries:
+        print "Battery " + battery.battery_ref
+        data = " ".join(str(battery).replace('\n', ' ').replace('\r', '').split())
+        print(data)
+    print"<<<<>>>>"
