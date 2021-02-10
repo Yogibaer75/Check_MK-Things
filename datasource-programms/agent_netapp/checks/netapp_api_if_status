@@ -1,0 +1,151 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+# +------------------------------------------------------------------+
+# |             ____ _               _        __  __ _  __           |
+# |            / ___| |__   ___  ___| | __   |  \/  | |/ /           |
+# |           | |   | '_ \ / _ \/ __| |/ /   | |\/| | ' /            |
+# |           | |___| | | |  __/ (__|   <    | |  | | . \            |
+# |            \____|_| |_|\___|\___|_|\_\___|_|  |_|_|\_\           |
+# |                                                                  |
+# | Copyright Mathias Kettner 2014             mk@mathias-kettner.de |
+# +------------------------------------------------------------------+
+#
+# This file is part of Check_MK.
+# The official homepage is at http://mathias-kettner.de/check_mk.
+#
+# check_mk is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# tails. You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+#<<<netapp_api_if_status:sep(9)>>>
+#port VWSMMOFMOP111.a0a	administrative-speed auto	ifgrp-distribution-function mac	node VWSMMOFMOP111	role data	administrative-duplex auto	ipspace Default	is-administrative-auto-negotiate true	port a0a	health-status healthy	is-administrative-up true	link-status up	ignore-health-status false	administrative-flowcontrol full	mtu-admin 1500	ifgrp-mode multimode_lacp	mtu 1500	mac-address 02:a0:98:ba:3e:3a	port-type if_group
+#port VWSMMOFMOP111.a0a-3	administrative-speed auto	node VWSMMOFMOP111	broadcast-domain Kundenlan	administrative-duplex auto	ipspace Default	is-administrative-auto-negotiate true	port a0a-3	health-status healthy	vlan-node VWSMMOFMOP111	vlan-port a0a	is-administrative-up true	link-status up	role data	ignore-health-status false	mtu-admin 1500	vlan-id 3	administrative-flowcontrol full	mtu 1500	mac-address 02:a0:98:ba:3e:3a	port-type vlan
+
+
+def netapp_convert_to_port(info):
+    interfaces = netapp_api_parse_lines(info)
+
+    # Calculate speed, state and create mac-address list
+    if_mac_list = {} # Dictionary with lists of common mac addresses
+    vif_list    = [] # List of virtual interfaces
+    for name, values in interfaces.items():
+        # Reported by Clustermode
+        for status_key in [ "link-status", "operational-status" ]:
+            if status_key in values:
+                if values[status_key] == "up":
+                    values["state"] = "1"
+                else:
+                    values["state"] = "2"
+                break
+
+        # Reported by Clustermode
+        if "operational-speed" in values:
+            values["speed"] = int(values["operational-speed"]) * 1000 * 1000
+
+        if "mac-address" in values:
+            if_mac_list.setdefault(values["mac-address"], [])
+            if_mac_list[values["mac-address"]].append((name, values.get("state")))
+
+    nics       = []
+    extra_info = {}
+    for idx, entry in enumerate(sorted(interfaces)):
+        nic_name, values = entry, interfaces[entry]
+
+        speed = values.get("speed", 0)
+        state = values.get("state", "2")
+
+        # Only add physical interfaces
+        if values.get("port-type") == 'physical':
+            if values.get("mac-address"):
+                mac = "".join(map(lambda x: chr(int(x, 16)), values["mac-address"].split(':')))
+            else:
+                mac = ''
+
+            nic = ['0'] * 20
+            nic[0]  = str(idx + 1)                          # Index
+            nic[1]  = nic_name                              # Description
+            nic[2]  = "6" # Fake ethernet                   # Type
+            nic[3]  = speed                                 # Speed
+            nic[4]  = state                                 # Status
+            # IN
+            nic[5]  = 0            # inoctets
+            nic[6]  = 0            # inucast
+            nic[7]  = 0            # inmcast
+            nic[8]  = 0                                     # ibcast
+            nic[9]  = 0                                     # indiscards
+            nic[10] = 0            # inerrors
+            # OUT
+            nic[11] = 0            # outoctets
+            nic[12] = 0            # outucast
+            nic[13] = 0            # outmcast
+            nic[14] = 0                                     # outbcast
+            nic[15] = 0                                     # outdiscards
+            nic[16] = 0                                     # outspeed
+            nic[17] = 0                                     # outqlen
+            nic[18] = values.get("interface-name", "")      # Alias
+            nic[19] = mac                                   # MAC
+
+            nics.append(nic)
+
+    return nics, extra_info
+
+
+def inventory_netapp_api_if_status(parsed):
+    nics, extra_info = parsed
+    return inventory_if_common(nics)
+
+
+def check_netapp_api_if_status(item, params, parsed):
+    nics, extra_info = parsed
+    yield check_if_common(item, params, nics)
+
+    for line in nics:
+        ifIndex = line[0]
+        ifDescr = line[1]
+        ifAlias = line[18]
+        if type(ifIndex) == tuple:
+            ifGroup, ifIndex = ifIndex
+
+        ifDescr_cln = cleanup_if_strings(ifDescr)
+        ifAlias_cln = cleanup_if_strings(ifAlias)
+        first_member = True
+        if if_item_matches(item, ifIndex, ifAlias_cln, ifDescr_cln):
+            if ifDescr in extra_info:
+                vif_group = extra_info[ifDescr]
+                member_info = []
+                for member_name, member_state in vif_group["grouped_if"]:
+                    if member_state == None or member_name == ifDescr:
+                        continue # Not a real member or the grouped interface itself
+
+                    if member_state == "2":
+                        state = 1
+                    else:
+                        state = 0
+
+                    if first_member:
+                        yield state, "Physical interfaces: %s(%s)" % (member_name, if_statename(member_state))
+                        first_member = False
+                    else:
+                        yield state, "%s(%s)" % (member_name, if_statename(member_state))
+
+                if "speed_differs" in vif_group:
+                    yield 1, "Interfaces do not have the same speed"
+
+
+check_info["netapp_api_if_status"] = {
+    'check_function'          : check_netapp_api_if_status,
+    'inventory_function'      : inventory_netapp_api_if_status,
+    'parse_function'          : netapp_convert_to_port,
+    'service_description'     : 'Interface Status %s',
+    'has_perfdata'            : True,
+    'group'                   : 'if',
+    'includes'                : [ 'if.include', 'netapp_api.include' ],
+    'default_levels_variable' : 'if_default_levels',
+}
