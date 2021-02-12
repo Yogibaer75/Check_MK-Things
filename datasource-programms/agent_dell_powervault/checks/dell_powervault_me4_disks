@@ -1,0 +1,29 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+#
+
+@get_parsed_item_data
+def check_dell_powervault_me4_disks(item, params, data):
+    disk_states = {
+        0: ("OK", 0),
+        1: ("Degraded", 1),
+        2: ("Fault", 2),
+        3: ("Unknown", 3),
+    }
+
+    state_text, status_num  = disk_states.get(data.get("health-numeric", 3), ("Unknown",3))
+    value = data.get("temperature")
+    value_number = ''.join(c for c in value if (c.isdigit() or c == "."))
+    perfdata = [("temp",value_number)]
+    message = "%s disk with size %s is %s with temperature %s" % (data.get("description", "Unknown"), data.get("size"),state_text,value)
+    return status_num, message, perfdata
+
+
+check_info["dell_powervault_me4_disks"] = {
+    "check_function": check_dell_powervault_me4_disks,
+    "parse_function": parse_dell_powervault_me4,
+    "inventory_function": discover(),
+    "service_description": "Disk %s",
+    "has_perfdata": True,
+    "includes": ["dell_powervault_me4.include"],
+}
