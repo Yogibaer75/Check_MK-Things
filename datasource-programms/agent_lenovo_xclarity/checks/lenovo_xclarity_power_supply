@@ -1,0 +1,31 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+
+@get_parsed_item_data
+def check_lenovo_xclarity_power_supply(item, _no_params, data):
+    state = data.get("Status", {"Health": "Unknown"}).get("Health", "Unknown")
+    reading = data.get("PowerInputWatts", 0)
+    reading_output = data.get("PowerOutputWatts", 0)
+    message = "reading is %s Watt input, %s Watt output and has status %s" % (
+        reading,
+        reading_output,
+        state,
+    )
+    perfdata = [("watt", reading)]
+    status = 0
+    if state != "OK":
+        message += "(!)"
+        status = 1
+
+    return status, message, perfdata
+
+
+check_info["lenovo_xclarity_power_supply"] = {
+    "parse_function": parse_lenovo_xclarity,
+    "check_function": check_lenovo_xclarity_power_supply,
+    "inventory_function": discover(),
+    "has_perfdata": True,
+    "service_description": "%s",
+    "includes": ["lenovo_xclarity.include"],
+}

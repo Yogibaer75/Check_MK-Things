@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+
+@get_parsed_item_data
+def check_lenovo_xclarity_voltages(item, _no_params, data):
+    state = data.get("Status", {"State": "Unknown"}).get("State", "Unknown")
+    crit_up = float(data.get("UpperThresholdCritical", 0))
+    crit_lo = float(data.get("LowerThresholdCritical", 0))
+    warn_up = float(data.get("UpperThresholdNonCritical", 0))
+    warn_lo = float(data.get("LowerThresholdNonCritical", 0))
+
+    reading = float(data.get("ReadingVolts", 0))
+    message = "reading is %s Volts and has status %s" % (reading, state)
+    perfdata = [("voltage", reading)]
+    status = 0
+    if state != "Enabled":
+        message += "(!)"
+        status = 1
+
+    if crit_up <= warn_up:
+        crit_up = warn_up
+    if crit_lo >= warn_lo:
+        crit_lo = warn_lo
+
+    if (reading >= crit_up and crit_up != 0) or (reading <= crit_lo and crit_lo != 0):
+        status = 2
+        message += " - Voltage critical (!!)"
+    elif (reading >= warn_up and warn_up != 0) or (reading <= warn_lo and warn_lo != 0):
+        status = 1
+        message += " - Voltage warning (!)"
+
+    return status, message, perfdata
+
+
+check_info["lenovo_xclarity_voltages"] = {
+    "parse_function": parse_lenovo_xclarity,
+    "check_function": check_lenovo_xclarity_voltages,
+    "inventory_function": discover(),
+    "has_perfdata": True,
+    "service_description": "Voltage %s",
+    "includes": ["lenovo_xclarity.include"],
+}

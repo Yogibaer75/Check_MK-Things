@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+
+def parse_lenovo_xclarity(info):
+    import ast
+
+    parsed = {}
+    data = ast.literal_eval(info[0][0])
+    for element in data:
+        device = element.get("Name", "Unknown")
+        parsed.setdefault(device, element)
+
+    return parsed

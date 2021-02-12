@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+
+@get_parsed_item_data
+def check_lenovo_xclarity_fans(item, _no_params, data):
+    state = data.get("Status", {"State": "Unknown"}).get("State", "Unknown")
+    reading = int(data.get("Reading", 0))
+    min_range = int(data.get("MinReadingRange", 0))
+    max_range = int(data.get("MaxReadingRange", 0))
+
+    max_warn = max_range / 100 * 80
+    if min_range == 0:
+        min_warn = max_range / 100 * 20
+    else:
+        min_warn = (max_range - min_range) / 100 * 20 + min_range
+
+    message = "reading is %s RPM and has status %s" % (reading, state)
+    perfdata = [("rpm", reading, max_warn, None, min_range, max_range)]
+    status = 0
+    if state != "Enabled":
+        message += "(!)"
+        status = 1
+
+    if reading >= max_warn or reading <= min_warn:
+        status = 1
+        message += " Speed problem (!)"
+
+    return status, message, perfdata
+
+
+check_info["lenovo_xclarity_fans"] = {
+    "parse_function": parse_lenovo_xclarity,
+    "check_function": check_lenovo_xclarity_fans,
+    "inventory_function": discover(),
+    "has_perfdata": True,
+    "service_description": "%s",
+    "includes": ["lenovo_xclarity.include"],
+}

@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+
+@get_parsed_item_data
+def check_lenovo_xclarity_temperatures(item, _no_params, data):
+    state = data.get("Status", {"State": "Unknown"}).get("State", "Unknown")
+    reading = data.get("ReadingCelsius", 0)
+    crit_up = data.get("UpperThresholdCritical", 0)
+    crit_lo = data.get("LowerThresholdCritical", 0)
+    warn_up = data.get("UpperThresholdNonCritical", 0)
+    warn_lo = data.get("LowerThresholdNonCritical", 0)
+
+    reading = float(0 if reading is None else reading)
+    crit_up = float(0 if crit_up is None else crit_up)
+    crit_lo = float(0 if crit_lo is None else crit_lo)
+    warn_up = float(0 if warn_up is None else warn_up)
+    warn_lo = float(0 if warn_lo is None else warn_lo)
+
+    message = "reading is %s C and has status %s" % (reading, state)
+    perfdata = [("temp", reading, warn_up, crit_up)]
+    status = 0
+    if state != "Enabled":
+        message += "(!)"
+        status = 1
+
+    if crit_up <= warn_up:
+        crit_up = warn_up
+    if crit_lo >= warn_lo:
+        crit_lo = warn_lo
+
+    if (reading >= crit_up and crit_up != 0) or (reading <= crit_lo and crit_lo != 0):
+        status = 2
+        message += " - Temperature critical (!!)"
+    elif (reading >= warn_up and warn_up != 0) or (reading <= warn_lo and warn_lo != 0):
+        status = 1
+        message += " - Temperature warning (!)"
+
+    return status, message, perfdata
+
+
+check_info["lenovo_xclarity_temperatures"] = {
+    "parse_function": parse_lenovo_xclarity,
+    "check_function": check_lenovo_xclarity_temperatures,
+    "inventory_function": discover(),
+    "has_perfdata": True,
+    "service_description": "Temp %s",
+    "includes": ["lenovo_xclarity.include"],
+}
