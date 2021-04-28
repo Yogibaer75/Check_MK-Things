@@ -39,4 +39,3 @@ register_check_parameters(
     None,
     "dict"
 )
-
