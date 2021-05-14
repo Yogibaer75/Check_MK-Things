@@ -25,7 +25,7 @@ def get_win_cert_files(conf: Dict[str, Any]) -> FileGenerator:
 
     validUntil = conf.get("valid", 30)
     certAuth = conf.get("auth", ".*")
-    cfg_lines = ["$expireInDays = %s" % validUntil, "$issuerstring = %s" % certAuth]
+    cfg_lines = ["$expireInDays = %s" % validUntil, "$issuerstring = '%s'" % certAuth]
 
     yield PluginConfig(
         base_os=OS.WINDOWS,
