@@ -1,0 +1,53 @@
+#!/usr/bin/python
+# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def parse_sccm_test(info):
+
+    objecttyps = {
+        "1" : "SQL_DB",
+        "2" : "SQL_LOG",
+    }
+  
+    parsed = {}
+    for line in info:
+        line = [x.strip('"') for x in line]
+        
+        if 'status' in line[0]:
+            continue
+        machine = line[5].split('\\')[-2].split('.')[0]
+        objecttyp = objecttyps.get(line[4],"")
+        objectname = line[1] + " " + machine + " " + objecttyp
+        parsed[objectname] = {
+            "status" : line[0],
+            "sitecode" : line[2],
+            "percentfree" : line[3],
+        }
+    return parsed
+
+def inventory_sccm_test(parsed):
+    for element in parsed:
+        yield element, None
+
+
+def check_sccm_test(item, params, parsed):
+
+    sccm_status = {
+        "0": (0, "Green"),
+        "1": (1, "Yellow"),
+        "2": (2, "Red"),
+    }
+    
+    if item in parsed:
+        data = parsed[item]
+        status, readable_status = sccm_status.get(data["status"], (3, "unknown status"))
+        message = "Status: %s " % ( readable_status )
+        yield status, message
+
+
+check_info['sccm_test'] = {
+    "inventory_function": inventory_sccm_test,
+    "check_function": check_sccm_test,
+    "parse_function": parse_sccm_test,
+    "service_description": "SCCM Site: %s",
+    "group": "sccm_test",
+}
