@@ -55,8 +55,20 @@ def check_dell_powervault_me4_disks(item: str, params, section) -> CheckResult:
         3: ("Unknown", 3),
     }
 
+    usage_numeric = {
+        0: "AVAIL",
+        3: "GLOBAL SP",
+        5: "LEFTOVR",
+        7: "FAILED",
+        8: "UNUSABLE",
+        9: "VIRTUAL POOL",
+    }
+
     state_text, status_num = disk_states.get(data.get("health-numeric", 3),
                                              ("Unknown", 3))
+    if status_num == 3 and data.get("usage-numeric") == 3:
+        state_text, status_num = ("Global SP", 0)
+
     message = "%s disk with size %s is %s" % (data.get(
         "description", "Unknown"), data.get("size"), state_text)
 
