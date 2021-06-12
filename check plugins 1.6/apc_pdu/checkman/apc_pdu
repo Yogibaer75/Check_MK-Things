@@ -7,8 +7,7 @@ description:
  This check monitors the device load on APC PDU devices.
 
 item:
- The description of the device as provided by the device.
+ no item
 
 inventory:
  One check for device is created by the inventory.
-
