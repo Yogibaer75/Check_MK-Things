@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+import getopt
+import json
+import sys
+import requests
+
+def usage():
+    sys.stderr.write("""Check_MK Meraki Agent
+USAGE: agent_meraki [OPTIONS] -o ORGANIZATION-ID -k API-KEY
+       agent_meraki -h
+
+ARGUMENTS:
+  HOST                                      Host name or IP address of 3par system
+
+OPTIONS:
+  -h, --help                                Show this help message and exit
+  -o, --key                                 Organization ID inside Meraki Cloud
+  -k, --organization                        Cloud API-Key
+""")
+
+
+opt_key = None
+opt_org = None
+
+short_options = "hk:o:"
+long_options = ["help", "key=", "organization=" ]
+
+try:
+    opts, args = getopt.getopt(sys.argv[1:], short_options, long_options)
+except getopt.GetoptError as err:
+    sys.stderr.write("%s\n" % err)
+    sys.exit(1)
+
+for opt, arg in opts:
+    if opt in ['-h', '--help']:
+        usage()
+        sys.exit(0)
+    elif opt in ["-k", "--key"]:
+        opt_key = arg
+    elif opt in ["-o", "--organization"]:
+        opt_org = arg
+    elif not opt:
+        usage()
+        sys.exit(0)
+
+if not opt_org:
+    sys.stderr.write("ERROR: No organization defined.\n")
+    sys.exit(1)
+elif not opt_key:
+    sys.stderr.write("ERROR: No key given.\n")
+    sys.exit(1)
+
+url = "https://api.meraki.com/api/v0"
+
+headers = {
+    "X-Cisco-Meraki-API-Key": opt_key,
+    "Content-Type": "application/json"
+}
+
+session = requests.session()
+
+def get_network_name(network_id, networks):
+    return [element for element in networks if network_id == element['id']][0]['name']
+
+# Initiate connection and get session Key. The api expects the login data
+# in json format. The standard port for all requests is 8080 as it is hard
+# coded above. Maybe this will be changed later!
+try:
+    networks = json.loads(session.get("%s/organizations/%s/networks" % (url, opt_org), headers=headers, timeout=10).text)
+
+except requests.exceptions.RequestException as e:
+    sys.stderr.write("Error: %s\n" % e)
+    sys.exit(1)
+
+inventory = json.loads(session.get("%s/organizations/%s/inventory" % (url, opt_org), headers=headers).text)
+appliances = [device for device in inventory if device['model'][:2] in ('MX', 'Z1', 'Z3', 'vM') and device['networkId'] is not None]
+devices = [device for device in inventory if device not in appliances and device['networkId'] is not None]
+print("<<<meraki_api_device:sep(44)>>>")
+# Output CSV of all other devices' info
+fieldnames = ['Network', 'Device', 'Serial', 'MAC', 'Model', 'Status', 'IP', 'Gateway', 'Public IP', 'DNS', 'VLAN', 'Static']
+# Iterate through all other devices
+for device in devices:
+    network_name = get_network_name(device['networkId'], networks)
+    device_name = json.loads(session.get('https://api.meraki.com/api/v0/networks/' + device['networkId'] + '/devices/' + device['serial'], headers=headers).text)['name']
+    uplink_info = dict.fromkeys(['interface', 'status', 'ip', 'gateway', 'publicIp', 'dns', 'vlan', 'usingStaticIp'])
+    uplink = json.loads(session.get('https://api.meraki.com/api/v0/networks/' + device['networkId'] + '/devices/' + device['serial'] + '/uplink', headers=headers).text)
+    
+    if uplink == []:
+        print(network_name,device_name,device['serial'],device['mac'], device['model'])
+    else:
+        uplink = uplink[0]
+
+        for key in uplink.keys():
+            uplink_info[key] = uplink[key]
+
+        print(network_name, device_name, device['serial'], device['mac'], device['model'], uplink_info['status'], uplink_info['ip'], uplink_info['gateway'], uplink_info['publicIp'], uplink_info['dns'], uplink_info['vlan'], uplink_info['usingStaticIp'])
+
+print("<<<meraki_api_appliance>>>")
+## missing not implemented
