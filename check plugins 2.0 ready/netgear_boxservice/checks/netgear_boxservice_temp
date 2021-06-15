@@ -7,7 +7,7 @@ factory_settings["netgear_boxservice_temp_default_levels"] = {"levels": (50.0, 6
 
 def inventory_netgear_boxservice_temp(info):
     for line in info:
-        if savefloat(line[2]) > 0:
+        if float(line[2]) > 0:
             yield (line[0], {})
 
 
