@@ -93,5 +93,5 @@ register.check_plugin(
     },
     discovery_function=discovery_dell_powervault_me4_disks,
     check_function=check_dell_powervault_me4_disks,
-    check_ruleset_name="dell_powervault_me4_disks",
+    check_ruleset_name="temperature",
 )
