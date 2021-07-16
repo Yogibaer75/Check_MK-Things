@@ -1,0 +1,489 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+# (c) Andre Eckstein <andre.eckstein@bechtle.com>
+
+# This is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# ails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+"""checkmk special agent for netapp e-series via rest api"""
+
+import requests
+import urllib3
+import logging
+import argparse
+import sys
+from typing import List, Any
+from collections import namedtuple
+
+# import cmk.utils.password_store
+# cmk.utils.password_store.replace_passwords()
+
+LOGGER = logging.getLogger("agent_netapp_e_series")
+
+# ARGPARSE
+
+
+def parse_arguments(argv: List[str]) -> argparse.Namespace:
+    sections = [
+        "batteries",
+        "controllers",
+        "drawers",
+        "drives",
+        "esms",
+        "fans",
+        "interfaces",
+        "pools",
+        "power_supplies",
+        "system",
+        "trays",
+        "volumes",
+        "sensors",
+    ]
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    # required
+    parser.add_argument("-u",
+                        "--user",
+                        default=None,
+                        help="Username for E-Series Login",
+                        required=True)
+    parser.add_argument(
+        "-s",
+        "--password",
+        default=None,
+        help="""Password for E-Series Login""",
+        required=True,
+    )
+    # optional
+    parser.add_argument(
+        "-P",
+        "--proto",
+        default="https",
+        help="""Use 'http' or 'https' (default=https)""",
+    )
+    parser.add_argument("-i",
+                        "--system-id",
+                        default=1,
+                        type=int,
+                        help="""Your E-Series System ID""")
+    parser.add_argument(
+        "-p",
+        "--port",
+        default=8443,
+        type=int,
+        help="Use alternative port (default: 8443)",
+    )
+    parser.add_argument(
+        "-m",
+        "--sections",
+        default=sections,
+        help=
+        "Comma separated list of data to query. Possible values: %s (default: all)"
+        % ",".join(sections),
+    )
+    parser.add_argument(
+        "--verify_ssl",
+        action="store_true",
+        default=False,
+    )
+    # maintenance
+    parser.add_argument("-v", "--verbose", action="count", default=0)
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Debug mode: let Python exceptions come through",
+    )
+    parser.add_argument(
+        "-w",
+        "--write",
+        action="store_true",
+        default=False,
+        help="""Write JSON File for debugging""",
+    )
+    #
+    parser.add_argument(
+        "host",
+        metavar="HOSTNAME",
+        help="""IP address or hostname of your Netapp E-Series Controller""",
+    )
+
+    return parser.parse_args(argv)
+
+
+# INPUTS
+
+
+def get_session(args):
+    session = requests.Session()
+    session.auth = (args.user, args.password)
+    session.verify = args.verify_ssl
+    return session
+
+
+def get_label_of_id(id, controller_ids):
+    return controller_ids[id]
+
+
+def fetch_storage_data(session, sections, args, base_url, controller_ids):
+    """
+    fetches all data of the different sections and, if existent, adds the perfdata from the different e-series components.
+    """
+
+    hardware_inventory = session.get(base_url + "/hardware-inventory",
+                                     verify=args.verify_ssl).json()
+
+    for section in sections:
+        # get data only for the activated sections
+        if section.name in args.sections:
+            LOGGER.debug(f"Fetching section {section.name}.")
+            sys.stdout.write("<<<netapp_eseries_%s:sep(0)>>>\n" % section.name)
+
+            # Several sections (powersupplies,trays,drawers...) use /hardware-inventory, so prevent it from being fetched multiple times
+            if section.uri == "/hardware-inventory":
+                section_storage_data = hardware_inventory
+            else:
+                section_storage_data = session.get(
+                    base_url + section.uri, verify=args.verify_ssl).json()
+
+            if section.perfdata_uri is not None:
+                section_perfdata = session.get(base_url + section.perfdata_uri,
+                                               verify=args.verify_ssl).json()
+
+                if isinstance(section_perfdata, list):
+                    combined_storage_data = add_perfdata_to_section_data(
+                        section, section_storage_data, section_perfdata)
+
+                # Section "System" is the only section that is not a list with multiple json/dict items, but json itself, so we 'list' it
+                else:
+                    perfdata = []
+                    perfdata.append(section_perfdata)
+
+                    result = []
+                    result.append(section_storage_data)
+                    combined_storage_data = add_perfdata_to_section_data(
+                        section, result, perfdata)
+            else:
+                combined_storage_data = section_storage_data
+
+            handle_output(combined_storage_data, section.ident, section.name)
+
+            if True:  # TODO Args.json
+
+                # TODO rewrite Save and read to functions
+                # storage_data will contain all relevant data of the e-series at the end of fetch_storage_data
+                storage_data_dict = {}
+                """
+                storage_data = {
+                    drives : [{drive1},{drive2},{drive3}],
+                    trays : [{tray1},{tray2},{tray3}],
+                    controllers : [{controllers}],
+                    volumes : [{volume1},{volume2},{volume3}],
+                    interfaces : [{interface},{interface2},{interface3}],
+                    pools : [{pool1},{pool2},{pool3}],
+                    ...
+                    hardware-inventory : [{hardware1,hardware2...}],
+                }
+                """
+                storage_data_dict[section.name] = combined_storage_data
+
+
+# Helpers
+
+
+def add_perfdata_to_section_data(section, storage_data, perfdata):
+    """Adds the performance data to the json info of the objects"""
+    identifier = None
+    if section.name in ['volumes", "drives", "system", "controllers']:
+        identifier = "id"
+    elif section.name == "interfaces":
+        identifier = "interfaceRef"
+
+    for list_counter, item in enumerate(storage_data):
+        for perfitem in perfdata:
+            if item[identifier] == perfitem[section.perfdata_identifier]:
+                storage_data[list_counter]['performance'] = perfitem
+                LOGGER.debug(f"Performance Match : {item[identifier]} - Perfitem : {perfitem[section.perfdata_identifier]}")
+    return storage_data
+
+
+def get_storage_id_2_name_mappings(args, session, base_url):
+    """ We need this to match the internal controller, e.g. tray and esm ids to the controller / ESM labels (A/B) and tray numbers (1-99) """
+
+    controllers = session.get(base_url + "/controllers",
+                              verify=args.verify_ssl).json()
+    inventory = session.get(base_url + "/hardware-inventory",
+                            verify=args.verify_ssl).json()
+
+    LOGGER.debug("Mapping internal Reference IDs to labels and IDs:")
+
+    storage_id_mappings = {}
+
+    # TODO
+    """
+        ids = {
+            'batteries' : {'batteryRef' : batteries[physicalLocation][slot]}
+            'drawer' : {'drawerRef' : 'id'}
+            'esms' : {'esmRef' : esm['physicalLocation']['label']}
+            'fans' : {'fanRef' : fan['physicalLocation']['slot']}
+            'powersupply' : {'powerSupplyRef' : powersupply['physicalLocation']['slot']}
+            'trays' : {'trayRef' : 'trayid'}
+        }
+    """
+    for controller in controllers:
+        storage_id_mappings.update({
+            controller['controllerRef']:
+            controller['physicalLocation']['label']
+        })
+        LOGGER.debug(
+            f"Adding controller: {controller['controllerRef']} with Label {controller['physicalLocation']['label']}"
+        )
+
+    for drawer in inventory['drawers']:
+        storage_id_mappings.update({drawer['drawerRef']: drawer['id']})
+        LOGGER.debug(
+            f"Adding Drawer Ref: {drawer['drawerRef']} with ID {str(drawer['id'])}"
+        )
+
+    for tray in inventory['trays']:
+        storage_id_mappings.update({tray['trayRef']: tray['trayId']})
+        LOGGER.debug(
+            f"Adding Tray Ref: {tray['trayRef']} with ID {str(tray['trayId'])}"
+        )
+
+    for esm in inventory['esms']:
+        storage_id_mappings.update(
+            {esm['esmRef']: esm['physicalLocation']['label']})
+        LOGGER.debug(
+            f"Adding ESM Ref: {esm['esmRef']} with Label {str(esm['physicalLocation']['label'])}"
+        )
+
+    for battery in inventory['batteries']:
+        storage_id_mappings.update(
+            {battery['batteryRef']: battery['physicalLocation']['slot']})
+        LOGGER.debug(
+            f"Adding battery Ref: {battery['batteryRef']} with Label {str(battery['physicalLocation']['label'])}"
+        )
+
+    for fan in inventory['fans']:
+        storage_id_mappings.update(
+            {fan['fanRef']: fan['physicalLocation']['slot']})
+        LOGGER.debug(
+            f"Adding fan Ref: {fan['fanRef']} with Label {str(fan['physicalLocation']['label'])}"
+        )
+
+    for powersupply in inventory['powerSupplies']:
+        storage_id_mappings.update({
+            powersupply['powerSupplyRef']:
+            powersupply['physicalLocation']['slot']
+        })
+        LOGGER.debug(
+            f"Adding powersupply Ref: {powersupply['powerSupplyRef']} with Label {str(powersupply['physicalLocation']['label'])}"
+        )
+
+    return storage_id_mappings
+
+
+# OUTPUT
+def handle_output(data, options, object_typ):
+    output_dict = {}
+    if isinstance(options, str):
+        for element in data:
+            output_dict.setdefault(object_typ + '_' + element[options].strip(),
+                                   element)
+    else:
+        element_typ, option = options
+        for element in data[element_typ]:
+            output_dict.setdefault(object_typ + '_' + element[option].strip(),
+                                   element)
+    sys.stdout.write(str(output_dict) + "\n")
+
+
+# MAIN
+def main(argv: Any = None) -> int:
+    args = None
+    Section = namedtuple(
+        "Section",
+        ["name", "uri", "perfdata_uri", "perfdata_identifier", "ident"])
+    sections = [
+        Section(
+            name="batteries",
+            uri="/hardware-inventory",
+            perfdata_uri=None,
+            perfdata_identifier=None,
+            ident=("batteries", "id"),
+        ),
+        Section(
+            name="controllers",
+            uri="/controllers",
+            perfdata_uri="/analysed-controller-statistics",
+            perfdata_identifier="controllerId",
+            ident="serialNumber",
+        ),
+        Section(
+            name="drawers",
+            uri="/hardware-inventory",
+            perfdata_uri=None,
+            perfdata_identifier=None,
+            ident=("drawers", "id"),
+        ),
+        Section(
+            name="drives",
+            uri="/drives",
+            perfdata_uri="/analysed-drive-statistics",
+            perfdata_identifier="diskId",
+            ident="worldWideName",
+        ),
+        Section(
+            name="esms",
+            uri="/hardware-inventory",
+            perfdata_uri=None,
+            perfdata_identifier=None,
+            ident=("esms", "id"),
+        ),
+        Section(
+            name="fans",
+            uri="/hardware-inventory",
+            perfdata_uri=None,
+            perfdata_identifier=None,
+            ident=("fans", "id"),
+        ),
+        Section(
+            name="interfaces",
+            uri="/interfaces",
+            perfdata_uri="/analysed-interface-statistics",
+            perfdata_identifier="interfaceId",
+            ident="interfaceRef",
+        ),
+        Section(
+            name="pools",
+            uri="/storage-pools",
+            perfdata_uri=None,
+            perfdata_identifier=None,
+            ident="id",
+        ),
+        Section(
+            name="power_supplies",
+            uri="/hardware-inventory",
+            perfdata_uri=None,
+            perfdata_identifier=None,
+            ident=("powerSupplies", "id"),
+        ),
+        Section(
+            name="system",
+            uri="/",
+            perfdata_uri="/analysed-system-statistics",
+            perfdata_identifier="storageSystemId",
+            ident="id",
+        ),
+        Section(
+            name="trays",
+            uri="/hardware-inventory",
+            perfdata_uri=None,
+            perfdata_identifier=None,
+            ident=("trays", "id"),
+        ),
+        Section(
+            name="volumes",
+            uri="/volumes",
+            perfdata_uri="/analysed-volume-statistics",
+            perfdata_identifier="volumeId",
+            ident="id",
+        ),
+        Section(
+            name="sensors",
+            uri="/hardware-inventory",
+            perfdata_uri=None,
+            perfdata_identifier=None,
+            ident=("thermalSensors", "id"),
+        ),
+    ]
+
+    if argv is None:
+        argv = sys.argv[1:]
+        args = parse_arguments(argv)
+
+    if not args.verify_ssl:
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    logging.basicConfig(
+        format="%(levelname)s %(asctime)s %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        level={
+            0: logging.WARN,
+            1: logging.INFO,
+            2: logging.DEBUG
+        }.get(args.verbose, logging.DEBUG),
+    )
+
+    LOGGER.debug("Calling special agent netapp e-series with parameters: %s",
+                 argv.__repr__())
+
+    # Start REST Session Object
+    session = get_session(args)
+
+    # Base URL for all requests
+    base_url = (f"{args.proto}://{args.host}:{str(args.port)}/devmgr/v2/storage-systems/{str(args.system_id)}")
+
+    try:
+        result = session.get(
+            base_url,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            verify=args.verify_ssl,
+        )
+        result.raise_for_status()
+
+    except requests.exceptions.RequestException as e:
+        sys.stderr.write("Error: %s\n" % e)
+        if args.debug:
+            raise
+        sys.exit(1)
+
+    controller_ids = get_storage_id_2_name_mappings(args, session, base_url)
+
+    fetch_storage_data(session, sections, args, base_url, controller_ids)
+
+
+if __name__ == "__main__":
+    main()
+
+# TODO
+"""
+
+Prio 1
+
+- SSL Verify aus den args nutzen, nicht in jedem call
+
+
+Prio 2
+
+- Hardware Inventory - SPFs
+- CacheBackupDevices
+- CacheMemoryDimms
+
+- /storage-systems/{system-id}/hosts
+- /storage-systems/{system-id}/failures
+- /storage-systems/{system-id}/hot-spare-coverage Retrieves hot spare coverage information.
+- /storage-systems/{system-id}/consistency-groups
+- /storage-systems/{system-id}/async-mirrors
+- /storage-systems/{system-id}/events
+- /storage-systems/{system-id}/mel-events/available
+    - Mel Events als logwatch ausgeben ? ID des letzten Events speichern ?
+Prio 3
+- Concatenated Strings in fstrings umschreiben
+- dicts auf .get und .setdefault umschreiben
+
+
+"""
