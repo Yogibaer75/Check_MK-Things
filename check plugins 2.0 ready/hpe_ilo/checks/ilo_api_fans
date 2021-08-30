@@ -1,0 +1,49 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) 2020 
+# Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# This is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  This file is distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# ails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+#<<<ilo_api_fans:sep(124)>>>
+#Fan 1|11|Percent|Enabled|OK
+#Name | Speed | Unit | Status | Health
+
+def inventory_ilo_api_fans(info):
+    for line in info:
+        if line[3] != "Absent":
+            yield line[0], None
+
+def check_ilo_api_fans(item, _no_params, info):
+    for line in info:
+        if line[0] == item:
+            perfdata = []
+            if len(line[1]) != 0:
+                perc = int(line[1])
+                perfdata = [ ("perc" ,perc,"","",0,100) ]
+            else:
+                perc = "undef"
+            if line[4] == "OK" and perc != "undef":
+                yield 0, "Operational state OK - %s%% Speed" % perc, perfdata
+            elif line[4] == "OK":
+                yield 0, "Operational state OK"
+            else:
+                yield 2, "Error in %s" % item, perfdata
+
+check_info["ilo_api_fans"] = {
+    'check_function'      : check_ilo_api_fans,
+    'inventory_function'  : inventory_ilo_api_fans,
+    'has_perfdata'        : True,
+    'service_description' : 'HW %s',
+}
+

@@ -1,0 +1,42 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) 2020 
+# Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# This is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  This file is distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# ails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+#<<<ilo_api_cntrl:sep(124)>>>
+#0|HPE Smart Array P408i-a SR Gen10|PEYH123456789 |1.98|OK
+#Nr. | Typ | Serial | Firmware | Health
+
+def inventory_ilo_api_cntrl(info):
+    for line in info:
+        yield line[0], None
+
+def check_ilo_api_cntrl(item, _no_params, info):
+    for line in info:
+        if line[0] == item:
+            if line[4] == "OK":
+                yield 0, u"Operational state OK - Type %s - Serial %s - Version %s" % (line[1], line[2], line[3])
+            else:
+                yield 2, u"Error in Controller %s with Status %s" % (line[0], line[4])
+
+check_info["ilo_api_cntrl"] = {
+    'check_function'      : check_ilo_api_cntrl,
+    'inventory_function'  : inventory_ilo_api_cntrl,
+    'has_perfdata'        : False,
+    'service_description' : 'HW Controller %s',
+
+}
+
+

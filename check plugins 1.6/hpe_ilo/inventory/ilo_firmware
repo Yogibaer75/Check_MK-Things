@@ -29,7 +29,7 @@
 # WIN2003|Microsoft(R) Windows(R) Server 2003 Standard Edition|5.2.3790||2|0|20100620230628.000000+120
 
 def inv_ilo_firmware(info):
-    node = inv_tree_list("hardware.firmware.hpe:")
+    node = inv_tree("hardware.firmware.hpe:")
     if len(info) >= 1:
         for x in info:
             node.append({
