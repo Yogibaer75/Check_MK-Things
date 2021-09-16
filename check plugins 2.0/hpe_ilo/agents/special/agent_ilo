@@ -1,0 +1,350 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+#
+# iLO Rest API
+# Copyright 2016 Hewlett Packard Enterprise Development, LP.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# Agent Script
+# Written By Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+# with parts from other special agents from CheckMK https://github.com/tribe29/checkmk
+
+import getopt
+import sys
+import cmk.utils.password_store
+
+cmk.utils.password_store.replace_passwords()
+
+from redfish import RedfishClient
+from redfish.rest.v1 import ServerDownOrUnreachableError
+
+
+#############################################################################
+def usage():
+    #############################################################################
+    sys.stderr.write("""Check_MK HP iLO Agent
+
+USAGE: agent_ilo [OPTIONS] HOST
+       agent_ilo -h
+
+ARGUMENTS:
+  HOST                          Host name or IP address of the target iLO 4
+
+OPTIONS:
+  -h, --help                    Show this help message and exit
+  -u USER, --user USER          Username for HP iLO 4 login
+  -p PASSWORD, --password PASSWORD  Password for HP iLO 4 login
+  --verify-certs yes/no         SSL verification on or off
+""")
+
+
+def get_resource_directory(redfishobj, ilogen):
+    try:
+        if ilogen == "4":
+            resource_uri = redfishobj.root.obj.Oem.Hp.Links.ResourceDirectory[
+                '@odata.id']
+        elif ilogen == "5":
+            resource_uri = redfishobj.root.obj.Oem.Hpe.Links.ResourceDirectory[
+                '@odata.id']
+    except KeyError:
+        sys.stderr.write(
+            "Resource directory is only available on HPE servers.\n")
+        return None
+
+    response = redfishobj.get(resource_uri)
+    resources = []
+
+    if response.status == 200:
+        # sys.stdout.write("\tFound resource directory at /redfish/v1/resourcedirectory" + "\n\n")
+        resources = response.dict["Instances"]
+    else:
+        sys.stderr.write(
+            "\tResource directory missing at /redfish/v1/resourcedirectory\n")
+
+    return resources
+
+
+def dropnonascii(input_str):
+    output_str = ""
+    for i in input_str:
+        num = ord(i)
+        if (num >= 0):
+            if (num <= 127):
+                output_str = output_str + i
+
+    return output_str
+
+
+def get_gen(_redfishobj):
+    rootresp = _redfishobj.root.obj
+    # Default iLO 5
+    ilogen = 5
+    gencompany = next(iter(rootresp.get("Oem", {}).keys()),
+                      None) in ('Hpe', 'Hp')
+    comp = 'Hp' if gencompany else None
+    comp = 'Hpe' if rootresp.get("Oem", {}).get('Hpe', None) else comp
+    if comp and next(iter(rootresp.get("Oem", {}).get(comp, {}).get("Manager", {})))\
+                                                               .get('ManagerType', None):
+        ilogen = next(iter(rootresp.get("Oem", {}).get(comp, {}).get("Manager", {})))\
+                                                                .get("ManagerType")
+        ilover = next(iter(rootresp.get("Oem", {}).get(comp, {}).get("Manager", {})))\
+                                                                .get("ManagerFirmwareVersion")
+        if ilogen.split(' ')[-1] == "CM":
+            # Assume iLO 4 types in Moonshot
+            ilogen = 4
+            iloversion = None
+        else:
+            ilogen = ilogen.split(' ')[1]
+            iloversion = float(ilogen.split(' ')[-1] + '.' + \
+                                            ''.join(ilover.split('.')))
+    return (ilogen, iloversion, comp)
+
+
+def get_information(redfishobj):
+    ilogen, iloversion, prefix = get_gen(redfishobj)
+    resource_instances = get_resource_directory(redfishobj, ilogen)
+    sys.stdout.write('<<<check_mk>>>\n')
+    sys.stdout.write('Version: %s\n' % ilogen)
+    sys.stdout.write('AgentOS: iLO %s\n' % iloversion)
+
+    for instance in resource_instances:
+        if '#FwSwVersionInventory' in instance.get('@odata.type', ''):
+            firmwares = redfishobj.get(instance['@odata.id']).dict["Current"]
+            sys.stdout.write("<<<ilo_firmware:sep(124)>>>\n")
+            for element in firmwares:
+                for entry in firmwares[element]:
+                    sys.stdout.write("%s|%s %s\n" %
+                                     (dropnonascii(entry["VersionString"]),
+                                      entry["Location"], entry["Name"]))
+
+        if '#SoftwareInventoryCollection.' in instance.get(
+                '@odata.type', '') and prefix == "Hpe":
+            if 'UpdateService/SoftwareInventory' in instance.get(
+                    '@odata.id', ''):
+                continue
+            firmwares = redfishobj.get(instance['@odata.id'] +
+                                       '?$expand=.').dict['Members']
+            if len(firmwares) == 0:
+                continue
+            sys.stdout.write("<<<ilo_firmware:sep(124)>>>\n")
+            for element in firmwares:
+                sys.stdout.write(
+                    "%s|%s %s\n" %
+                    (element["Version"],
+                     element["Oem"]["Hpe"]["DeviceContext"], element["Name"]))
+
+        if '#Thermal.' in instance.get('@odata.type', ''):
+            response = redfishobj.get(instance['@odata.id'])
+            sys.stdout.write("<<<ilo_api_fans:sep(124)>>>\n")
+            fans = response.dict["Fans"]
+            for entry in fans:
+                if entry["Status"]["State"] == "Absent":
+                    health = "NP"
+                else:
+                    health = entry["Status"]["Health"]
+                if ilogen == "4":
+                    sys.stdout.write(
+                        "%s|||%s|%s\n" %
+                        (entry["FanName"], entry["Status"]["State"], health))
+                elif ilogen == "5":
+                    sys.stdout.write("%s|%s|%s|%s|%s\n" %
+                                     (entry["Name"], entry["Reading"],
+                                      entry["ReadingUnits"],
+                                      entry["Status"]["State"], health))
+
+            sys.stdout.write("<<<ilo_api_temp:sep(124)>>>\n")
+            temps = response.dict["Temperatures"]
+            for entry in temps:
+                if entry["Status"]["State"] == "Absent":
+                    health = "NP"
+                else:
+                    health = entry["Status"]["Health"]
+                warn = entry.get("UpperThresholdCritical", 0)
+                crit = entry.get("UpperThresholdFatal", 0)
+                warn_low = entry.get("LowerThresholdNonCritical", 0)
+                crit_low = entry.get("LowerThresholdCritical", 0)
+                warn, crit, warn_low, crit_low = map(
+                    lambda x: 0
+                    if x == None else x, [warn, crit, warn_low, crit_low])
+
+                if crit <= warn:
+                    crit = warn
+
+                sys.stdout.write("%s|%s|Celsius|%d|%d|%s|%s\n" %
+                                 (entry["Name"], entry["ReadingCelsius"], warn,
+                                  crit, entry["Status"]["State"], health))
+
+        if '#Power.' in instance.get('@odata.type', ''):
+            response = redfishobj.get(instance['@odata.id'])
+            data = response.dict
+            if "PowerSupplies" in data:
+                sys.stdout.write("<<<ilo_api_power:sep(124)>>>\n")
+                psus = data.get("PowerSupplies")
+                for entry in psus:
+                    if entry["Status"]["State"] == "Absent":
+                        health = "NP"
+                    else:
+                        health = entry["Status"]["Health"]
+                    name = entry["Oem"][prefix]["BayNumber"]
+                    sys.stdout.write("%s|%s|%s|%s|%s\n" %
+                                     (name, entry["LastPowerOutputWatts"],
+                                      entry["PowerCapacityWatts"],
+                                      entry["Status"]["State"], health))
+            if "PowerControl" in data:
+                sys.stdout.write("<<<ilo_api_power_metrics:sep(124)>>>\n")
+                powermetrics = data.get("PowerControl")[0]
+                sys.stdout.write("%s|%s|%s|%s\n" %
+                                 (powermetrics.get("PowerAllocatedWatts", 0),
+                                  powermetrics.get("PowerAvailableWatts", 0),
+                                  powermetrics.get("PowerCapacityWatts", 0),
+                                  powermetrics.get("PowerConsumedWatts", 0)))
+
+        if '#%sSmartStorageArrayController.' % prefix in instance.get(
+                '@odata.type', ''):
+            response = redfishobj.get(instance["@odata.id"])
+            sys.stdout.write("<<<ilo_api_cntrl:sep(124)>>>\n")
+            cntlr = response.dict
+            sys.stdout.write(
+                "%s|%s|%s|%s|%s\n" %
+                (cntlr["Id"], cntlr["Model"], cntlr["SerialNumber"],
+                 cntlr["FirmwareVersion"]["Current"]["VersionString"],
+                 cntlr["Status"]["Health"]))
+
+            response = redfishobj.get(
+                cntlr["Links"]["PhysicalDrives"]["@odata.id"])
+            if response.dict["Members@odata.count"] == 0:
+                continue
+
+            sys.stdout.write("<<<ilo_api_phydrv:sep(124)>>>\n")
+            for element in response.dict["Members"]:
+                disc = redfishobj.get(element["@odata.id"]).dict
+                sys.stdout.write(
+                    "%s|%s|%s|%s\n" %
+                    (disc["Location"], disc["CurrentTemperatureCelsius"],
+                     disc["CapacityMiB"], disc["Status"]["Health"]))
+
+            response = redfishobj.get(
+                cntlr["Links"]["LogicalDrives"]["@odata.id"])
+            if response.dict["Members@odata.count"] == 0:
+                continue
+
+            sys.stdout.write("<<<ilo_api_raid:sep(124)>>>\n")
+            for element in response.dict["Members"]:
+                raid = redfishobj.get(element["@odata.id"]).dict
+                sys.stdout.write(
+                    "%s|%s|%d|%d|%s\n" %
+                    ("%s-%s" % (cntlr["Id"], raid["LogicalDriveNumber"]),
+                     raid["Raid"], raid["CapacityMiB"],
+                     raid["StripeSizeBytes"], raid["Status"]["Health"]))
+
+        if '#HpMemoryCollection.' in instance.get('@odata.type', ''):
+            sys.stdout.write("<<<ilo_api_mem:sep(124)>>>\n")
+            memory = redfishobj.get(instance["@odata.id"]).dict["Members"]
+            for element in memory:
+                module = redfishobj.get(element["@odata.id"]).dict
+                sys.stdout.write("%s|%s|%d|%s\n" %
+                                 (module["Name"], module["DIMMType"],
+                                  module["SizeMB"], module["DIMMStatus"]))
+
+        if '#MemoryCollection.' in instance.get('@odata.type',
+                                                '') and prefix == "Hpe":
+            sys.stdout.write("<<<ilo_api_mem:sep(124)>>>\n")
+            memory = redfishobj.get(instance["@odata.id"] +
+                                    '?$expand=.').dict["Members"]
+            for element in memory:
+                if element["Status"]["State"] == "Absent":
+                    continue
+                sys.stdout.write(
+                    "%s|%s|%d|%s\n" %
+                    (element["Name"], element["MemoryDeviceType"],
+                     element["CapacityMiB"], element["Status"]["Health"]))
+
+        if '#ComputerSystem.' in instance.get('@odata.type', ''):
+            cpu = redfishobj.get(instance["@odata.id"]).dict
+            sys.stdout.write("<<<ilo_api_cpu:sep(124)>>>\n")
+            sys.stdout.write(
+                "%d|%s|%s\n" %
+                (cpu["ProcessorSummary"]["Count"],
+                 cpu["ProcessorSummary"]["Model"],
+                 cpu["ProcessorSummary"]["Status"]["HealthRollup"]))
+            sys.stdout.write("<<<ilo_api_general:sep(124)>>>\n")
+            sys.stdout.write("%s|%s|%s|%s\n" %
+                             (cpu["Model"], cpu["BiosVersion"],
+                              cpu["SerialNumber"], cpu["Status"]["Health"]))
+
+
+#############################################################################
+# command line options
+#############################################################################
+short_options = 'h:u:p:t:'
+long_options = ['help', 'user=', 'password=', 'timeout=', 'verify-certs=']
+
+try:
+    opts, args = getopt.getopt(sys.argv[1:], short_options, long_options)
+except getopt.GetoptError as err:
+    sys.stderr.write("%s\n" % err)
+    sys.exit(1)
+
+opt_timeout = 60
+
+host_address = None
+user = None
+password = None
+
+for o, a in opts:
+    if o in ['-u', '--user']:
+        user = a
+    elif o in ['-p', '--password']:
+        password = a
+    elif o in ['-t', '--timeout']:
+        opt_timeout = int(a)
+    elif o in ['--verify-certs']:
+        opt_verify = a
+    elif o in ['-h', '--help']:
+        usage()
+        sys.exit(0)
+
+if len(args) == 1:
+    host_address = args[0]
+elif not args:
+    sys.stderr.write("ERROR: No host given.\n")
+    sys.exit(1)
+else:
+    sys.stderr.write("ERROR: Please specify exactly one host.\n")
+    sys.exit(1)
+
+if (user == None or user == '') or (password == None or password == ''):
+    sys.stderr.write("ERROR: Please specify user and password.\n")
+    sys.exit(1)
+
+if __name__ == "__main__":
+    iLO_host = "https://%s" % host_address
+    iLO_account = user
+    iLO_password = password
+    DISABLE_RESOURCE_DIR = False
+
+    try:
+        # Create a Redfish client object
+        REDFISHOBJ = RedfishClient(base_url=iLO_host, username=iLO_account, \
+                                   password=iLO_password, ca_cert_data={})
+        # Login with the Redfish client
+        REDFISHOBJ.login()
+    except ServerDownOrUnreachableError as excp:
+        sys.stderr.write(
+            "ERROR: server not reachable or does not support RedFish. Error Message: %s\n"
+            % excp)
+        sys.exit()
+
+    get_information(REDFISHOBJ)
+    REDFISHOBJ.logout()
