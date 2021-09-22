@@ -25,7 +25,7 @@ if (!$MK_CONFDIR) {
 }
 
 # Read the config file - attention this is no source of the file as it needs to be read in UTF-8
-$CONFIG_FILE="${MK_CONFDIR}\windows_patch_day_cfg.cfg"
+$CONFIG_FILE="${MK_CONFDIR}\windows_patch_day.cfg"
 if (test-path -path "${CONFIG_FILE}" ) {
     $values = Get-Content -Path "${CONFIG_FILE}" -Encoding UTF8 | Out-String | ConvertFrom-StringData
     $filterstring = $values.filterstring.split("|")
@@ -40,7 +40,7 @@ if (!$updatecount) {
 if (!$filterstring) {
     $filterstring = ''
 }
-[regex] $filter_regex ='(?i)^(' + (($filterstring |ForEach-Object {[regex]::escape($_)}) –join "|") + ')'
+[regex] $filter_regex ='(?i)^(' + (($filterstring |ForEach-Object {[regex]::escape($_)}) -join "|") + ')'
 
 Write-Host('<<<windows_patch_day:sep(124)>>>')
 $Searcher = (New-Object -ComObject Microsoft.Update.Session).CreateUpdateSearcher()
