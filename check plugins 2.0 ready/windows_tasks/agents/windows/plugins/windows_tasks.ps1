@@ -9,8 +9,10 @@ $newsize.width = 200            # Set the new buffer's width to 200 columns.
 $pswindow.buffersize = $newsize # Set the new Buffer Size as active.
 
 $newsize = $pswindow.windowsize # Get the UI's current Window Size.
-$newsize.width = 200            # Set the new Window Width to 1200 columns.
+$newsize.width = 200            # Set the new Window Width to 200 columns.
 $pswindow.windowsize = $newsize # Set the new Window Size as active.
+
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($true)
 
 ###
 
