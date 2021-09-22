@@ -50,7 +50,7 @@ def _valuespec_agent_config_win_cert():
                 optional_keys=False,
             ),
             FixedValue(None,
-                       title=_("Do not deploy the MegaRAID plugin"),
+                       title=_("Do not deploy the plugin system certificates"),
                        totext=_("(disabled)")),
         ],
     )

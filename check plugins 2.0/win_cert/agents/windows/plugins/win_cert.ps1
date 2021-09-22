@@ -1,10 +1,18 @@
 ###
 
-$pswindow = $host.ui.rawui
-$newsize = $pswindow.buffersize
-$newsize.height = 300
-$newsize.width = 200
-$pswindow.Set_BufferSize($newsize)
+$pshost = Get-Host              # Get the PowerShell Host.
+$pswindow = $pshost.UI.RawUI    # Get the PowerShell Host's UI.
+
+$newsize = $pswindow.BufferSize # Get the UI's current Buffer Size.
+$newsize.height = 300          # Set the new buffer's heigt to 300 lines.
+$newsize.width = 200            # Set the new buffer's width to 200 columns.
+$pswindow.buffersize = $newsize # Set the new Buffer Size as active.
+
+$newsize = $pswindow.windowsize # Get the UI's current Window Size.
+$newsize.width = 200            # Set the new Window Width to 200 columns.
+$pswindow.windowsize = $newsize # Set the new Window Size as active.
+
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($true)
 
 ###
 
