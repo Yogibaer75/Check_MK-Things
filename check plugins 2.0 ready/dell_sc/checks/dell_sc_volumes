@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+
+from cmk.base.check_legacy_includes.df import *
+from cmk.base.check_legacy_includes.size_trend import *
+
+
+def parse_dell_sc_volumes(info):
+    import ast
+    parsed = {}
+    data = ast.literal_eval(info[0][0])
+
+    for element in data:
+        parsed.setdefault(element["instanceName"], element)
+
+    return parsed
+
+
+@get_parsed_item_data
+def check_dell_sc_volumes(item, params, data):
+    result = 0
+    message = "Volume has status "
+    size = data.get("configuredSize", "0 Bytes")
+    size = int(size[:-6])
+    available = size
+    if data.get("status") != "Up":
+        result = 1
+        message += "%s(!) %s" % (data.get("status"), data.get("statusMesage"))
+    else:
+        message += "%s" % data.get("status")
+
+    message += " - "
+
+    fslist = []
+    fslist.append((item, size / 1024 / 1024, available / 1024 / 1024, 0))
+
+    if fslist == []:
+        return 3, "Filesystem not found"
+    state, infotext, perfdata = df_check_filesystem_list(item, params, fslist)
+
+    state = max(state, result)
+    infotext = message + infotext
+    return state, infotext, perfdata
+
+
+check_info["dell_sc_volumes"] = {
+    "check_function": check_dell_sc_volumes,
+    "parse_function": parse_dell_sc_volumes,
+    "inventory_function": discover(),
+    "service_description": "Volume %s",
+    "has_perfdata": False,
+}
