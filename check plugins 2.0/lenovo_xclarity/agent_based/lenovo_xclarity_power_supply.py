@@ -48,7 +48,8 @@ def check_lenovo_xclarity_power_supply(item: str, section) -> CheckResult:
         message += "(!)"
         status = 1
 
-    yield Metric("watt", reading)
+    yield Metric("input_power", reading)
+    yield Metric("output_power", reading_output)
     yield Result(state=State(status), summary=message)
 
 

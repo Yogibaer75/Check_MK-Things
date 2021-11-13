@@ -48,7 +48,7 @@ def check_lenovo_xclarity_fans(item: str, section) -> CheckResult:
         min_warn = (max_range - min_range) / 100 * 20 + min_range
 
     message = "reading is %s RPM and has status %s" % (reading, state)
-    yield Metric("rpm",
+    yield Metric("fan",
                  reading,
                  levels=(max_warn, None),
                  boundaries=(min_range, max_range))

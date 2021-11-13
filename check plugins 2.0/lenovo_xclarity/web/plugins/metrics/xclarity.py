@@ -13,25 +13,38 @@
 # License along with GNU Make; see the file  COPYING.  If  not,  write
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
-from ..agent_based_api.v1.type_defs import (
-    DiscoveryResult, )
 
-from ..agent_based_api.v1 import (
-    Service, )
+from cmk.gui.plugins.metrics import (
+    metric_info,
+    perfometer_info,
+)
 
+metric_info["input_power"] = {
+    "title": _("Electrical input power"),
+    "unit": "w",
+    "color": "22/a",
+}
 
-def parse_lenovo_xclarity(string_table):
-    import ast
+metric_info["output_power"] = {
+    "title": _("Electrical output power"),
+    "unit": "w",
+    "color": "22/b",
+}
 
-    parsed = {}
-    data = ast.literal_eval(string_table[0][0])
-    for element in data:
-        device = element.get("Name", "Unknown")
-        parsed.setdefault(device, element)
-
-    return parsed
-
-
-def discovery_lenovo_xclarity_multiple(section) -> DiscoveryResult:
-    for item in section:
-        yield Service(item=item)
+perfometer_info.append({
+    "type": "stacked",
+    "perfometers": [
+        {
+            "type": "logarithmic",
+            "metric": "input_power",
+            "half_value": 1000,
+            "exponent": 2,
+        },
+        {
+            "type": "logarithmic",
+            "metric": "output_power",
+            "half_value": 1000,
+            "exponent": 2,
+        },
+    ],
+})
