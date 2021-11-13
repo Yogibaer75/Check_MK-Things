@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 # +------------------------------------------------------------------+
 # |             ____ _               _        __  __ _  __           |
@@ -89,5 +89,4 @@ for name, state, output in data[1:]:
         text = "%d %s - %s" % (state_nr, descr, state)
         if output:
             text += " - " + output
-        print text
-
+        print(text)

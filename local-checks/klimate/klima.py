@@ -1,14 +1,13 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 from bs4 import BeautifulSoup
 import urllib2
 
 soup = BeautifulSoup(
-    urllib2.urlopen("http://192.168.1.1/UnitT/TNode/index.htm").read(), "html.parser"
-)
+    urllib2.urlopen("http://192.168.1.1/UnitT/TNode/index.htm").read(), "html.parser")
 # print soup('table')[12]
-print "<<<<klima>>>>"
-print "<<<local>>>"
+print("<<<<klima>>>>")
+print("<<<local>>>")
 tables = [12, 14, 16, 18, 20, 32, 34, 36, 38, 40]
 for x in tables:
     name = soup("table")[x].findAll("tr")[0].findAll("td")[1].a.string
@@ -23,7 +22,7 @@ for x in tables:
         rueck = "2"
     else:
         rueck = "P"
-    print "%s %s %s=%s;26.0;28.0|%s=%s;22.0;24.0 %s %s" % (
+    print("%s %s %s=%s;26.0;28.0|%s=%s;22.0;24.0 %s %s" % (
         rueck,
         name,
         temp1,
@@ -32,5 +31,5 @@ for x in tables:
         temp2wert,
         status,
         statuswert,
-    )
-print "<<<<>>>>"
+    ))
+print("<<<<>>>>")
