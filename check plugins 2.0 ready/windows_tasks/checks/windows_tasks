@@ -22,18 +22,41 @@
 # http://msdn.microsoft.com/en-us/library/aa383604%28VS.85%29.aspx
 
 factory_settings["windows_tasks"] = {}
+discovery_windows_tasks_rules = []
 
 
 def parse_windows_tasks(info):
     parsed = {}
-    keys = info[0]
-    data = info[1:]
-    parsed = {entry[0]: dict(zip(keys, entry)) for entry in data}
+    if info[0][1] == "LastRunTime":
+        keys = info[0]
+        data = info[1:]
+        parsed = {entry[0]: dict(zip(keys, entry)) for entry in data}
+    else:
+        last_task = False
+        for line in info:
+            name = line[0].strip()
+            value = ":".join(line[1:]).strip()
+            if value and last_task and name != "TaskName":
+                parsed[last_task][name] = value
+
+            elif name == 'TaskName':
+                last_task = value
+                parsed[last_task] = {}
+                
+
+            # this is a line continuation from TaskName
+            elif not value and not parsed[last_task]:
+                parsed.pop(last_task)
+                last_task += " " + name
+                parsed[last_task] = {}
     return parsed
 
 
 def inventory_windows_tasks(parsed):
+    settings = host_extra_conf_merged(host_name(), discovery_windows_tasks_rules)
     for element in parsed:
+        if (parsed[element].get("State") or parsed[element].get("Scheduled Task State")) in settings.get("state"):
+            continue
         yield element, None
 
 
@@ -129,8 +152,6 @@ def check_windows_tasks(item, params, parsed):
 
     state_not_enabled = params.get("state_not_enabled", 1)
 
-
-
     custom_map_exit_codes = {
         exit_code: (
             user_defined_mapping["monitoring_state"],
@@ -149,8 +170,10 @@ def check_windows_tasks(item, params, parsed):
     }
 
     data = parsed[item]
-
-    last_result = data["LastTaskResult"]
+    if "LastTaskResult" in data:
+        last_result = data['LastTaskResult']
+    else:
+        last_result = data['Last Result']
 
     # schtasks.exe (used by the check plugin) returns a signed integer
     # e.g. -2147024629. However, error codes are unsigned integers.
@@ -169,13 +192,19 @@ def check_windows_tasks(item, params, parsed):
         f"{state_txt} ({last_result_hex})" if state_txt else f"Got exit code {last_result_hex}",
     )
 
-    if data["State"] != "Ready":
-        yield state_not_enabled, f"Task {data['State']}"
+    if "Scheduled Task State" in data:
+        if data["Scheduled Task State"] != "Enabled":
+            yield state_not_enabled, "Task not enabled"
+    else:
+        if data["State"] != "Ready":
+            yield state_not_enabled, f"Task {data['State']}"
 
     additional_infos = []
     for key, title in [
         ("LastRunTime", "Last run time"),
         ("NextRunTime", "Next run time"),
+        ("Last Run Time", "Last run time"),
+        ("Next Run Time", "Next run time"),
     ]:
         if key in data:
             additional_infos.append("%s: %s" % (title, data[key]))
