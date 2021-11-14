@@ -1,11 +1,10 @@
 # iLO Restful Redfish API Agent for CMK 2.0
 
-To use this agent you need to install the "python-ilorest-library".
-Actual version can be found here <https://pypi.python.org/pypi/python-ilorest-library>
+To use this agent you need to install the "redfish" library.
 
 for CMK 2.0
 
-`pip3 install python-ilorest-library`
+`pip3 install redfish`
 
 The agent call is
 
