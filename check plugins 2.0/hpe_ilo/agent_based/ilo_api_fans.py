@@ -41,7 +41,8 @@ register.agent_section(
 
 def discovery_ilo_api_fans(section) -> DiscoveryResult:
     for element in section:
-        yield Service(item=element)
+        if (section[element][3] != "Absent"):
+            yield Service(item=element)
 
 
 def check_ilo_api_fans(item: str, section) -> CheckResult:
