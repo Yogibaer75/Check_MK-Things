@@ -113,7 +113,7 @@ def get_hw_inventory(ip, login_account, login_password):
                             return result
                         print("<<<lenovo_xclarity_fans:sep(0)>>>")
                         print(list_fan)
-                        print("<<<lenovo_xclarity_temperatures:sep(0)")
+                        print("<<<lenovo_xclarity_temperatures:sep(0)>>>")
                         print(list_temp)
                     if "Power" in response_url.dict:
                         power_url = response_url.dict["Power"]["@odata.id"]
