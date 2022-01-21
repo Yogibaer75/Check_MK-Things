@@ -25,7 +25,7 @@ import redfish
 
 
 def get_hw_inventory(ip, login_account, login_password):
-    """Get fan inventory
+    """Get hardware inventory
     :params ip: BMC IP address
     :type ip: string
     :params login_account: BMC user name
@@ -51,10 +51,10 @@ def get_hw_inventory(ip, login_account, login_password):
     # Login into the server and create a session
     try:
         REDFISH_OBJ.login(auth=utils.g_AUTH)
-    except:
+    except redfish.exception.RedfishException as e:
         result = {
             "ret": False,
-            "msg": "Please check the username, password, IP is correct\n",
+            "msg": "Please check the username, password, IP is correct\n Error: %s" % e,
         }
         return result
     # Get ServiceBase resource
@@ -82,12 +82,9 @@ def get_hw_inventory(ip, login_account, login_password):
                 print(response_url.dict)
                 if response_url.status == 200:
                     if len(response_chassis_url.dict["Members"]) > 1 and (
-                            "Links" not in response_url.dict
-                            or "ComputerSystems"
-                            not in response_url.dict["Links"]):
+                            "Links" not in response_url.dict or
+                            "ComputerSystems" not in response_url.dict["Links"]):
                         continue
-                    # for element in response_url.dict:
-                    #    print(element)
                     if "Thermal" in response_url.dict:
                         thermal_url = response_url.dict["Thermal"]["@odata.id"]
                         response_thermal_url = REDFISH_OBJ.get(
@@ -170,12 +167,12 @@ def get_hw_inventory(ip, login_account, login_password):
     finally:
         try:
             REDFISH_OBJ.logout()
-        except:
+        except redfish.exception.RedfishException:
             pass
 
 
 if __name__ == "__main__":
-    # Get parameters from config.ini and/or command line
+    # Get parameters from command line
     argget = utils.create_common_parameter_list()
     args = argget.parse_args()
     parameter_info = utils.parse_parameter(args)

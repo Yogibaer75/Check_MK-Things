@@ -37,9 +37,13 @@ def check_lenovo_xclarity_fans(item: str, section) -> CheckResult:
     data = section.get(item)
 
     state = data.get("Status", {"State": "Unknown"}).get("State", "Unknown")
-    reading = int(data.get("Reading", 0))
-    min_range = int(data.get("MinReadingRange", 0))
-    max_range = int(data.get("MaxReadingRange", 0))
+    reading = data.get("Reading", 0)
+    min_range = data.get("MinReadingRange", 0)
+    max_range = data.get("MaxReadingRange", 0)
+
+    reading = float(0 if reading is None else reading)
+    min_range = float(0 if min_range is None else min_range)
+    max_range = float(0 if max_range is None else max_range)
 
     max_warn = max_range / 100 * 80
     if min_range == 0:

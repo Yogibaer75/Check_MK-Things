@@ -38,6 +38,10 @@ def check_lenovo_xclarity_power_supply(item: str, section) -> CheckResult:
     state = data.get("Status", {"Health": "Unknown"}).get("Health", "Unknown")
     reading = data.get("PowerInputWatts", 0)
     reading_output = data.get("PowerOutputWatts", 0)
+
+    reading = float(0 if reading is None else reading)
+    reading_output = float(0 if reading_output is None else reading_output)
+
     message = "reading is %s Watt input, %s Watt output and has status %s" % (
         reading,
         reading_output,
