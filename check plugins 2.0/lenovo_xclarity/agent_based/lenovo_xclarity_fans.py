@@ -15,17 +15,18 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-# Example Output:
-#
-#
-
 from .agent_based_api.v1.type_defs import (
     CheckResult, )
 
-from .agent_based_api.v1 import (register, Result, State, Metric)
+from .agent_based_api.v1 import (register)
 
 from .utils.lenovo_xclarity import (parse_lenovo_xclarity,
                                     discovery_lenovo_xclarity_multiple)
+from .utils.fan import (check_fan, FanParamType)
+
+xclarity_fan_default_levels = {
+    'levels_lower': (500, 300),
+}
 
 register.agent_section(
     name="lenovo_xclarity_fans",
@@ -33,40 +34,27 @@ register.agent_section(
 )
 
 
-def check_lenovo_xclarity_fans(item: str, section) -> CheckResult:
-    data = section.get(item)
+def check_lenovo_xclarity_fans(item: str, params: FanParamType,
+                               section) -> CheckResult:
+    if not (data := section.get(item)):
+        return
 
     state = data.get("Status", {"State": "Unknown"}).get("State", "Unknown")
-    reading = data.get("Reading", 0)
-    min_range = data.get("MinReadingRange", 0)
-    max_range = data.get("MaxReadingRange", 0)
+    reading = float(data.get("Reading", 0))
 
-    reading = float(0 if reading is None else reading)
-    min_range = float(0 if min_range is None else min_range)
-    max_range = float(0 if max_range is None else max_range)
+    dev_levels = (data.get("UpperThresholdNonCritical"),
+                  data.get("UpperThresholdCritical"))
+    dev_levels_lower = (data.get("LowerThresholdNonCritical"),
+                        data.get("LowerThresholdCritical"))
 
-    max_warn = max_range / 100 * 80
-    if min_range == 0:
-        min_warn = max_range / 100 * 20
-    else:
-        min_warn = (max_range - min_range) / 100 * 20 + min_range
-
-    message = "reading is %s RPM and has status %s" % (reading, state)
-    yield Metric("fan",
-                 reading,
-                 levels=(max_warn, None),
-                 boundaries=(min_range, max_range))
-
-    status = 0
-    if state != "Enabled":
-        message += "(!)"
-        status = 1
-
-    if reading >= max_warn or reading <= min_warn:
-        status = 1
-        message += " Speed problem (!)"
-
-    yield Result(state=State(status), summary=message)
+    yield from check_fan(
+        reading,
+        params,
+        dev_levels=dev_levels,
+        dev_levels_lower=dev_levels_lower,
+        dev_status=0 if state == "Enabled" else 1,
+        dev_status_name=state,
+    )
 
 
 register.check_plugin(
@@ -75,4 +63,6 @@ register.check_plugin(
     sections=["lenovo_xclarity_fans"],
     discovery_function=discovery_lenovo_xclarity_multiple,
     check_function=check_lenovo_xclarity_fans,
+    check_ruleset_name="fans",
+    check_default_parameters=xclarity_fan_default_levels,
 )
