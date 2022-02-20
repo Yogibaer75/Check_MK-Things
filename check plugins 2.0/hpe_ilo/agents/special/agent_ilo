@@ -23,16 +23,13 @@
 import getopt
 import sys
 import cmk.utils.password_store
-
-cmk.utils.password_store.replace_passwords()
-
 import redfish
 from redfish.rest.v1 import ServerDownOrUnreachableError
 
+cmk.utils.password_store.replace_passwords()
 
-#############################################################################
+
 def usage():
-    #############################################################################
     sys.stderr.write("""Check_MK HP iLO Agent
 
 USAGE: agent_ilo [OPTIONS] HOST
@@ -89,8 +86,7 @@ def get_gen(redfishobj):
             iloversion = None
         else:
             ilogen = ilogen.split(' ')[1]
-            iloversion = float(ilogen.split(' ')[-1] + '.' + \
-                                            ''.join(ilover.split('.')))
+            iloversion = float(ilogen.split(' ')[-1] + '.' + ''.join(ilover.split('.')))
     return (ilogen, iloversion, comp, res_dir)
 
 
@@ -114,7 +110,7 @@ def get_information(redfishobj):
         redfishobj.logout()
         sys.exit(1)
 
-    #resource_instances = get_resource_directory(redfishobj, ilogen)
+    # resource_instances = get_resource_directory(redfishobj, ilogen)
     sys.stdout.write('<<<check_mk>>>\n')
     sys.stdout.write('Version: %s\n' % ilogen)
     sys.stdout.write('AgentOS: iLO %s\n' % iloversion)
@@ -134,8 +130,7 @@ def get_information(redfishobj):
             if 'UpdateService/SoftwareInventory' in instance.get(
                     '@odata.id', ''):
                 continue
-            firmwares = redfishobj.get(instance['@odata.id'] +
-                                       '?$expand=.').dict['Members']
+            firmwares = redfishobj.get(instance['@odata.id'] + '?$expand=.').dict['Members']
             if len(firmwares) == 0:
                 continue
             sys.stdout.write("<<<ilo_firmware:sep(124)>>>\n")
@@ -177,7 +172,7 @@ def get_information(redfishobj):
                 crit_low = entry.get("LowerThresholdCritical", 0)
                 warn, crit, warn_low, crit_low = map(
                     lambda x: 0
-                    if x == None else x, [warn, crit, warn_low, crit_low])
+                    if x is None else x, [warn, crit, warn_low, crit_low])
 
                 if crit <= warn:
                     crit = warn
@@ -193,11 +188,14 @@ def get_information(redfishobj):
                 sys.stdout.write("<<<ilo_api_power:sep(124)>>>\n")
                 psus = data.get("PowerSupplies")
                 for entry in psus:
+                    name = entry["Oem"][prefix]["BayNumber"]
                     if entry["Status"]["State"] == "Absent":
                         health = "NP"
+                        sys.stdout.write("%s|NP|NP|%s|%s\n" %
+                                         (name, entry["Status"]["State"], health))
+                        continue
                     else:
                         health = entry["Status"]["Health"]
-                    name = entry["Oem"][prefix]["BayNumber"]
                     sys.stdout.write("%s|%s|%s|%s|%s\n" %
                                      (name, entry["LastPowerOutputWatts"],
                                       entry["PowerCapacityWatts"],
@@ -261,8 +259,7 @@ def get_information(redfishobj):
         if '#MemoryCollection.' in instance.get('@odata.type',
                                                 '') and prefix == "Hpe":
             sys.stdout.write("<<<ilo_api_mem:sep(124)>>>\n")
-            memory = redfishobj.get(instance["@odata.id"] +
-                                    '?$expand=.').dict["Members"]
+            memory = redfishobj.get(instance["@odata.id"] + '?$expand=.').dict["Members"]
             for element in memory:
                 if element["Status"]["State"] == "Absent":
                     continue
@@ -325,7 +322,7 @@ else:
     sys.stderr.write("ERROR: Please specify exactly one host.\n")
     sys.exit(1)
 
-if (user == None or user == '') or (password == None or password == ''):
+if (user is None or user == '') or (password is None or password == ''):
     sys.stderr.write("ERROR: Please specify user and password.\n")
     sys.exit(1)
 
@@ -337,8 +334,8 @@ if __name__ == "__main__":
 
     try:
         # Create a Redfish client object
-        REDFISHOBJ = redfish.redfish_client(base_url=iLO_host, username=iLO_account, \
-                                   password=iLO_password, cafile="", default_prefix="/redfish/v1",)
+        REDFISHOBJ = redfish.redfish_client(base_url=iLO_host, username=iLO_account,
+                                            password=iLO_password, cafile="", default_prefix="/redfish/v1",)
         # Login with the Redfish client
         REDFISHOBJ.login(auth="session")
     except ServerDownOrUnreachableError as excp:
