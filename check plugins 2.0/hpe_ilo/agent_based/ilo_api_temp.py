@@ -54,6 +54,7 @@ default_chassis_temperature_parameters = TempParamDict(
 hp_proliant_status2cmk_map = {
     "unknown": 3,
     "other": 3,
+    "none": 3,
     "ok": 0,
     "degraded": 2,
     "failed": 2,
