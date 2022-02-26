@@ -26,7 +26,7 @@
 #
 # modified by: Andreas Doehler <andreas.doehler@gmail.com>
 
-import urllib
+import urllib.request
 from http.client import HTTPConnection, HTTPSConnection
 import base64
 import ssl
@@ -77,9 +77,9 @@ class HTTPSAuthHandler(urllib.request.HTTPSHandler):
 
 
 def gen_headers(username, password):
-    auth = base64.encodestring("%s:%s" % (username, password)).strip()
-
-    return {'Authorization': "Basic " + auth}
+    return {'Authorization': "Basic " + base64.encodebytes(
+            ("%s:%s" % (username, password)).encode()).strip().decode()
+            }
 
 
 def gen_csv_writer():
