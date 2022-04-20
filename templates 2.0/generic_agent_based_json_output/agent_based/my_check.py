@@ -18,8 +18,6 @@
 #
 #
 
-import time
-
 from .agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
