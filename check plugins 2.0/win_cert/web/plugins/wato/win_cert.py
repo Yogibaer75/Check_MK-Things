@@ -19,6 +19,7 @@ from cmk.gui.valuespec import (
     Dictionary,
     Tuple,
     Integer,
+    ListOfStrings,
 )
 
 from cmk.gui.plugins.wato import (
@@ -43,6 +44,12 @@ def _parameter_valuespec_win_cert():
                              unit=u"days",
                              default_value=15),
                  ],
+             )),
+             ('issuer',
+              ListOfStrings(
+                 title = _('Issuer Name'),
+                 help = _('Name of CA to filter from result set'),
+                 default_value=['DummyCA1'],
              )),
         ],
     )

@@ -68,12 +68,27 @@ def discovery_win_cert(section) -> DiscoveryResult:
 
 def check_win_cert(item, params, section) -> CheckResult:
     warn, crit = params.get("levels")
+    filter_issuer = params.get("issuer", [])
     for item in section:
         data = section[item]
-
+        if data.get("Issuer") in filter_issuer:
+            continue
         date = data.get("NotAfter")
-        date_obj = dt.datetime.strptime(date, '%d.%m.%Y %H:%M:%S')
-        days_left = date_obj - dt.datetime.now()
+        failed = False
+        try:
+            date_obj = dt.datetime.strptime(date, '%d.%m.%Y %H:%M:%S')
+        except ValueError as error:
+            failed = True
+        if failed:
+            try:
+                date_obj = dt.datetime.strptime(date, '%m/%d/%Y %I:%M:%S %p')
+                failed = False
+            except ValueError as error:
+                failed = True
+        if failed:
+            days_left = dt.datetime.now() - dt.datetime.now()
+        else:
+            days_left = date_obj - dt.datetime.now()
 
         yield Result(state=State.OK,
                      summary="Certificate %s is going to run out at %s in" %
@@ -82,6 +97,8 @@ def check_win_cert(item, params, section) -> CheckResult:
         yield from check_levels(int(days_left.days) * 86400,
                                 levels_lower=(warn * 86400, crit * 86400),
                                 render_func=render.timespan)
+    if len(section) == 0:
+        yield Result(state=State.OK, summary="No Certificates found to run out")
 
 
 register.check_plugin(
