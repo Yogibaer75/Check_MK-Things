@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
 
@@ -9,26 +9,29 @@ def inventory_lenovo_xcc_temp(info):
 
 def check_lenovo_xcc_temp(item, no_params, info):
     lenovo_xcc_temp_status_codes = {
-        "Normal" : (0, "normal"),
+        "Normal": (0, "normal"),
     }
 
     for line in info:
         if line[0] == item:
-            status, name = lenovo_xcc_temp_status_codes.get(line[2], ("2", "not normal"))
-            return status, u"Temperature status is %s with %s°C" % (name, line[1])
+            status, name = lenovo_xcc_temp_status_codes.get(
+                line[2], ("2", "not normal")
+            )
+            return status, "Temperature status is %s with %s°C" % (name, line[1])
 
 
 check_info["lenovo_xcc_temp"] = {
     "check_function": check_lenovo_xcc_temp,
     "inventory_function": inventory_lenovo_xcc_temp,
     "service_description": "Temp %s",
-    "snmp_scan_function": lambda oid: ".1.3.6.1.4.1.19046.11.1" in oid(".1.3.6.1.2.1.1.2.0"),
+    "snmp_scan_function": lambda oid: ".1.3.6.1.4.1.19046.11.1"
+    in oid(".1.3.6.1.2.1.1.2.0"),
     "snmp_info": (
         ".1.3.6.1.4.1.19046.11.1.1.1.2.1",
         [
             2,  # tempDescr
             3,  # tempReading
-            11, # tempHealthStatus
-        ]),
+            11,  # tempHealthStatus
+        ],
+    ),
 }
-
