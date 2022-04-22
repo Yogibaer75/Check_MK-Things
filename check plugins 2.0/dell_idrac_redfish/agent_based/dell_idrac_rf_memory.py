@@ -18,11 +18,13 @@
 #
 #
 from .agent_based_api.v1.type_defs import (
-    CheckResult, DiscoveryResult,)
+    CheckResult,
+    DiscoveryResult,
+)
 
-from .agent_based_api.v1 import (register, Result, State, Service)
+from .agent_based_api.v1 import register, Result, State, Service
 
-from .utils.dell_idrac import (parse_dell_idrac_rf_multiple, idrac_health_state)
+from .utils.dell_idrac import parse_dell_idrac_rf_multiple, idrac_health_state
 
 register.agent_section(
     name="dell_idrac_rf_memory",
@@ -40,11 +42,19 @@ def check_dell_idrac_rf_memory(item: str, section) -> CheckResult:
     if data is None:
         return
 
+    mem_msg = "Size: %0.0fGB, Type: %s-%s %s" % (
+        data.get("CapacityMiB", 0) / 1024,
+        data.get("MemoryDeviceType"),
+        data.get("OperatingSpeedMhz"),
+        data.get("ErrorCorrection"),
+    )
+    yield Result(state=State(0), summary=mem_msg)
+
     dev_state, dev_msg = idrac_health_state(data["Status"])
     status = dev_state
     message = dev_msg
 
-    yield Result(state=State(status), summary=message)
+    yield Result(state=State(status), notice=message)
 
 
 register.check_plugin(

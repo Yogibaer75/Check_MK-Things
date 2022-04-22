@@ -74,43 +74,41 @@ def get_information(redfishobj):
         sys.exit(1)
 
     for element in chassis:
-        sys.stdout.write("<<<dell_idrac_rf_system:sep(0)>>>")
+        sys.stdout.write("<<<dell_idrac_rf_system:sep(0)>>>\n")
         element_dict = {}
         element_url = element['@odata.id']
         element_data = redfishobj.get(element_url, None)
         if element_data.status != 200:
-            sys.stdout.write('Problem fetching element data')
+            sys.stdout.write('Problem fetching element data\n')
             continue
         else:
             element_dict = element_data.dict
-        sys.stdout.write(
-            "{'chassis_type': '%s', 'model': '%s', 'status': %s, 'serial': '%s', 'sku': '%s'}"
-            % (element_dict.get("ChassisType"), element_dict.get("Model"),
-               element_dict.get("Status"), element_dict.get("SerialNumber"),
-               element_dict.get("SKU")))
+            if element_dict.get("ChassisType") == "StorageEnclosure":
+                continue
+            print(element_dict)
 
         if "Power" in element_dict:
             power_url = element_dict["Power"].get("@odata.id", None)
             if power_url:
                 power_response = redfishobj.get(power_url, None)
-            sys.stdout.write("<<<dell_idrac_rf_power:sep(0)>>>")
-            sys.stdout.write(power_response.dict)
+            sys.stdout.write("<<<dell_idrac_rf_power:sep(0)>>>\n")
+            print(power_response.dict)
         if "Thermal" in element_dict:
             thermal_url = element_dict["Thermal"].get("@odata.id", None)
             if thermal_url:
                 thermal_response = redfishobj.get(thermal_url, None)
-            sys.stdout.write("<<<dell_idrac_rf_thermal:sep(0)>>>")
-            sys.stdout.write(thermal_response.dict)
+            sys.stdout.write("<<<dell_idrac_rf_thermal:sep(0)>>>\n")
+            print(thermal_response.dict)
         if "Memory" in element_dict:
             memory_url = element_dict["Memory"].get("@odata.id", None)
             if memory_url:
                 memory_response = redfishobj.get(memory_url, None)
             memory_dict = memory_response.dict
-            sys.stdout.write("<<<dell_idrac_rf_memory:sep(0)>>>")
+            sys.stdout.write("<<<dell_idrac_rf_memory:sep(0)>>>\n")
             for mem_dev in memory_dict.get("Members"):
                 mem_dev_response = redfishobj.get(
                     mem_dev.get("@odata.id", None), None)
-                sys.stdout.write(mem_dev_response.dict)
+                print(mem_dev_response.dict)
         if "NetworkAdapters" in element_dict:
             network_url = element_dict["NetworkAdapters"].get(
                 "@odata.id", None)
@@ -118,11 +116,11 @@ def get_information(redfishobj):
                 network_response = redfishobj.get(network_url, None)
             network_dict = network_response.dict
             for network_dev in network_dict.get("Members"):
-                sys.stdout.write("<<<dell_idrac_rf_network:sep(0)>>>")
+                sys.stdout.write("<<<dell_idrac_rf_network:sep(0)>>>\n")
                 network_dev_response = redfishobj.get(
                     network_dev.get("@odata.id", None), None)
                 network_dev_dict = network_dev_response.dict
-                sys.stdout.write(network_dev_dict)
+                print(network_dev_dict)
                 if "NetworkPorts" in network_dev_dict.keys():
                     ports = redfishobj.get(
                         network_dev_dict["NetworkPorts"].get(
@@ -131,8 +129,51 @@ def get_information(redfishobj):
                     for port in ports_dict["Members"]:
                         port_response = redfishobj.get(
                             port.get("@odata.id", None), None)
-                        sys.stdout.write("<<<dell_idrac_rf_interface:sep(0)>>>")
-                        sys.stdout.write(port_response.dict)
+                        sys.stdout.write("<<<dell_idrac_rf_interface:sep(0)>>>\n")
+                        print(port_response.dict)
+        links = element_dict.get("Links")
+        for element in links.keys():
+            if element == "Drives" and links.get("Drives@odata.count", 0) != 0:
+                sys.stdout.write("<<<dell_idrac_rf_drives:sep(0)>>>\n")
+                for drive in links.get("Drives"):
+                    drive_url = drive.get("@odata.id", None)
+                    if drive_url:
+                        drive_response = redfishobj.get(drive_url, None)
+                    print(drive_response.dict)
+            if element == "Processors" and links.get("Processors@odata.count", 0) != 0:
+                sys.stdout.write("<<<dell_idrac_rf_cpu:sep(0)>>>\n")
+                for cpu in links.get("Processors"):
+                    cpu_url = cpu.get("@odata.id", None)
+                    if cpu_url:
+                        cpu_response = redfishobj.get(cpu_url, None)
+                    print(cpu_response.dict)
+            if element == "Storage" and links.get("Storage@odata.count", 0) != 0:
+                for storage in links.get("Storage"):
+                    storage_url = storage.get("@odata.id", None)
+                    if storage_url:
+                        storage_response = redfishobj.get(storage_url, None)
+                    storage_dict = storage_response.dict
+                    sys.stdout.write("<<<dell_idrac_rf_storage:sep(0)>>>\n")
+                    print(storage_dict)
+                    if "Drives" in storage_dict.keys() and storage_dict.get("Drives@odata.count", 0) != 0:
+                        sys.stdout.write("<<<dell_idrac_rf_drives:sep(0)>>>\n")
+                        for drive in storage_dict.get("Drives"):
+                            drive_url = drive.get("@odata.id", None)
+                            if drive_url:
+                                drive_response = redfishobj.get(drive_url, None)
+                            print(drive_response.dict)
+                    if "Volumes" in storage_dict.keys():
+                        sys.stdout.write("<<<dell_idrac_rf_volumes:sep(0)>>>\n")
+                        volume_url = storage_dict["Volumes"].get("@odata.id", None)
+                        if volume_url:
+                            volume_response = redfishobj.get(volume_url, None)
+                            volume_dict = volume_response.dict
+                            members = volume_dict.get("Members", None)
+                            if members:
+                                for member in members:
+                                    member_response = redfishobj.get(
+                                        member.get("@odata.id", None), None)
+                                    print(member_response.dict)
 
 
 #############################################################################

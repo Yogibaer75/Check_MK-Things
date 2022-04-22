@@ -14,6 +14,7 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
+from cmk.gui.i18n import _
 from cmk.gui.plugins.metrics import (
     metric_info,
     perfometer_info,

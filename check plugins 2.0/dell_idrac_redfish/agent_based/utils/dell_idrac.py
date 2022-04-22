@@ -86,13 +86,20 @@ def idrac_health_state(state):
     dev_state = 0
     dev_msg = []
     for key in state.keys():
-        if key in ["Health", "HealthRollup"]:
+        if key in ["Health"]:
+            if state[key] == None:
+                continue
             temp_state, state_msg = health_map.get(state[key])
+            state_msg = "Component State: %s" % state_msg
+        elif key == "HealthRollup":
+            if state[key] == None:
+                continue
+            temp_state, state_msg = health_map.get(state[key])
+            state_msg = "Rollup State: %s" % state_msg
         elif key == "State":
             temp_state, state_msg = state_map.get(state[key])
         dev_state = max(dev_state, temp_state)
-        if temp_state != 0 or key == "State":
-            dev_msg.append(state_msg)
+        dev_msg.append(state_msg)
 
     return dev_state, ", ".join(dev_msg)
 

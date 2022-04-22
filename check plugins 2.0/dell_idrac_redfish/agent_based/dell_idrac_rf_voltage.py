@@ -22,9 +22,9 @@ from .agent_based_api.v1.type_defs import (
     DiscoveryResult,
 )
 
-from .agent_based_api.v1 import (register, Result, State, Service, check_levels)
+from .agent_based_api.v1 import register, Result, State, Service, check_levels
 
-from .utils.dell_idrac import (idrac_health_state, process_redfish_perfdata)
+from .utils.dell_idrac import idrac_health_state, process_redfish_perfdata
 
 
 def discovery_dell_idrac_rf_voltage(section) -> DiscoveryResult:
@@ -42,6 +42,12 @@ def check_dell_idrac_rf_voltage(item: str, section) -> CheckResult:
         if voltage.get("Name") == item:
             perfdata = process_redfish_perfdata(voltage)
 
+            volt_msg = "Location: %s, SensorNr: %s" % (
+                voltage.get("PhysicalContext"),
+                voltage.get("SensorNumber"),
+            )
+            yield Result(state=State(0), summary=volt_msg)
+
             if perfdata.value is not None:
                 yield from check_levels(
                     perfdata.value,
@@ -50,11 +56,11 @@ def check_dell_idrac_rf_voltage(item: str, section) -> CheckResult:
                     metric_name="voltage",
                     label="Value",
                     render_func=lambda v: "%.1f V" % v,
-                    boundaries=perfdata.boundaries
+                    boundaries=perfdata.boundaries,
                 )
 
             dev_state, dev_msg = idrac_health_state(voltage["Status"])
-            yield Result(state=State(dev_state), summary=dev_msg)
+            yield Result(state=State(dev_state), notice=dev_msg)
 
 
 register.check_plugin(

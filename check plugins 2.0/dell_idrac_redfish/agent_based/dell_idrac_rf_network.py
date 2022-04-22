@@ -18,11 +18,13 @@
 #
 #
 from .agent_based_api.v1.type_defs import (
-    CheckResult, DiscoveryResult,)
+    CheckResult,
+    DiscoveryResult,
+)
 
-from .agent_based_api.v1 import (register, Result, State, Service)
+from .agent_based_api.v1 import register, Result, State, Service
 
-from .utils.dell_idrac import (parse_dell_idrac_rf_multiple, idrac_health_state)
+from .utils.dell_idrac import parse_dell_idrac_rf_multiple, idrac_health_state
 
 register.agent_section(
     name="dell_idrac_rf_network",
@@ -44,7 +46,17 @@ def check_dell_idrac_rf_network(item: str, section) -> CheckResult:
     status = dev_state
     message = dev_msg
 
-    yield Result(state=State(status), summary=message)
+    if data.get("Model"):
+        net_msg = "Model: %s, SeNr: %s, PartNr: %s" % (
+            data.get("Model"),
+            data.get("SerialNumber"),
+            data.get("PartNumber"),
+        )
+        yield Result(state=State(status), summary=net_msg)
+
+        yield Result(state=State(status), notice=message)
+    else:
+        yield Result(state=State(status), summary=message)
 
 
 register.check_plugin(

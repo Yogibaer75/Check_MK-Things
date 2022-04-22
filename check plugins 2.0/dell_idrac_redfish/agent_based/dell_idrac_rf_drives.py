@@ -18,30 +18,44 @@
 #
 #
 from .agent_based_api.v1.type_defs import (
-    CheckResult, DiscoveryResult,)
+    CheckResult,
+    DiscoveryResult,
+)
 
-from .agent_based_api.v1 import (register, Result, State, Service)
+from .agent_based_api.v1 import register, Result, State, Service
 
-from .utils.dell_idrac import (parse_dell_idrac_rf_multiple, idrac_health_state)
+from .utils.dell_idrac import parse_dell_idrac_rf_multiple, idrac_health_state
 
 register.agent_section(
-    name="dell_idrac_rf_interface",
+    name="dell_idrac_rf_drives",
     parse_function=parse_dell_idrac_rf_multiple,
 )
 
 
-def discovery_dell_idrac_rf_interface(section) -> DiscoveryResult:
+def discovery_dell_idrac_rf_drives(section) -> DiscoveryResult:
     for key in section.keys():
-        yield Service(item=section[key]["Id"])
+        yield Service(item=section[key]["Name"])
 
 
-def check_dell_idrac_rf_interface(item: str, section) -> CheckResult:
-    data = section.get(item, None)
+def check_dell_idrac_rf_drives(item: str, section) -> CheckResult:
+    data = None
+    for key in section.keys():
+        if item == section[key]["Name"]:
+            data = section.get(key, None)
     if data is None:
         return
 
-    int_msg = "Link: %s, Speed: %0.0fMbps, MAC: %s" % (data.get("LinkStatus"), data.get("CurrentLinkSpeedMbps"), ", ".join(data.get("AssociatedNetworkAddresses")))
-    yield Result(state=State(0), summary=int_msg)
+    disc_msg = "Size: %0.0fGB, Speed %s Gbs" % (
+        data.get("CapacityBytes", 0) / 1024 / 1024 / 1024,
+        data.get("CapableSpeedGbs", 0),
+    )
+
+    if data.get("MediaType") == "SSD":
+        disc_msg = disc_msg + ", Media Life Left: %d%%" % (
+            int(data.get("PredictedMediaLifeLeftPercent", 0))
+        )
+
+    yield Result(state=State(0), summary=disc_msg)
 
     dev_state, dev_msg = idrac_health_state(data["Status"])
     status = dev_state
@@ -51,9 +65,9 @@ def check_dell_idrac_rf_interface(item: str, section) -> CheckResult:
 
 
 register.check_plugin(
-    name="dell_idrac_rf_interface",
-    service_name="Network Interface %s",
-    sections=["dell_idrac_rf_interface"],
-    discovery_function=discovery_dell_idrac_rf_interface,
-    check_function=check_dell_idrac_rf_interface,
+    name="dell_idrac_rf_drives",
+    service_name="Drive %s",
+    sections=["dell_idrac_rf_drives"],
+    discovery_function=discovery_dell_idrac_rf_drives,
+    check_function=check_dell_idrac_rf_drives,
 )

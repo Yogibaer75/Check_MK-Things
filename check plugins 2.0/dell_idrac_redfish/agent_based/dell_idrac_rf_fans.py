@@ -53,7 +53,7 @@ def check_dell_idrac_rf_fans(item: str, section) -> CheckResult:
 
             dev_state, dev_msg = idrac_health_state(fan["Status"])
 
-            yield Result(state=State(dev_state), summary=dev_msg)
+            yield Result(state=State(dev_state), notice=dev_msg)
 
 
 register.check_plugin(

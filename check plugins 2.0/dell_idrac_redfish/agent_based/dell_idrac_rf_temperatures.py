@@ -22,10 +22,9 @@ from .agent_based_api.v1.type_defs import (
     DiscoveryResult,
 )
 
-from .agent_based_api.v1 import (register, Result, State, Service,
-                                 get_value_store)
-from .utils.temperature import (check_temperature, TempParamDict)
-from .utils.dell_idrac import (process_redfish_perfdata, idrac_health_state)
+from .agent_based_api.v1 import register, Result, State, Service, get_value_store
+from .utils.temperature import check_temperature, TempParamDict
+from .utils.dell_idrac import process_redfish_perfdata, idrac_health_state
 
 
 def discovery_dell_idrac_rf_temperatures(section) -> DiscoveryResult:
@@ -35,8 +34,9 @@ def discovery_dell_idrac_rf_temperatures(section) -> DiscoveryResult:
             yield Service(item=temp.get("Name"))
 
 
-def check_dell_idrac_rf_temperatures(item: str, params: TempParamDict,
-                                     section) -> CheckResult:
+def check_dell_idrac_rf_temperatures(
+    item: str, params: TempParamDict, section
+) -> CheckResult:
     temps = section.get("Temperatures", None)
     if temps is None:
         return
@@ -56,7 +56,7 @@ def check_dell_idrac_rf_temperatures(item: str, params: TempParamDict,
 
             dev_state, dev_msg = idrac_health_state(temp["Status"])
 
-            yield Result(state=State(dev_state), summary=dev_msg)
+            yield Result(state=State(dev_state), notice=dev_msg)
 
 
 register.check_plugin(

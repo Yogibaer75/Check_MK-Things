@@ -18,30 +18,35 @@
 #
 #
 from .agent_based_api.v1.type_defs import (
-    CheckResult, DiscoveryResult,)
+    CheckResult,
+    DiscoveryResult,
+)
 
-from .agent_based_api.v1 import (register, Result, State, Service)
+from .agent_based_api.v1 import register, Result, State, Service
 
-from .utils.dell_idrac import (parse_dell_idrac_rf_multiple, idrac_health_state)
+from .utils.dell_idrac import parse_dell_idrac_rf_multiple, idrac_health_state
 
 register.agent_section(
-    name="dell_idrac_rf_interface",
+    name="dell_idrac_rf_volumes",
     parse_function=parse_dell_idrac_rf_multiple,
 )
 
 
-def discovery_dell_idrac_rf_interface(section) -> DiscoveryResult:
+def discovery_dell_idrac_rf_volumes(section) -> DiscoveryResult:
     for key in section.keys():
         yield Service(item=section[key]["Id"])
 
 
-def check_dell_idrac_rf_interface(item: str, section) -> CheckResult:
+def check_dell_idrac_rf_volumes(item: str, section) -> CheckResult:
     data = section.get(item, None)
     if data is None:
         return
 
-    int_msg = "Link: %s, Speed: %0.0fMbps, MAC: %s" % (data.get("LinkStatus"), data.get("CurrentLinkSpeedMbps"), ", ".join(data.get("AssociatedNetworkAddresses")))
-    yield Result(state=State(0), summary=int_msg)
+    volume_msg = "Raid Type: %s, Size: %0.0fGB" % (
+        data.get("RAIDType", None),
+        int(data.get("CapacityBytes", 0)) / 1024 / 1024 / 1024,
+    )
+    yield Result(state=State(0), summary=volume_msg)
 
     dev_state, dev_msg = idrac_health_state(data["Status"])
     status = dev_state
@@ -51,9 +56,9 @@ def check_dell_idrac_rf_interface(item: str, section) -> CheckResult:
 
 
 register.check_plugin(
-    name="dell_idrac_rf_interface",
-    service_name="Network Interface %s",
-    sections=["dell_idrac_rf_interface"],
-    discovery_function=discovery_dell_idrac_rf_interface,
-    check_function=check_dell_idrac_rf_interface,
+    name="dell_idrac_rf_volumes",
+    service_name="Volume %s",
+    sections=["dell_idrac_rf_volumes"],
+    discovery_function=discovery_dell_idrac_rf_volumes,
+    check_function=check_dell_idrac_rf_volumes,
 )
