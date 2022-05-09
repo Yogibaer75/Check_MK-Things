@@ -38,10 +38,10 @@ def _parameter_valuespec_windows_patch_day():
                  elements=[
                      Integer(title=_("Warning at"),
                              unit=u"days",
-                             default_value=30),
+                             default_value=15),
                      Integer(title=_("Critical at"),
                              unit=u"days",
-                             default_value=15),
+                             default_value=30),
                  ],
              )),
         ],

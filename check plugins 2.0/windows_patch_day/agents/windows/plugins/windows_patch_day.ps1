@@ -38,7 +38,7 @@ if (!$updatecount) {
 }
 
 if (!$filterstring) {
-    $filterstring = ''
+    $filterstring = '#######'
 }
 [regex] $filter_regex ='(?i)^(' + (($filterstring |ForEach-Object {[regex]::escape($_)}) -join "|") + ')'
 

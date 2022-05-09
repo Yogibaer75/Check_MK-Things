@@ -34,6 +34,7 @@ from .agent_based_api.v1 import (
     Result,
     State,
     Service,
+    check_levels,
 )
 
 
@@ -99,10 +100,22 @@ def check_windows_patch_day(params: Mapping[str, Any],
 
     yield Result(state=State(status), summary=messagetext, details=detailstext)
 
+    newest_update = (datetime.datetime.now() - max(date_list)).days
+    warn, crit = params.get("levels", (30, 90))
+
+    yield from check_levels(
+        newest_update,
+        levels_upper=(warn, crit),
+        metric_name="days",
+        label="Newest Update",
+        render_func=lambda v: "%.1f d" % v,
+    )
+
 
 register.check_plugin(
     name="windows_patch_day",
     service_name="Patchday",
+    check_ruleset_name="windows_patch_day",
     sections=["windows_patch_day"],
     check_default_parameters={},
     discovery_function=discovery_windows_patch_day,
