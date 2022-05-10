@@ -45,8 +45,8 @@ def _parameter_valuespec_win_cert():
                              default_value=15),
                  ],
              )),
-             ('issuer',
-              ListOfStrings(
+            ('issuer',
+             ListOfStrings(
                  title = _('Issuer Name'),
                  help = _('Name of CA to filter from result set'),
                  default_value=['DummyCA1'],

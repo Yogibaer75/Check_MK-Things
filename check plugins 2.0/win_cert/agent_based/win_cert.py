@@ -77,13 +77,13 @@ def check_win_cert(item, params, section) -> CheckResult:
         failed = False
         try:
             date_obj = dt.datetime.strptime(date, '%d.%m.%Y %H:%M:%S')
-        except ValueError as error:
+        except ValueError:
             failed = True
         if failed:
             try:
                 date_obj = dt.datetime.strptime(date, '%m/%d/%Y %I:%M:%S %p')
                 failed = False
-            except ValueError as error:
+            except ValueError:
                 failed = True
         if failed:
             days_left = dt.datetime.now() - dt.datetime.now()
