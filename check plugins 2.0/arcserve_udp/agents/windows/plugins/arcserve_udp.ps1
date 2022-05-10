@@ -42,7 +42,7 @@ foreach ($Row in $result1.Tables[0].Rows)
 $sqlCmd.CommandText = "SELECT * FROM (SELECT DISTINCT [rhostid], [fqdnNames], [Rhostname], [jobUTCStartTime], [jobStatus], [protectedDataSize], [jobMethod], ROW_NUMBER() OVER(PARTITION BY rhostid ORDER BY jobUTCStartTime DESC) AS row_number FROM dbo.as_edge_host EH LEFT JOIN dbo.as_edge_dashboard_d2d_jobhistory_details_view D2D ON EH.rhostid = D2D.agentId) a WHERE row_number = 1;"
 $result2 = GetSQLData($sqlCmd)
 
-Write-Host("<<<udp_jobs:sep(124)")
+Write-Host("<<<udp_jobs:sep(124)>>>")
 foreach ($Row in $result2.Tables[0].Rows)
 {
    if (-not [string]::IsNullOrEmpty($Row.Item(1)))
