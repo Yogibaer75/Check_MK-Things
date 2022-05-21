@@ -47,8 +47,8 @@ def check_dell_idrac_rf_storage(item: str, section) -> CheckResult:
 
         storage_msg = "Type: %s, RaidLevels: %s, DeviceProtocols: %s" % (
             ctrl_data.get("Model"),
-            ",".join(ctrl_data.get("SupportedRAIDTypes")),
-            ",".join(ctrl_data.get("SupportedDeviceProtocols")),
+            ",".join(ctrl_data.get("SupportedRAIDTypes",[])),
+            ",".join(ctrl_data.get("SupportedDeviceProtocols",[])),
         )
         yield Result(state=State(0), summary=storage_msg)
 

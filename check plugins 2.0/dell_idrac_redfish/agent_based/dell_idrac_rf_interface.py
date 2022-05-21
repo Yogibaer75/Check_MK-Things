@@ -40,7 +40,7 @@ def check_dell_idrac_rf_interface(item: str, section) -> CheckResult:
     if data is None:
         return
 
-    int_msg = "Link: %s, Speed: %0.0fMbps, MAC: %s" % (data.get("LinkStatus"), data.get("CurrentLinkSpeedMbps"), ", ".join(data.get("AssociatedNetworkAddresses")))
+    int_msg = "Link: %s, Speed: %0.0fMbps, MAC: %s" % (data.get("LinkStatus"), data.get("CurrentLinkSpeedMbps", 0), ", ".join(data.get("AssociatedNetworkAddresses")))
     yield Result(state=State(0), summary=int_msg)
 
     dev_state, dev_msg = idrac_health_state(data["Status"])
