@@ -69,9 +69,10 @@ def discovery_win_cert(section) -> DiscoveryResult:
 def check_win_cert(item, params, section) -> CheckResult:
     warn, crit = params.get("levels")
     filter_issuer = params.get("issuer", [])
-    for item in section:
+    for item in list(section.keys()):
         data = section[item]
         if data.get("Issuer") in filter_issuer:
+            del section[item]
             continue
         date = data.get("NotAfter")
         failed = False
