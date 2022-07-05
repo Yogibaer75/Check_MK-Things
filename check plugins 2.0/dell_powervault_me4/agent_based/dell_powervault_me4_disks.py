@@ -28,10 +28,11 @@ from .agent_based_api.v1 import (
     Result,
     State,
     Service,
+    get_value_store,
 )
 
 from .utils.temperature import (
-    check_temperature, )
+    check_temperature, TempParamDict)
 
 from .dell_powervault_me4 import (parse_dell_powervault_me4)
 
@@ -46,7 +47,7 @@ def discovery_dell_powervault_me4_disks(section) -> DiscoveryResult:
         yield Service(item=item)
 
 
-def check_dell_powervault_me4_disks(item: str, params, section) -> CheckResult:
+def check_dell_powervault_me4_disks(item: str, params: TempParamDict, section) -> CheckResult:
     data = section.get(item)
     disk_states = {
         0: ("OK", 0),
@@ -66,11 +67,12 @@ def check_dell_powervault_me4_disks(item: str, params, section) -> CheckResult:
 
     state_text, status_num = disk_states.get(data.get("health-numeric", 3),
                                              ("Unknown", 3))
+    message = "%s disk with size %s is %s" % (data.get(
+        "description", "Unknown"), data.get("size"), state_text)
     if status_num == 3 and data.get("usage-numeric") == 3:
         state_text, status_num = ("Global SP", 0)
 
-    message = "%s disk with size %s is %s" % (data.get(
-        "description", "Unknown"), data.get("size"), state_text)
+    message += ", disk usage is %s" % usage_numeric.get(data.get("usage-numeric"))
 
     yield Result(state=State(status_num), summary=message)
 
@@ -80,6 +82,8 @@ def check_dell_powervault_me4_disks(item: str, params, section) -> CheckResult:
     yield from check_temperature(
         float(value_number),
         params,
+        unique_name="m4.disk.temp.%s" % item,
+        value_store=get_value_store(),
     )
 
 
@@ -87,10 +91,7 @@ register.check_plugin(
     name="dell_powervault_me4_disks",
     service_name="Disk %s",
     sections=["dell_powervault_me4_disks"],
-    check_default_parameters={
-        'disk_state': 0,
-        'levels': (40, 50),
-    },
+    check_default_parameters={},
     discovery_function=discovery_dell_powervault_me4_disks,
     check_function=check_dell_powervault_me4_disks,
     check_ruleset_name="temperature",
