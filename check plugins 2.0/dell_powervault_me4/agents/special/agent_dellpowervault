@@ -45,7 +45,7 @@ def main(argv=None):
     args = parse_arguments(argv or sys.argv[1:])
 
     url = "https://" + args.hostaddress
-    auth_string = hashlib.md5("{}_{}".format(
+    auth_string = hashlib.sha256("{}_{}".format(
         args.username, args.password).encode("utf-8")).hexdigest()
 
     s = requests.session()
