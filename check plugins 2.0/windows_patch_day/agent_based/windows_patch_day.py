@@ -65,6 +65,9 @@ def discovery_windows_patch_day(section: Section) -> DiscoveryResult:
 
 def check_windows_patch_day(params: Mapping[str, Any],
                             section: Section) -> CheckResult:
+    if not any(section):
+        return None
+
     result_code = {
         0: "Not Started",
         1: "In Progress",
