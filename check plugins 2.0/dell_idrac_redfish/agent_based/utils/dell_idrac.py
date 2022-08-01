@@ -71,6 +71,7 @@ def idrac_health_state(state):
         "OK": (0, "Normal"),
         "Warning": (1, "A condition requires attention."),
         "Critical": (2, "A critical condition requires immediate attention."),
+        None: (1, "No data available.")
     }
 
     state_map = {
@@ -81,18 +82,19 @@ def idrac_health_state(state):
         "InTest": (0, "This resource is undergoing testing, or is in the process of capturing information for debugging."),
         "Starting": (0, "This resource is starting."),
         "Absent": (1, "This resource is either not present or detected."),
+        None: (1, "No data available.")
     }
 
     dev_state = 0
     dev_msg = []
     for key in state.keys():
         if key in ["Health"]:
-            if state[key] == None:
+            if state[key] is None:
                 continue
             temp_state, state_msg = health_map.get(state[key])
             state_msg = "Component State: %s" % state_msg
         elif key == "HealthRollup":
-            if state[key] == None:
+            if state[key] is None:
                 continue
             temp_state, state_msg = health_map.get(state[key])
             state_msg = "Rollup State: %s" % state_msg

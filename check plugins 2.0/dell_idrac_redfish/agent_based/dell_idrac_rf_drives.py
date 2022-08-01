@@ -52,9 +52,9 @@ def check_dell_idrac_rf_drives(item: str, section) -> CheckResult:
 
     if data.get("MediaType") == "SSD":
         if data.get("PredictedMediaLifeLeftPercent"):
-            disc_msg = disc_msg + ", Media Life Left: %d%%" % (
-                int(data.get("PredictedMediaLifeLeftPercent", 0))
-            )
+             disc_msg = disc_msg + ", Media Life Left: %d%%" % (
+                 int(data.get("PredictedMediaLifeLeftPercent", 0))
+             )
 
     yield Result(state=State(0), summary=disc_msg)
 

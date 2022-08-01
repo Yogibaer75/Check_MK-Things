@@ -33,8 +33,9 @@ register.agent_section(
 
 
 def discovery_dell_idrac_rf_network(section) -> DiscoveryResult:
-    for key in section.keys():
-        yield Service(item=section[key]["Id"])
+    for key, value in section.items():
+        if value.get("Id"):
+            yield Service(item=value.get("Id"))
 
 
 def check_dell_idrac_rf_network(item: str, section) -> CheckResult:
