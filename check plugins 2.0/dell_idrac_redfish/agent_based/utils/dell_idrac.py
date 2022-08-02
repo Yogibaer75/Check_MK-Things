@@ -16,10 +16,12 @@
 
 from typing import Optional, NamedTuple, Tuple
 from ..agent_based_api.v1.type_defs import (
-    DiscoveryResult, )
+    DiscoveryResult,
+)
 
 from ..agent_based_api.v1 import (
-    Service, )
+    Service,
+)
 
 Levels = Optional[Tuple[float, float]]
 
@@ -76,9 +78,18 @@ def idrac_health_state(state):
     state_map = {
         "Enabled": (0, "This resource is enabled."),
         "Disabled": (1, "This resource is disabled."),
-        "StandbyOffline": (1, "This resource is enabled but awaits an external action to activate it."),
-        "StandbySpare": (0, "This resource is part of a redundancy set and awaits a failover or other external action to activate it."),
-        "InTest": (0, "This resource is undergoing testing, or is in the process of capturing information for debugging."),
+        "StandbyOffline": (
+            1,
+            "This resource is enabled but awaits an external action to activate it.",
+        ),
+        "StandbySpare": (
+            0,
+            "This resource is part of a redundancy set and awaits a failover or other external action to activate it.",
+        ),
+        "InTest": (
+            0,
+            "This resource is undergoing testing, or is in the process of capturing information for debugging.",
+        ),
         "Starting": (0, "This resource is starting."),
         "Absent": (1, "This resource is either not present or detected."),
     }
@@ -87,19 +98,24 @@ def idrac_health_state(state):
     dev_msg = []
     for key in state.keys():
         if key in ["Health"]:
-            if state[key] == None:
+            if state[key] is None:
                 continue
             temp_state, state_msg = health_map.get(state[key])
             state_msg = "Component State: %s" % state_msg
         elif key == "HealthRollup":
-            if state[key] == None:
+            if state[key] is None:
                 continue
             temp_state, state_msg = health_map.get(state[key])
             state_msg = "Rollup State: %s" % state_msg
         elif key == "State":
+            if state[key] is None:
+                continue
             temp_state, state_msg = state_map.get(state[key])
         dev_state = max(dev_state, temp_state)
         dev_msg.append(state_msg)
+
+    if dev_msg == []:
+        dev_msg.append("No usable state found")
 
     return dev_state, ", ".join(dev_msg)
 

@@ -18,11 +18,13 @@
 #
 #
 from .agent_based_api.v1.type_defs import (
-    CheckResult, DiscoveryResult,)
+    CheckResult,
+    DiscoveryResult,
+)
 
-from .agent_based_api.v1 import (register, Result, State, Service, check_levels)
+from .agent_based_api.v1 import register, Result, State, Service, check_levels
 
-from .utils.dell_idrac import (process_redfish_perfdata, idrac_health_state)
+from .utils.dell_idrac import process_redfish_perfdata, idrac_health_state
 
 
 def discovery_dell_idrac_rf_fans(section) -> DiscoveryResult:
@@ -48,7 +50,7 @@ def check_dell_idrac_rf_fans(item: str, section) -> CheckResult:
                 metric_name="fan",
                 label="Speed",
                 render_func=lambda v: "%.1f rpm" % v,
-                boundaries=perfdata.boundaries
+                boundaries=perfdata.boundaries,
             )
 
             dev_state, dev_msg = idrac_health_state(fan["Status"])

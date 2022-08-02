@@ -18,11 +18,13 @@
 #
 #
 from .agent_based_api.v1.type_defs import (
-    CheckResult, DiscoveryResult,)
+    CheckResult,
+    DiscoveryResult,
+)
 
-from .agent_based_api.v1 import (register, Result, State, Service)
+from .agent_based_api.v1 import register, Result, State, Service
 
-from .utils.dell_idrac import (parse_dell_idrac_rf_multiple, idrac_health_state)
+from .utils.dell_idrac import parse_dell_idrac_rf_multiple, idrac_health_state
 
 register.agent_section(
     name="dell_idrac_rf_interface",
@@ -40,7 +42,11 @@ def check_dell_idrac_rf_interface(item: str, section) -> CheckResult:
     if data is None:
         return
 
-    int_msg = "Link: %s, Speed: %0.0fMbps, MAC: %s" % (data.get("LinkStatus"), data.get("CurrentLinkSpeedMbps", 0), ", ".join(data.get("AssociatedNetworkAddresses")))
+    int_msg = "Link: %s, Speed: %0.0fMbps, MAC: %s" % (
+        data.get("LinkStatus"),
+        data.get("CurrentLinkSpeedMbps", 0),
+        ", ".join(data.get("AssociatedNetworkAddresses")),
+    )
     yield Result(state=State(0), summary=int_msg)
 
     dev_state, dev_msg = idrac_health_state(data["Status"])

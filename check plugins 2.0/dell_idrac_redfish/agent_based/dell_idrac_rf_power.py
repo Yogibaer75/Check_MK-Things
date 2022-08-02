@@ -17,9 +17,9 @@
 # Example Output:
 #
 #
-from .agent_based_api.v1 import (register)
+from .agent_based_api.v1 import register
 
-from .utils.dell_idrac import (parse_dell_idrac_rf)
+from .utils.dell_idrac import parse_dell_idrac_rf
 
 register.agent_section(
     name="dell_idrac_rf_power",
