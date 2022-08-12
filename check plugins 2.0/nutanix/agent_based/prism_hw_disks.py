@@ -46,6 +46,8 @@ register.agent_section(
 
 def discovery_prism_hw_disks(section) -> DiscoveryResult:
     for item in section:
+        if section.get(item) is None:
+            continue
         yield Service(item=item)
 
 
