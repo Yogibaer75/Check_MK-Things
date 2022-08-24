@@ -14,13 +14,13 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
+from cmk.gui.i18n import _
 from cmk.gui.plugins.wato import (
     IndividualOrStoredPassword,
     HostRulespec,
     rulespec_registry,
 )
-from cmk.gui.plugins.wato.datasource_programs import (
-    RulespecGroupDatasourcePrograms, )
+from cmk.gui.plugins.wato.datasource_programs import RulespecGroupDatasourceProgramsHardware
 from cmk.gui.valuespec import (
     Dictionary,
     TextAscii,
@@ -48,7 +48,7 @@ def _valuespec_special_agents_ilo():
 
 rulespec_registry.register(
     HostRulespec(
-        group=RulespecGroupDatasourcePrograms,
+        group=RulespecGroupDatasourceProgramsHardware,
         name="special_agents:ilo",
         title=lambda: _("Agent HPE iLO Configuration"),
         valuespec=_valuespec_special_agents_ilo,

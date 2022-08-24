@@ -57,12 +57,10 @@ def check_ilo_api_fans(item: str, section) -> CheckResult:
             yield Result(state=State(0),
                          summary="Operational state OK - %s%% Speed" % perc)
             yield Metric("perc", perc, boundaries=(0, 100))
-
         elif data[4] == "OK":
             yield Result(state=State(0), summary="Operational state OK")
         else:
             yield Result(state=State(2), summary="Error in %s" % item)
-            yield Metric("perc", perc, boundaries=(0, 100))
 
 
 register.check_plugin(
