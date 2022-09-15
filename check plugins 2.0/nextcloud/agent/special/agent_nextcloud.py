@@ -24,6 +24,10 @@ def parse_arguments(argv):
                         "--password",
                         type=str,
                         help='''password for connection''')
+    parser.add_argument("-token",
+                        "--token",
+                        type=str,
+                        help='''token for connection (instead of user and password)''')
     parser.add_argument("-s",
                         "--server",
                         type=str,
@@ -55,7 +59,10 @@ def main(argv=None):
         api_path = args.prefix + api_path
     url =  args.schema + '://' + args.server + '/' + api_path
 
-    response = requests.get(url, auth=HTTPBasicAuth(args.username, args.password))
+    if args.token:
+        response = requests.get(url, headers={'NC-Token': args.token})
+    else:
+        response = requests.get(url, auth=HTTPBasicAuth(args.username, args.password))
     json_response = json.loads(response.text)
     print(json_response)
 
