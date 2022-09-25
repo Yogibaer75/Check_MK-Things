@@ -8,6 +8,6 @@ for CMK 2.0
 
 The agent call is
 
-/omd/sites/**your-site**/local/share/check_mk/agent/special/agent_ilo -u USER -p PASSWORD **IP**
+/omd/sites/**your-site**/local/share/check_mk/agents/special/agent_ilo -u USER -p PASSWORD **IP**
 
 For the user the minimal access rights inside iLO should be enought.
