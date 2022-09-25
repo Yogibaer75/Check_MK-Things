@@ -38,7 +38,7 @@ from .utils.df import (
 )
 
 
-def parse_prism_storage(string_table):
+def parse_prism_storage_pools(string_table):
     import ast
     parsed = {}
     data = ast.literal_eval(string_table[0][0])
@@ -48,17 +48,17 @@ def parse_prism_storage(string_table):
 
 
 register.agent_section(
-    name="prism_storage",
-    parse_function=parse_prism_storage,
+    name="prism_storage_pools",
+    parse_function=parse_prism_storage_pools,
 )
 
 
-def discovery_prism_storage(section) -> DiscoveryResult:
+def discovery_prism_storage_pools(section) -> DiscoveryResult:
     for item in section:
         yield Service(item=item)
 
 
-def check_prism_storage(item: str, params, section) -> CheckResult:
+def check_prism_storage_pools(item: str, params, section) -> CheckResult:
     value_store = get_value_store()
     data = section.get(item)
     das_cap = float(data["usageStats"].get("storage_tier.das-sata.capacity_bytes", 0))
@@ -88,11 +88,11 @@ def check_prism_storage(item: str, params, section) -> CheckResult:
 
 
 register.check_plugin(
-    name="prism_storage",
+    name="prism_storage_pools",
     service_name="NTNX Storage %s",
-    sections=["prism_storage"],
+    sections=["prism_storage_pools"],
     check_default_parameters=FILESYSTEM_DEFAULT_LEVELS,
-    discovery_function=discovery_prism_storage,
-    check_function=check_prism_storage,
+    discovery_function=discovery_prism_storage_pools,
+    check_function=check_prism_storage_pools,
     check_ruleset_name="filesystem",
 )
