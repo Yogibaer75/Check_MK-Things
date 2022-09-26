@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import Dict, NamedTuple, Mapping, List
+from typing import Dict, NamedTuple, Mapping, List, Optional
 
 from .agent_based_api.v1 import register, Result, Service, SNMPTree, State, TableRow, startswith, any_of
 from .agent_based_api.v1.type_defs import CheckResult, DiscoveryResult, InventoryResult, StringTable
@@ -112,7 +112,10 @@ def discover_extreme_wlc_aps(section: Section) -> DiscoveryResult:
         yield Service(item=ap_name)
 
 
-def check_extreme_wlc_aps(item: str, section: Section) -> CheckResult:
+def check_extreme_wlc_aps(item: str, section: Optional[Section]) -> CheckResult:
+    if not section:
+        return
+
     if item not in section:
         return
 
@@ -147,7 +150,7 @@ def check_extreme_wlc_aps(item: str, section: Section) -> CheckResult:
         )
 
 
-def cluster_check_extreme_wlc_aps(item: str, section: Mapping[str, Section]) -> CheckResult:
+def cluster_check_extreme_wlc_aps(item: str, section: Mapping[str, Optional[Section]]) -> CheckResult:
     found = []
     for node, node_section in section.items():
         results = list(check_extreme_wlc_aps(item, node_section))
