@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Copyright (C) 2019 tribe29 GmbH - License: GNU General Public License v2
 # This file is part of Checkmk (https://checkmk.com). It is subject to the terms and
 # conditions defined in the file COPYING, which is part of this source code package.
@@ -84,12 +83,6 @@ def output_vms(requester: Requester) -> None:
         print("<<<<%s>>>>" % element.get("vmName"))
         write_title("vm")
         print(element)
-        if "nutanixGuestTools" in element:
-            write_title("vm_tools")
-            print(element.get("nutanixGuestTools"))
-        if "stats" in element:
-            write_title("vm_stats")
-            print(element.get("stats"))
         print("<<<<>>>>")
 
 
@@ -101,15 +94,6 @@ def output_hosts(requester: Requester) -> None:
         print("<<<<%s>>>>" % element.get("name"))
         write_title("host")
         print(element)
-        if "diskHardwareConfigs" in element:
-            write_title("hw_disks")
-            print(element.get("diskHardwareConfigs"))
-        if "stats" in element:
-            write_title("host_stats")
-            print(element.get("stats"))
-        if "usageStats" in element:
-            write_title("host_usage")
-            print(element.get("usageStats"))
         print("<<<<>>>>")
 
 
@@ -129,37 +113,44 @@ def agent_prism_main(args: Args) -> None:
     """Establish a connection to a Prism server and process containers, alerts, clusters and
     storage_pools"""
     LOGGING.info("setup HTTPS connection..")
-    requester = HTTPSAuthRequester(
+    requester_v1 = HTTPSAuthRequester(
         args.server,
         args.port,
         "PrismGateway/services/rest/v1",
         args.username,
         args.password,
     )
+    requester_v2 = HTTPSAuthRequester(
+        args.server,
+        args.port,
+        "PrismGateway/services/rest/v2.0",
+        args.username,
+        args.password,
+    )
 
     LOGGING.info("fetch and write container info..")
-    output_containers(requester)
+    output_containers(requester_v2)
 
     LOGGING.info("fetch and write alerts..")
-    output_alerts(requester)
+    output_alerts(requester_v2)
 
     LOGGING.info("fetch and write cluster info..")
-    output_cluster(requester)
+    output_cluster(requester_v2)
 
     LOGGING.info("fetch and write storage_pools..")
-    output_storage_pools(requester)
+    output_storage_pools(requester_v1)
 
     LOGGING.info("fetch and write vm info..")
-    output_vms(requester)
+    output_vms(requester_v1)
 
     LOGGING.info("fetch and write hosts info..")
-    output_hosts(requester)
+    output_hosts(requester_v2)
 
     LOGGING.info("fetch and write protection domain info..")
-    output_protection(requester)
+    output_protection(requester_v2)
 
     LOGGING.info("fetch and write support info..")
-    output_support(requester)
+    output_support(requester_v2)
 
     LOGGING.info("all done. bye.")
 

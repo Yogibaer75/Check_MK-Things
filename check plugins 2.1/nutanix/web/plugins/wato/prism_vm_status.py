@@ -16,11 +16,11 @@
 
 from cmk.gui.i18n import _
 from cmk.gui.plugins.wato.utils import (
-    CheckParameterRulespecWithItem,
+    CheckParameterRulespecWithoutItem,
     rulespec_registry,
     RulespecGroupCheckParametersVirtualization,
 )
-from cmk.gui.valuespec import Dictionary, DropdownChoice, TextInput
+from cmk.gui.valuespec import Dictionary, DropdownChoice
 
 
 def _parameters_valuespec_prism_vms():
@@ -55,12 +55,11 @@ def _parameters_valuespec_prism_vms():
 
 
 rulespec_registry.register(
-    CheckParameterRulespecWithItem(
-        check_group_name="prism_vms",
-        item_spec=lambda: TextInput(title=_("VM")),
+    CheckParameterRulespecWithoutItem(
+        check_group_name="prism_vm_status",
         group=RulespecGroupCheckParametersVirtualization,
         match_type="dict",
         parameter_valuespec=_parameters_valuespec_prism_vms,
-        title=lambda: _("Nutanix VM State"),
+        title=lambda: _("Nutanix single VM State"),
     )
 )

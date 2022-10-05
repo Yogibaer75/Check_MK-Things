@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
-
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
-
 # This is free software;  you can redistribute it and/or modify it
 # under the  terms of the  GNU General Public License  as published by
 # the Free Software Foundation in version 2.  check_mk is  distributed
@@ -13,53 +11,27 @@
 # License along with GNU Make; see the file  COPYING.  If  not,  write
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
+from typing import Any, Dict, Mapping
 
-# Example Output:
-#
-#
+from .agent_based_api.v1 import get_value_store, register, render, Result, Service, State
+from .agent_based_api.v1.type_defs import CheckResult, DiscoveryResult
+from .utils.df import df_check_filesystem_single, FILESYSTEM_DEFAULT_LEVELS
 
-from .agent_based_api.v1.type_defs import (
-    CheckResult,
-    DiscoveryResult,
-)
-
-from .agent_based_api.v1 import (
-    register,
-    Result,
-    State,
-    Service,
-    render,
-    get_value_store,
-)
-
-from .utils.df import (
-    df_check_filesystem_single,
-    FILESYSTEM_DEFAULT_LEVELS,
-)
+Section = Dict[str, Any]
 
 
-def parse_prism_host_usage(string_table):
-    import ast
-    parsed = {}
-    parsed = ast.literal_eval(string_table[0][0])
-
-    return parsed
-
-
-register.agent_section(
-    name="prism_host_usage",
-    parse_function=parse_prism_host_usage,
-)
-
-
-def discovery_prism_host_usage(section) -> DiscoveryResult:
-    if "storage.capacity_bytes" in section:
+def discovery_prism_host_usage(section: Section) -> DiscoveryResult:
+    data = section.get("usage_stats", {})
+    if data.get("storage.capacity_bytes"):
         yield Service(item="Capacity")
 
 
-def check_prism_host_usage(item: str, params, section) -> CheckResult:
+def check_prism_host_usage(item: str, params: Mapping[str, Any], section: Section) -> CheckResult:
+    data = section.get("usage_stats")
+    if not data:
+        return
+
     value_store = get_value_store()
-    data = section
     total_sas = float(data.get("storage_tier.das-sata.capacity_bytes", 0))
     free_sas = float(data.get("storage_tier.das-sata.free_bytes", 0))
     total_ssd = float(data.get("storage_tier.ssd.capacity_bytes", 0))
@@ -68,13 +40,13 @@ def check_prism_host_usage(item: str, params, section) -> CheckResult:
     free_bytes = float(data.get("storage.free_bytes", 0))
 
     yield from df_check_filesystem_single(
-        value_store=value_store,
-        mountpoint=item,
-        size_mb=total_bytes / 1024 ** 2,
-        avail_mb=free_bytes / 1024 ** 2,
-        inodes_total=0,
-        inodes_avail=0,
-        reserved_mb=0,
+        value_store,
+        item,
+        total_bytes / 1024**2,
+        free_bytes / 1024**2,
+        0,
+        None,
+        None,
         params=params,
     )
     message = f"Total SAS: {render.bytes(total_sas)}, Free SAS: {render.bytes(free_sas)}"
@@ -86,7 +58,7 @@ def check_prism_host_usage(item: str, params, section) -> CheckResult:
 register.check_plugin(
     name="prism_host_usage",
     service_name="NTNX Storage %s",
-    sections=["prism_host_usage"],
+    sections=["prism_host"],
     check_default_parameters=FILESYSTEM_DEFAULT_LEVELS,
     discovery_function=discovery_prism_host_usage,
     check_function=check_prism_host_usage,

@@ -3,24 +3,18 @@
 # Copyright (C) 2019 tribe29 GmbH - License: GNU General Public License v2
 # This file is part of Checkmk (https://checkmk.com). It is subject to the terms and
 # conditions defined in the file COPYING, which is part of this source code package.
-from .agent_based_api.v1.type_defs import (
-    CheckResult,
-    DiscoveryResult,
-)
-from .agent_based_api.v1 import (
-    register,
-    Result,
-    State,
-    Service,
-)
+# ported by (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 from datetime import datetime
-from typing import Any, List, Mapping, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Tuple
 
-Section = Sequence[List[Any]]
+from .agent_based_api.v1 import register, Result, Service, State
+from .agent_based_api.v1.type_defs import CheckResult, DiscoveryResult, StringTable
+
+Section = List[Dict[Any, Any]]
 StringMap = Mapping[str, str]
 
 
-def parse_prism_alerts(string_table) -> Section:
+def parse_prism_alerts(string_table: StringTable) -> Section:
     import ast
 
     parsed = []
@@ -71,11 +65,7 @@ def to_string(timestamp: str) -> str:
 
 def check_prism_alerts(params: StringMap, section: Section) -> CheckResult:
     valid_alerts = (
-        [
-            e
-            for e in section
-            if e.get("context", {}).get("vm_type") == "Prism Central VM"
-        ]  #
+        [e for e in section if e.get("context", {}).get("vm_type") == "Prism Central VM"]  #
         if params.get("prism_central_only")
         else section
     )
@@ -84,11 +74,9 @@ def check_prism_alerts(params: StringMap, section: Section) -> CheckResult:
         yield Result(state=State.OK, summary="No alerts")
         return
 
-    valid_alerts = sorted(valid_alerts, key=lambda d: d['timestamp'], reverse=True)
+    valid_alerts = sorted(valid_alerts, key=lambda d: d["timestamp"], reverse=True)
     # find the newest alert among those with the highest severity
-    immediate_alert = max(
-        valid_alerts, key=lambda x: (severity(x["severity"])[0], x["timestamp"])
-    )
+    immediate_alert = max(valid_alerts, key=lambda x: (severity(x["severity"])[0], x["timestamp"]))
 
     yield Result(
         state=State(severity(immediate_alert["severity"])[1]),
@@ -99,22 +87,21 @@ def check_prism_alerts(params: StringMap, section: Section) -> CheckResult:
     state = 1 if "has the following problems" in message else 0  # see werk #7203
     yield Result(
         state=State(state),
-        summary="Last worst on %s: %r"
-        % (to_string(immediate_alert["timestamp"]), message),
+        summary="Last worst on %s: %r" % (to_string(immediate_alert["timestamp"]), message),
     )
 
     yield Result(state=State.OK, notice="\nLast 10 Alerts\n")
     for i in valid_alerts[:10]:
-        yield Result(state=State.OK, notice="%s\t%s" % (to_string(i['timestamp']), i['message']))
+        yield Result(state=State.OK, notice="%s\t%s" % (to_string(i["timestamp"]), i["message"]))
 
 
 register.check_plugin(
     name="prism_alerts",
-    service_name="Prism Alerts",
+    service_name="NTNX Alerts",
     discovery_function=discovery_prism_alerts,
     check_function=check_prism_alerts,
     check_ruleset_name="prism_alerts",
     check_default_parameters={
         "prism_central_only": False,
-    }
+    },
 )
