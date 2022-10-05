@@ -51,7 +51,7 @@ def get_hw_inventory(ip, login_account, login_password):
     # Login into the server and create a session
     try:
         REDFISH_OBJ.login(auth=utils.g_AUTH)
-    except redfish.exception.RedfishException as e:
+    except Exception as e:
         result = {
             "ret": False,
             "msg": "Please check the username, password, IP is correct\n Error: %s" % e,
@@ -167,7 +167,7 @@ def get_hw_inventory(ip, login_account, login_password):
     finally:
         try:
             REDFISH_OBJ.logout()
-        except redfish.exception.RedfishException:
+        except Exception:
             pass
 
 
