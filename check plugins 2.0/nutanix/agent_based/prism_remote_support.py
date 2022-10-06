@@ -38,7 +38,7 @@ def discovery_prism_remote_support(section: Section) -> DiscoveryResult:
         yield Service()
 
 
-_TUNNEL_STATE: dict[bool, str] = {
+_TUNNEL_STATE = {
     True: "Remote Tunnel is enabled",
     False: "Remote Tunnel is disabled",
 }
