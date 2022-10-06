@@ -1,46 +1,21 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
+# Copyright (C) 2019 tribe29 GmbH - License: GNU General Public License v2
+# This file is part of Checkmk (https://checkmk.com). It is subject to the terms and
+# conditions defined in the file COPYING, which is part of this source code package.
+# ported by (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+import ast
+from typing import Any, Dict, Mapping
 
-# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+from .agent_based_api.v1 import get_value_store, register, render, Result, Service, State
+from .agent_based_api.v1.type_defs import CheckResult, DiscoveryResult, StringTable
+from .utils.df import df_check_filesystem_single, FILESYSTEM_DEFAULT_LEVELS
 
-# This is free software;  you can redistribute it and/or modify it
-# under the  terms of the  GNU General Public License  as published by
-# the Free Software Foundation in version 2.  check_mk is  distributed
-# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
-# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
-# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
-# ails.  You should have  received  a copy of the  GNU  General Public
-# License along with GNU Make; see the file  COPYING.  If  not,  write
-# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
-# Boston, MA 02110-1301 USA.
-
-# Example Output:
-#
-#
-
-from .agent_based_api.v1.type_defs import (
-    CheckResult,
-    DiscoveryResult,
-)
-
-from .agent_based_api.v1 import (
-    register,
-    Result,
-    State,
-    Service,
-    render,
-    get_value_store,
-)
-
-from .utils.df import (
-    df_check_filesystem_single,
-    FILESYSTEM_DEFAULT_LEVELS,
-)
+Section = Dict[str, Mapping[str, Any]]
 
 
-def parse_prism_storage_pools(string_table):
-    import ast
-    parsed = {}
+def parse_prism_storage_pools(string_table: StringTable) -> Section:
+    parsed: Section = {}
     data = ast.literal_eval(string_table[0][0])
     for element in data.get("entities"):
         parsed.setdefault(element.get("name", "unknown"), element)
@@ -53,15 +28,19 @@ register.agent_section(
 )
 
 
-def discovery_prism_storage_pools(section_prism_storage_pools, section_prism_hosts) -> DiscoveryResult:
-    for item in section_prism_storage_pools:
+def discovery_prism_storage_pools(section: Section) -> DiscoveryResult:
+    for item in section:
         yield Service(item=item)
 
 
-def check_prism_storage_pools(item: str, params, section_prism_storage_pools, section_prism_hosts) -> CheckResult:
+def check_prism_storage_pools(
+    item: str, params: Mapping[str, Any], section: Section
+) -> CheckResult:
     value_store = get_value_store()
-    data = section_prism_storage_pools.get(item)
-    num_hosts = len(section_prism_hosts)
+    data = section.get(item)
+    if not data:
+        return
+
     das_cap = float(data["usageStats"].get("storage_tier.das-sata.capacity_bytes", 0))
     das_free = float(data["usageStats"].get("storage_tier.das-sata.free_bytes", 0))
     ssd_cap = float(data["usageStats"].get("storage_tier.ssd.capacity_bytes", 0))
@@ -69,22 +48,20 @@ def check_prism_storage_pools(item: str, params, section_prism_storage_pools, se
     tot_cap = float(data["usageStats"].get("storage.capacity_bytes", 0))
     tot_free = float(data["usageStats"].get("storage.free_bytes", 0))
 
-    warn = 100 / num_hosts * (num_hosts - 1)
-    crit = 100 - ((100 - warn) / 2)
-    params._data["levels"] = (warn, crit)
-
     yield from df_check_filesystem_single(
-        value_store=value_store,
-        mountpoint=item,
-        size_mb=tot_cap / 1024 ** 2,
-        avail_mb=tot_free / 1024 ** 2,
-        inodes_total=0,
-        inodes_avail=0,
-        reserved_mb=0,
+        value_store,
+        item,
+        tot_cap / 1024**2,
+        tot_free / 1024**2,
+        0,
+        None,
+        None,
         params=params,
     )
     if das_cap > 0:
-        message = f"SAS/SATA capacity: {render.bytes(das_cap)}, SAS/SATA free: {render.bytes(das_free)}"
+        message = (
+            f"SAS/SATA capacity: {render.bytes(das_cap)}, SAS/SATA free: {render.bytes(das_free)}"
+        )
         yield Result(state=State(0), summary=message)
 
     if ssd_cap > 0:
@@ -95,7 +72,7 @@ def check_prism_storage_pools(item: str, params, section_prism_storage_pools, se
 register.check_plugin(
     name="prism_storage_pools",
     service_name="NTNX Storage %s",
-    sections=["prism_storage_pools", "prism_hosts"],
+    sections=["prism_storage_pools"],
     check_default_parameters=FILESYSTEM_DEFAULT_LEVELS,
     discovery_function=discovery_prism_storage_pools,
     check_function=check_prism_storage_pools,

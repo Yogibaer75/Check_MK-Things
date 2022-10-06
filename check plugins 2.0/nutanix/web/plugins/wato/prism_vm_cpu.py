@@ -15,51 +15,46 @@
 # Boston, MA 02110-1301 USA.
 from cmk.gui.i18n import _
 from cmk.gui.plugins.wato.utils import (
-    CheckParameterRulespecWithItem,
+    CheckParameterRulespecWithoutItem,
     rulespec_registry,
     RulespecGroupCheckParametersVirtualization,
 )
-from cmk.gui.valuespec import Dictionary, DropdownChoice, TextInput
+from cmk.gui.valuespec import Dictionary, Percentage, Tuple
 
 
-def _parameters_valuespec_prism_vms():
-    status_choice = [
-        ("on", _("On")),
-        ("unknown", _("Unknown")),
-        ("off", _("Off")),
-        ("powering_on", _("Powering on")),
-        ("shutting_down", _("Shutting down")),
-        ("powering_off", _("Powered Off")),
-        ("pausing", _("Pausing")),
-        ("paused", _("Paused")),
-        ("suspending", _("Suspending")),
-        ("suspended", _("Suspended")),
-        ("resuming", _("Resuming")),
-        ("resetting", _("Resetting")),
-        ("migrating", _("Migrating")),
-    ]
+def _parameter_valuespec_prism_vm_cpu():
     return Dictionary(
         elements=[
             (
-                "system_state",
-                DropdownChoice(
-                    title=_("Wanted VM State"),
-                    choices=status_choice,
-                    default_value="on",
+                "levels",
+                Tuple(
+                    title=_("Specify levels in percentage of CPU usage"),
+                    elements=[
+                        Percentage(title=_("Warning at"), unit=_("%")),
+                        Percentage(title=_("Critical at"), unit=_("%")),
+                    ],
+                ),
+            ),
+            (
+                "levels_rdy",
+                Tuple(
+                    title=_("Specify levels if percentage of CPU ready state"),
+                    elements=[
+                        Percentage(title=_("Warning at"), unit=_("%")),
+                        Percentage(title=_("Critical at"), unit=_("%")),
+                    ],
                 ),
             ),
         ],
-        title=_("Wanted VM State for defined Nutanix VMs"),
     )
 
 
 rulespec_registry.register(
-    CheckParameterRulespecWithItem(
-        check_group_name="prism_vms",
-        item_spec=lambda: TextInput(title=_("VM")),
+    CheckParameterRulespecWithoutItem(
+        check_group_name="prism_vm_cpu",
         group=RulespecGroupCheckParametersVirtualization,
         match_type="dict",
-        parameter_valuespec=_parameters_valuespec_prism_vms,
-        title=lambda: _("Nutanix VM State"),
+        parameter_valuespec=_parameter_valuespec_prism_vm_cpu,
+        title=lambda: _("Nutanix VM CPU utilization"),
     )
 )

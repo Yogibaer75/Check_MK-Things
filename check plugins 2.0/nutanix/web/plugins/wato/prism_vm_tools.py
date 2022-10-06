@@ -15,37 +15,36 @@
 # Boston, MA 02110-1301 USA.
 from cmk.gui.i18n import _
 from cmk.gui.plugins.wato.utils import (
-    CheckParameterRulespecWithItem,
+    CheckParameterRulespecWithoutItem,
     rulespec_registry,
     RulespecGroupCheckParametersVirtualization,
 )
-from cmk.gui.valuespec import Dictionary, DropdownChoice, TextInput
+from cmk.gui.valuespec import Dictionary, DropdownChoice
 
 
-def _parameters_valuespec_prism_vms():
-    status_choice = [
-        ("on", _("On")),
-        ("unknown", _("Unknown")),
-        ("off", _("Off")),
-        ("powering_on", _("Powering on")),
-        ("shutting_down", _("Shutting down")),
-        ("powering_off", _("Powered Off")),
-        ("pausing", _("Pausing")),
-        ("paused", _("Paused")),
-        ("suspending", _("Suspending")),
-        ("suspended", _("Suspended")),
-        ("resuming", _("Resuming")),
-        ("resetting", _("Resetting")),
-        ("migrating", _("Migrating")),
-    ]
+def _parameter_valuespec_prism_vm_tools():
     return Dictionary(
         elements=[
             (
-                "system_state",
+                "tools_install",
                 DropdownChoice(
-                    title=_("Wanted VM State"),
-                    choices=status_choice,
-                    default_value="on",
+                    title=_("Tools install state"),
+                    choices=[
+                        ("installed", _("installed")),
+                        ("not_installed", _("not installed")),
+                    ],
+                    default_value="installed",
+                ),
+            ),
+            (
+                "tools_enabled",
+                DropdownChoice(
+                    title=_("VMTools activation state"),
+                    choices=[
+                        ("enabled", _("enabled")),
+                        ("disabled", _("disabled")),
+                    ],
+                    default_value="enabled",
                 ),
             ),
         ],
@@ -54,12 +53,11 @@ def _parameters_valuespec_prism_vms():
 
 
 rulespec_registry.register(
-    CheckParameterRulespecWithItem(
-        check_group_name="prism_vms",
-        item_spec=lambda: TextInput(title=_("VM")),
+    CheckParameterRulespecWithoutItem(
+        check_group_name="prism_vm_tools",
         group=RulespecGroupCheckParametersVirtualization,
         match_type="dict",
-        parameter_valuespec=_parameters_valuespec_prism_vms,
-        title=lambda: _("Nutanix VM State"),
+        parameter_valuespec=_parameter_valuespec_prism_vm_tools,
+        title=lambda: _("Nutanix Prism VM Tools"),
     )
 )

@@ -22,44 +22,39 @@ from cmk.gui.plugins.wato.utils import (
 from cmk.gui.valuespec import Dictionary, DropdownChoice, TextInput
 
 
-def _parameters_valuespec_prism_vms():
-    status_choice = [
-        ("on", _("On")),
-        ("unknown", _("Unknown")),
-        ("off", _("Off")),
-        ("powering_on", _("Powering on")),
-        ("shutting_down", _("Shutting down")),
-        ("powering_off", _("Powered Off")),
-        ("pausing", _("Pausing")),
-        ("paused", _("Paused")),
-        ("suspending", _("Suspending")),
-        ("suspended", _("Suspended")),
-        ("resuming", _("Resuming")),
-        ("resetting", _("Resetting")),
-        ("migrating", _("Migrating")),
-    ]
+def _item_spec_prism_host_disks():
+    return TextInput(
+        title=_("Nutanix Disk name"),
+        help=_("Name of the Nutanix disk"),
+    )
+
+
+def _parameter_valuespec_prism_host_disks():
     return Dictionary(
         elements=[
             (
-                "system_state",
+                "mounted",
                 DropdownChoice(
-                    title=_("Wanted VM State"),
-                    choices=status_choice,
-                    default_value="on",
+                    title=_("Disk mount state"),
+                    choices=[
+                        (True, _("Mounted")),
+                        (False, _("Unmounted")),
+                    ],
+                    default_value=True,
                 ),
-            ),
+            )
         ],
-        title=_("Wanted VM State for defined Nutanix VMs"),
+        optional_keys=[],
     )
 
 
 rulespec_registry.register(
     CheckParameterRulespecWithItem(
-        check_group_name="prism_vms",
-        item_spec=lambda: TextInput(title=_("VM")),
+        check_group_name="prism_host_disks",
         group=RulespecGroupCheckParametersVirtualization,
+        item_spec=_item_spec_prism_host_disks,
         match_type="dict",
-        parameter_valuespec=_parameters_valuespec_prism_vms,
-        title=lambda: _("Nutanix VM State"),
+        parameter_valuespec=_parameter_valuespec_prism_host_disks,
+        title=lambda: _("Nutanix Host Disk State"),
     )
 )

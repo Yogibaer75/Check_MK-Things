@@ -19,47 +19,32 @@ from cmk.gui.plugins.wato.utils import (
     rulespec_registry,
     RulespecGroupCheckParametersVirtualization,
 )
-from cmk.gui.valuespec import Dictionary, DropdownChoice, TextInput
+from cmk.gui.valuespec import Dictionary, TextInput
 
 
-def _parameters_valuespec_prism_vms():
-    status_choice = [
-        ("on", _("On")),
-        ("unknown", _("Unknown")),
-        ("off", _("Off")),
-        ("powering_on", _("Powering on")),
-        ("shutting_down", _("Shutting down")),
-        ("powering_off", _("Powered Off")),
-        ("pausing", _("Pausing")),
-        ("paused", _("Paused")),
-        ("suspending", _("Suspending")),
-        ("suspended", _("Suspended")),
-        ("resuming", _("Resuming")),
-        ("resetting", _("Resetting")),
-        ("migrating", _("Migrating")),
-    ]
+def _parameters_valuespec_prism_hosts():
     return Dictionary(
         elements=[
             (
                 "system_state",
-                DropdownChoice(
-                    title=_("Wanted VM State"),
-                    choices=status_choice,
-                    default_value="on",
+                TextInput(
+                    title=_("Wanted Host State"),
+                    allow_empty=False,
+                    default_value="NORMAL",
                 ),
             ),
         ],
-        title=_("Wanted VM State for defined Nutanix VMs"),
+        title=_("Wanted Host State for defined Nutanix Host"),
     )
 
 
 rulespec_registry.register(
     CheckParameterRulespecWithItem(
-        check_group_name="prism_vms",
-        item_spec=lambda: TextInput(title=_("VM")),
+        check_group_name="prism_hosts",
+        item_spec=lambda: TextInput(title=_("Host")),
         group=RulespecGroupCheckParametersVirtualization,
         match_type="dict",
-        parameter_valuespec=_parameters_valuespec_prism_vms,
-        title=lambda: _("Nutanix VM State"),
+        parameter_valuespec=_parameters_valuespec_prism_hosts,
+        title=lambda: _("Nutanix Host State"),
     )
 )
