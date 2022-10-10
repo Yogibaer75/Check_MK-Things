@@ -67,7 +67,8 @@ def get_gen(redfishobj):
         sys.exit(1)
 
     comp = False
-    ilogen = 5
+    ilogen = "5"
+    ilover = "unknown"
     if "Hp" in response_data.keys():
         comp = 'Hp'
     elif "Hpe" in response_data.keys():
@@ -76,18 +77,22 @@ def get_gen(redfishobj):
     if comp:
         res_dir = response_data.get(comp).get("Links").get(
             "ResourceDirectory").get('@odata.id')
-        ilogen = response_data.get(comp).get("Manager")[0].get("ManagerType")
-        ilover = response_data.get(comp).get("Manager")[0].get(
-            "ManagerFirmwareVersion")
+        if response_data.get(comp).get("Manager")[0].get("ManagerType"):
+            ilogen = str(response_data.get(comp).get("Manager")[0].get("ManagerType"))
+            ilover = response_data.get(comp).get("Manager")[0].get(
+                "ManagerFirmwareVersion")
+        elif response_data.get(comp).get("Moniker").get("PRODTAG"):
+            ilogen = str(response_data.get(comp).get("Moniker").get("PRODTAG"))
 
         if ilogen.split(' ')[-1] == "CM":
             # Assume iLO 4 types in Moonshot
-            ilogen = 4
-            iloversion = None
+            ilogen = "4"
         else:
             ilogen = ilogen.split(' ')[1]
-            iloversion = float(ilogen.split(' ')[-1] + '.' + ''.join(ilover.split('.')))
-    return (ilogen, iloversion, comp, res_dir)
+    else:
+        res_dir = None
+
+    return (ilogen, ilover, comp, res_dir)
 
 
 def get_information(redfishobj):
