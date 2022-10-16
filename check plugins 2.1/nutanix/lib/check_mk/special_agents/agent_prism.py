@@ -129,7 +129,7 @@ def agent_prism_main(args: Args) -> None:
     )
 
     LOGGING.info("fetch and write container info..")
-    output_containers(requester_v2)
+    output_containers(requester_v1)
 
     LOGGING.info("fetch and write alerts..")
     output_alerts(requester_v2)
