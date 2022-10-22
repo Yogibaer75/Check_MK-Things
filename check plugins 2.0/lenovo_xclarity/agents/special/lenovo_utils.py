@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 ###
 # Copyright Notice:
 #
@@ -15,19 +16,18 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 ###
-
-
-import sys, os
+import sys
+import os
 import argparse
 import configparser
-
+import http.client
 
 # Define global variable
 g_AUTH = "session"
 g_CAFILE = ""
 
 # Set _MAXHEADERS to avoid header over 100 error
-import http.client
+
 http.client._MAXHEADERS = 1000
 
 
@@ -87,15 +87,15 @@ def get_extended_error(response_body):
         else:
             message = str(message_dict["MessageId"])
         return message
-    except:
-        message = response_body
+    except Exception as e:
+        message = response_body + " " + e
         return message
 
 
 def read_config(config_file):
-    """Read configuration file infomation    
+    """Read configuration file infomation
     :config_file: Configuration file
-    :type config_file: string 
+    :type config_file: string
     """
     cfg = configparser.ConfigParser()
     try:
@@ -120,8 +120,8 @@ def read_config(config_file):
                 config_ini_info['cafile'] = cfg.get('ConnectCfg', 'Cafile')
             except:
                 config_ini_info['cafile'] = ''
-    except:
-        sys.stderr.write("Please check the file path is correct")
+    except Exception as e:
+        sys.stderr.write("Please check the file path is correct - Error: %s" % e)
         sys.exit(1)
     return config_ini_info
 
@@ -140,7 +140,7 @@ def create_common_parameter_list(description_string="This tool can be used to pe
         argget = argparse.ArgumentParser(epilog=example_string, description=description_fullstring)
     else:
         argget = argparse.ArgumentParser(description=description_fullstring)
-    
+
     # Add connect parameter
     argget.add_argument('-c', '--config', type=str, default='config.ini', help=('Configuration file(may be overrided by parameters from command line)'))
     argget.add_argument('-i', '--ip', type=str, help=('BMC IP address'))
@@ -149,14 +149,14 @@ def create_common_parameter_list(description_string="This tool can be used to pe
     argget.add_argument('-s', '--sysid', type=str, default=None, help='ComputerSystem instance id(None: first instance, All: all instances)')
     argget.add_argument('-a', '--auth', type=str, default=None, choices=['session', 'basic'], help='Authentication mode(session or basic), the default is session')
     argget.add_argument('-f', '--cafile', type=str, default=None, help='Specify the security certificate file for SSL connections')
-    
+
     return argget
 
 
 def parse_parameter(args):
-    """parse parameter  
+    """parse parameter
     :args: argparse namespace
-    :type args: class 
+    :type args: class
     """
     config_ini_info = {}
     # Get configuration file info
@@ -199,10 +199,10 @@ def parse_parameter(args):
     if not config_ini_info['ip'] or not config_ini_info['user'] or not config_ini_info['passwd']:
         sys.stderr.write("BMC connect information (ip/username/password) is needed. Please provide them by command line -i,-u,-p.\n")
         sys.exit(1)
-        
+
     # Check cafile exist or not
     if g_CAFILE is not None and g_CAFILE != "" and not os.path.exists(g_CAFILE):
         sys.stderr.write("Specified certificate file %s does not exist." % (g_CAFILE))
         sys.exit(1)
-        
+
     return config_ini_info

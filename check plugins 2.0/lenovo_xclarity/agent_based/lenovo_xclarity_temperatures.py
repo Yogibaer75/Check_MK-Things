@@ -18,14 +18,22 @@
 # Example Output:
 #
 #
+from .agent_based_api.v1.type_defs import CheckResult
+from .agent_based_api.v1 import register, Result, State, get_value_store
+from .utils.lenovo_xclarity import (
+    parse_lenovo_xclarity,
+    discovery_lenovo_xclarity_multiple,
+    LENOVO_STATE,
+)
+from .utils.temperature import (
+    check_temperature,
+    TempParamDict,
+    TempParamType,
+)
 
-from .agent_based_api.v1.type_defs import (
-    CheckResult, )
-
-from .agent_based_api.v1 import (register, Result, State, Metric)
-
-from .utils.lenovo_xclarity import (parse_lenovo_xclarity,
-                                    discovery_lenovo_xclarity_multiple)
+default_chassis_temperature_parameters = TempParamDict(
+    device_levels_handling="devdefault",
+)
 
 register.agent_section(
     name="lenovo_xclarity_temperatures",
@@ -33,42 +41,36 @@ register.agent_section(
 )
 
 
-def check_lenovo_xclarity_temperatures(item: str, section) -> CheckResult:
+def check_lenovo_xclarity_temperatures(
+    item: str, params: TempParamType, section
+) -> CheckResult:
     data = section.get(item)
+    if not data:
+        return
+
     state = data.get("Status", {"State": "Unknown"}).get("State", "Unknown")
     reading = data.get("ReadingCelsius", 0)
-    crit_up = data.get("UpperThresholdCritical", 0)
-    crit_lo = data.get("LowerThresholdCritical", 0)
-    warn_up = data.get("UpperThresholdNonCritical", 0)
-    warn_lo = data.get("LowerThresholdNonCritical", 0)
-
-    reading = float(0 if reading is None else reading)
-    crit_up = float(0 if crit_up is None else crit_up)
-    crit_lo = float(0 if crit_lo is None else crit_lo)
-    warn_up = float(0 if warn_up is None else warn_up)
-    warn_lo = float(0 if warn_lo is None else warn_lo)
-
-    message = "reading is %s C and has status %s" % (reading, state)
-
-    status = 0
-    if state != "Enabled":
-        message += "(!)"
-        status = 1
-
-    if crit_up <= warn_up:
-        crit_up = warn_up
-    if crit_lo >= warn_lo:
-        crit_lo = warn_lo
-
-    if (reading >= crit_up and crit_up != 0) or (reading <= crit_lo and crit_lo != 0):
-        status = 2
-        message += " - Temperature critical (!!)"
-    elif (reading >= warn_up and warn_up != 0) or (reading <= warn_lo and warn_lo != 0):
-        status = 1
-        message += " - Temperature warning (!)"
-
-    yield Metric("temp", reading, levels=(warn_up, crit_up))
-    yield Result(state=State(status), summary=message)
+    dev_levels = (
+        data.get("UpperThresholdNonCritical"),
+        data.get("UpperThresholdCritical"),
+    )
+    dev_levels_lower = (
+        data.get("LowerThresholdNonCritical"),
+        data.get("LowerThresholdCritical"),
+    )
+    state_txt, dev_state = LENOVO_STATE.get(state, ("State description not found", 3))
+    message = "Dev state: %s" % state_txt
+    yield from check_temperature(
+        reading=float(reading),
+        params=params,
+        dev_levels=dev_levels,
+        dev_levels_lower=dev_levels_lower,
+        unique_name=item,
+        dev_status=dev_state,
+        dev_status_name=state,
+        value_store=get_value_store(),
+    )
+    yield Result(state=State.OK, notice=message)
 
 
 register.check_plugin(
@@ -77,4 +79,6 @@ register.check_plugin(
     sections=["lenovo_xclarity_temperatures"],
     discovery_function=discovery_lenovo_xclarity_multiple,
     check_function=check_lenovo_xclarity_temperatures,
+    check_ruleset_name="temperature",
+    check_default_parameters=default_chassis_temperature_parameters,
 )
