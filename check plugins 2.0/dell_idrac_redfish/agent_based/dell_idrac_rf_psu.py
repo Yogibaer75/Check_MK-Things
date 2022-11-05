@@ -28,15 +28,24 @@ from .utils.dell_idrac import idrac_health_state
 
 
 def discovery_dell_idrac_rf_psu(section) -> DiscoveryResult:
-    data = section.get("PowerSupplies", None)
-    for entry in data:
-        yield Service(item=entry["Name"])
+    if isinstance(section, list):
+        for element in section:
+            data = element.get("PowerSupplies", {})
+            for entry in data:
+                yield Service(item=entry["Name"])
+    else:
+        data = section.get("PowerSupplies", {})
+        for entry in data:
+            yield Service(item=entry["Name"])
 
 
 def check_dell_idrac_rf_psu(item: str, section) -> CheckResult:
-    psus = section.get("PowerSupplies", None)
-    if psus is None:
-        return
+    psus = []
+    if isinstance(section, list):
+        for element in section:
+            [psus.append(a) for a in element.get("PowerSupplies", [])]
+    else:
+        [psus.append(a) for a in section.get("PowerSupplies", [])]
 
     for psu in psus:
         if psu.get("Name") == item:

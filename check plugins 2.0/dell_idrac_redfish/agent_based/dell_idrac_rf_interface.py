@@ -42,9 +42,13 @@ def check_dell_idrac_rf_interface(item: str, section) -> CheckResult:
     if data is None:
         return
 
+    linkspeed = data.get("CurrentLinkSpeedMbps", 0)
+    if linkspeed is None:
+        linkspeed = 0
+
     int_msg = "Link: %s, Speed: %0.0fMbps, MAC: %s" % (
         data.get("LinkStatus"),
-        data.get("CurrentLinkSpeedMbps", 0),
+        linkspeed,
         ", ".join(data.get("AssociatedNetworkAddresses")),
     )
     yield Result(state=State(0), summary=int_msg)

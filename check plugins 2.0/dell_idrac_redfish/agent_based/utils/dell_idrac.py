@@ -36,16 +36,20 @@ class Perfdata(NamedTuple):
 
 def parse_dell_idrac_rf(string_table):
     import ast
-
     parsed = {}
-    parsed = ast.literal_eval(string_table[0][0])
-
-    return parsed
+    list = []
+    if len(string_table) == 1:
+        parsed = ast.literal_eval(string_table[0][0])
+        return parsed
+    else:
+        for line in string_table:
+            parsed = ast.literal_eval(line[0])
+            list.append(parsed)
+        return list
 
 
 def parse_dell_idrac_rf_multiple(string_table):
     import ast
-
     parsed = {}
     for line in string_table:
         entry = ast.literal_eval(line[0])

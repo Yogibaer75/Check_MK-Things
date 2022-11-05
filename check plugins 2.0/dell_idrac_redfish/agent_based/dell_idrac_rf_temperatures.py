@@ -28,18 +28,28 @@ from .utils.dell_idrac import process_redfish_perfdata, idrac_health_state
 
 
 def discovery_dell_idrac_rf_temperatures(section) -> DiscoveryResult:
-    temps = section.get("Temperatures", None)
-    for temp in temps:
-        if temp.get("Name"):
-            yield Service(item=temp.get("Name"))
+    if isinstance(section, list):
+        for element in section:
+            data = element.get("Temperatures", {})
+            for entry in data:
+                if entry.get("Name"):
+                    yield Service(item=entry["Name"])
+    else:
+        temps = section.get("Temperatures", {})
+        for temp in temps:
+            if temp.get("Name"):
+                yield Service(item=temp.get("Name"))
 
 
 def check_dell_idrac_rf_temperatures(
     item: str, params: TempParamDict, section
 ) -> CheckResult:
-    temps = section.get("Temperatures", None)
-    if temps is None:
-        return
+    temps = []
+    if isinstance(section, list):
+        for element in section:
+            [temps.append(a) for a in element.get("Temperatures", [])]
+    else:
+        [temps.append(a) for a in section.get("Temperatures", [])]
 
     for temp in temps:
         if temp.get("Name") == item:

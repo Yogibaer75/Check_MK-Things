@@ -28,15 +28,25 @@ from .utils.dell_idrac import idrac_health_state, process_redfish_perfdata
 
 
 def discovery_dell_idrac_rf_voltage(section) -> DiscoveryResult:
-    data = section.get("Voltages", None)
-    for entry in data:
-        yield Service(item=entry["Name"])
+    if isinstance(section, list):
+        for element in section:
+            data = element.get("Voltages", {})
+            for entry in data:
+                if entry.get("Name"):
+                    yield Service(item=entry["Name"])
+    else:
+        data = section.get("Voltages", {})
+        for entry in data:
+            yield Service(item=entry["Name"])
 
 
 def check_dell_idrac_rf_voltage(item: str, section) -> CheckResult:
-    voltages = section.get("Voltages", None)
-    if voltages is None:
-        return
+    voltages = []
+    if isinstance(section, list):
+        for element in section:
+            [voltages.append(a) for a in element.get("Voltages", [])]
+    else:
+        [voltages.append(a) for a in section.get("Voltages", [])]
 
     for voltage in voltages:
         if voltage.get("Name") == item:

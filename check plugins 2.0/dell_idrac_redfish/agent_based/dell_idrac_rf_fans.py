@@ -28,16 +28,26 @@ from .utils.dell_idrac import process_redfish_perfdata, idrac_health_state
 
 
 def discovery_dell_idrac_rf_fans(section) -> DiscoveryResult:
-    fans = section.get("Fans", None)
-    for fan in fans:
-        if fan.get("Name"):
-            yield Service(item=fan.get("Name"))
+    if isinstance(section, list):
+        for element in section:
+            data = element.get("Fans", {})
+            for entry in data:
+                if entry.get("Name"):
+                    yield Service(item=entry["Name"])
+    else:
+        fans = section.get("Fans", {})
+        for fan in fans:
+            if fan.get("Name"):
+                yield Service(item=fan.get("Name"))
 
 
 def check_dell_idrac_rf_fans(item: str, section) -> CheckResult:
-    fans = section.get("Fans", None)
-    if fans is None:
-        return
+    fans = []
+    if isinstance(section, list):
+        for element in section:
+            [fans.append(a) for a in element.get("Fans", [])]
+    else:
+        [fans.append(a) for a in section.get("Fans", [])]
 
     for fan in fans:
         if fan.get("Name") == item:
