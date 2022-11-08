@@ -220,7 +220,7 @@ def check_windows_tasks(
         if data["Scheduled Task State"] != "Enabled":
             yield state_not_enabled, "Task not enabled"
     else:
-        if data["State"] != "Ready":
+        if data["State"] != "Ready" and data["State"] != "Running":
             yield state_not_enabled, f"Task {data['State']}"
 
     additional_infos = []
