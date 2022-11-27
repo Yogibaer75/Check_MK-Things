@@ -96,6 +96,10 @@ def idrac_health_state(state):
         ),
         "Starting": (0, "This resource is starting."),
         "Absent": (1, "This resource is either not present or detected."),
+        "Deferring": (1, "The element will not process any commands but will queue new requests."),
+        "Quiesced": (0, "The element is enabled but only processes a restricted set of commands."),
+        "UnavailableOffline": (1, " This function or resource is present but cannot be used."),
+        "Updating": (1, "The element is updating and may be unavailable or degraded."),
     }
 
     dev_state = 0

@@ -53,18 +53,20 @@ def check_dell_idrac_rf_temperatures(
 
     for temp in temps:
         if temp.get("Name") == item:
-            perfdata = process_redfish_perfdata(temp)
-
-            yield from check_temperature(
-                perfdata.value,
-                params,
-                unique_name="idrac.temp.%s" % item,
-                value_store=get_value_store(),
-                dev_levels=perfdata.levels_upper,
-                dev_levels_lower=perfdata.levels_lower,
-            )
-
             dev_state, dev_msg = idrac_health_state(temp["Status"])
+
+            perfdata = process_redfish_perfdata(temp)
+            if perfdata.value:
+                yield from check_temperature(
+                    perfdata.value,
+                    params,
+                    unique_name="idrac.temp.%s" % item,
+                    value_store=get_value_store(),
+                    dev_levels=perfdata.levels_upper,
+                    dev_levels_lower=perfdata.levels_lower,
+                )
+            else:
+                yield Result(state=State(1), summary="No usable temperature data found.")
 
             yield Result(state=State(dev_state), notice=dev_msg)
 
