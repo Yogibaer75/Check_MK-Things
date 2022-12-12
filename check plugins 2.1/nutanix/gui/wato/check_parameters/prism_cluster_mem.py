@@ -22,7 +22,7 @@ from cmk.gui.plugins.wato.utils import (
 from cmk.gui.valuespec import Dictionary, Percentage, Tuple
 
 
-def _parameter_valuespec_prism_host_mem():
+def _parameter_valuespec_prism_cluster_mem():
     return Dictionary(
         elements=[
             (
@@ -41,9 +41,9 @@ def _parameter_valuespec_prism_host_mem():
 
 rulespec_registry.register(
     CheckParameterRulespecWithoutItem(
-        check_group_name="prism_host_mem",
+        check_group_name="prism_cluster_mem",
         group=RulespecGroupCheckParametersVirtualization,
-        parameter_valuespec=_parameter_valuespec_prism_host_mem,
+        parameter_valuespec=_parameter_valuespec_prism_cluster_mem,
         title=lambda: _("Nutanix Host memory usage"),
     )
 )

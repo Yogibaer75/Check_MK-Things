@@ -7,7 +7,7 @@
 import ast
 from typing import Any, Dict, Mapping
 
-from .agent_based_api.v1 import get_value_store, register, Service
+from .agent_based_api.v1 import get_value_store, register, Service, Result, State, Metric
 from .agent_based_api.v1.type_defs import CheckResult, DiscoveryResult, StringTable
 from .utils.df import df_check_filesystem_single, FILESYSTEM_DEFAULT_LEVELS
 
@@ -39,11 +39,12 @@ def check_prism_container(item: str, params: Mapping[str, Any], section: Section
     if not data:
         return
 
-    capacity, freebytes = map(
+    capacity, freebytes, dedupratio = map(
         int,
         (
             data["usageStats"].get("storage.user_capacity_bytes", 0),
             data["usageStats"].get("storage.user_free_bytes", 0),
+            data["usageStats"].get("data_reduction.dedup.saving_ratio_ppm", 0),
         ),
     )
 
@@ -57,6 +58,12 @@ def check_prism_container(item: str, params: Mapping[str, Any], section: Section
         None,
         params=params,
     )
+    
+    if data.get("fingerPrintOnWrite") == "on" and dedupratio != -1:
+        dedupratio = dedupratio/1000000
+        summary = f"Dedup Ratio: {dedupratio:.2f}"
+        yield Metric("dedup_ratio", dedupratio)
+        yield Result(state=State.OK, summary=summary)
 
 
 register.check_plugin(

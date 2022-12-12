@@ -1,7 +1,21 @@
 #!/usr/bin/env python3
-# Copyright (C) 2019 tribe29 GmbH - License: GNU General Public License v2
-# This file is part of Checkmk (https://checkmk.com). It is subject to the terms and
-# conditions defined in the file COPYING, which is part of this source code package.
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# Original agent Copyright (C) 2019 tribe29 GmbH
+# License: GNU General Public License v2
+# Extension:
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# This is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# tails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
 
 import logging
 import sys
@@ -108,6 +122,10 @@ def output_support(requester: Requester) -> None:
     obj = requester.get("cluster/remote_support")
     print(obj)
 
+def output_ha(requester: Requester) -> None:
+    write_title("ha")
+    obj = requester.get("ha")
+    print(obj)
 
 def agent_prism_main(args: Args) -> None:
     """Establish a connection to a Prism server and process containers, alerts, clusters and
@@ -151,6 +169,9 @@ def agent_prism_main(args: Args) -> None:
 
     LOGGING.info("fetch and write support info..")
     output_support(requester_v2)
+
+    LOGGING.info("fetch and write ha state..")
+    output_ha(requester_v2)
 
     LOGGING.info("all done. bye.")
 

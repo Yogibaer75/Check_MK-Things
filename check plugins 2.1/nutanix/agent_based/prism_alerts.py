@@ -99,6 +99,7 @@ register.check_plugin(
     name="prism_alerts",
     service_name="NTNX Alerts",
     discovery_function=discovery_prism_alerts,
+    sections=["prism_alerts"],
     check_function=check_prism_alerts,
     check_ruleset_name="prism_alerts",
     check_default_parameters={
