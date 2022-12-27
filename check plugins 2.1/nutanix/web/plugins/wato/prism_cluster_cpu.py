@@ -20,46 +20,37 @@ from cmk.gui.plugins.wato.utils import (
     rulespec_registry,
     RulespecGroupCheckParametersVirtualization,
 )
-from cmk.gui.valuespec import Dictionary, DropdownChoice
+from cmk.gui.valuespec import Dictionary, Percentage, Tuple
 
 
-def _parameters_valuespec_prism_vms():
-    status_choice = [
-        ("on", _("On")),
-        ("unknown", _("Unknown")),
-        ("off", _("Off")),
-        ("powering_on", _("Powering on")),
-        ("shutting_down", _("Shutting down")),
-        ("powering_off", _("Powered Off")),
-        ("pausing", _("Pausing")),
-        ("paused", _("Paused")),
-        ("suspending", _("Suspending")),
-        ("suspended", _("Suspended")),
-        ("resuming", _("Resuming")),
-        ("resetting", _("Resetting")),
-        ("migrating", _("Migrating")),
-    ]
+def _parameter_valuespec_prism_cluster_cpu() -> Dictionary:
     return Dictionary(
         elements=[
             (
-                "system_state",
-                DropdownChoice(
-                    title=_("Wanted VM State"),
-                    choices=status_choice,
-                    default_value="on",
+                "util",
+                Tuple(
+                    elements=[
+                        Percentage(title=_("Warning at a utilization of"), default_value=90.0),
+                        Percentage(title=_("Critical at a utilization of"), default_value=95.0),
+                    ],
+                    title=_("Alert on excessive CPU utilization"),
+                    help=_(
+                        "This rule configures levels for the CPU utilization (not load) for "
+                        "Nutanix cluster systems. "
+                        "The utilization percentage is shown for the whole cluster."
+                    ),
                 ),
             ),
-        ],
-        title=_("Wanted VM State for defined Nutanix VMs"),
+        ]
     )
 
 
 rulespec_registry.register(
     CheckParameterRulespecWithoutItem(
-        check_group_name="prism_vm_status",
+        check_group_name="prism_cluster_cpu",
         group=RulespecGroupCheckParametersVirtualization,
         match_type="dict",
-        parameter_valuespec=_parameters_valuespec_prism_vms,
-        title=lambda: _("Nutanix single VM State"),
+        parameter_valuespec=_parameter_valuespec_prism_cluster_cpu,
+        title=lambda: _("Nutanix Cluster CPU utilization"),
     )
 )

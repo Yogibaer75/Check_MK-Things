@@ -20,42 +20,52 @@ from cmk.gui.plugins.wato.utils import (
     rulespec_registry,
     RulespecGroupCheckParametersVirtualization,
 )
-from cmk.gui.valuespec import Dictionary, Percentage, Tuple
+from cmk.gui.valuespec import Dictionary, Float, Integer, Tuple
 
 
-def _parameter_valuespec_prism_vm_cpu():
+def _parameter_valuespec_prism_cluster_io() -> Dictionary:
     return Dictionary(
         elements=[
             (
-                "levels",
+                "io",
                 Tuple(
-                    title=_("Specify levels in percentage of CPU usage"),
                     elements=[
-                        Percentage(title=_("Warning at"), unit=_("%")),
-                        Percentage(title=_("Critical at"), unit=_("%")),
+                        Float(title=_("Warning at"), unit=_("MB/s"), default_value=500.0),
+                        Float(title=_("Critical at"), unit=_("MB/s"), default_value=1000.0),
                     ],
+                    title=_("Levels for IO traffic per second."),
                 ),
             ),
             (
-                "levels_rdy",
+                "iops",
                 Tuple(
-                    title=_("Specify levels if percentage of CPU ready state"),
                     elements=[
-                        Percentage(title=_("Warning at"), unit=_("%")),
-                        Percentage(title=_("Critical at"), unit=_("%")),
+                        Integer(title=_("Warning at"), unit=_("iops"), default_value=10000),
+                        Integer(title=_("Critical at"), unit=_("iops"), default_value=20000),
                     ],
+                    title=_("Levels for IO operations per second."),
                 ),
             ),
-        ],
+            (
+                "iolat",
+                Tuple(
+                    elements=[
+                        Float(title=_("Warning at"), unit=_("ms"), default_value=500.0),
+                        Float(title=_("Critical at"), unit=_("ms"), default_value=1000.0),
+                    ],
+                    title=_("Levels for IO latency."),
+                ),
+            ),
+        ]
     )
 
 
 rulespec_registry.register(
     CheckParameterRulespecWithoutItem(
-        check_group_name="prism_vm_cpu",
+        check_group_name="prism_cluster_io",
         group=RulespecGroupCheckParametersVirtualization,
         match_type="dict",
-        parameter_valuespec=_parameter_valuespec_prism_vm_cpu,
-        title=lambda: _("Nutanix VM CPU utilization"),
+        parameter_valuespec=_parameter_valuespec_prism_cluster_io,
+        title=lambda: _("Nutanix Cluster IO utilization"),
     )
 )

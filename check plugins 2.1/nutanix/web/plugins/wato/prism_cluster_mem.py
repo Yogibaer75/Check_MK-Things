@@ -16,36 +16,35 @@
 
 from cmk.gui.i18n import _
 from cmk.gui.plugins.wato.utils import (
-    CheckParameterRulespecWithItem,
+    CheckParameterRulespecWithoutItem,
     rulespec_registry,
     RulespecGroupCheckParametersVirtualization,
 )
-from cmk.gui.valuespec import Dictionary, TextInput
+from cmk.gui.valuespec import Dictionary, Percentage, Tuple
 
 
-def _parameters_valuespec_prism_hosts():
+def _parameter_valuespec_prism_cluster_mem():
     return Dictionary(
         elements=[
             (
-                "system_state",
-                TextInput(
-                    title=_("Wanted Host State"),
-                    allow_empty=False,
-                    default_value="NORMAL",
+                "levels_upper",
+                Tuple(
+                    title=_("Specify levels in percentage of total RAM"),
+                    elements=[
+                        Percentage(title=_("Warning at a RAM usage of"), default_value=80.0),
+                        Percentage(title=_("Critical at a RAM usage of"), default_value=90.0),
+                    ],
                 ),
             ),
-        ],
-        title=_("Wanted Host State for defined Nutanix Host"),
+        ]
     )
 
 
 rulespec_registry.register(
-    CheckParameterRulespecWithItem(
-        check_group_name="prism_hosts",
-        item_spec=lambda: TextInput(title=_("Host")),
+    CheckParameterRulespecWithoutItem(
+        check_group_name="prism_cluster_mem",
         group=RulespecGroupCheckParametersVirtualization,
-        match_type="dict",
-        parameter_valuespec=_parameters_valuespec_prism_hosts,
-        title=lambda: _("Nutanix Host State"),
+        parameter_valuespec=_parameter_valuespec_prism_cluster_mem,
+        title=lambda: _("Nutanix Cluster memory usage"),
     )
 )

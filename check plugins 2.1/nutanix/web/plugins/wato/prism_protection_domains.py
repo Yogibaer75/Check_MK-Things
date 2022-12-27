@@ -23,44 +23,33 @@ from cmk.gui.plugins.wato.utils import (
 from cmk.gui.valuespec import Dictionary, DropdownChoice, TextInput
 
 
-def _parameters_valuespec_prism_vms():
-    status_choice = [
-        ("on", _("On")),
-        ("unknown", _("Unknown")),
-        ("off", _("Off")),
-        ("powering_on", _("Powering on")),
-        ("shutting_down", _("Shutting down")),
-        ("powering_off", _("Powered Off")),
-        ("pausing", _("Pausing")),
-        ("paused", _("Paused")),
-        ("suspending", _("Suspending")),
-        ("suspended", _("Suspended")),
-        ("resuming", _("Resuming")),
-        ("resetting", _("Resetting")),
-        ("migrating", _("Migrating")),
-    ]
+def _parameter_valuespec_prism_protection_domains():
     return Dictionary(
         elements=[
             (
-                "system_state",
+                "sync_state",
                 DropdownChoice(
-                    title=_("Wanted VM State"),
-                    choices=status_choice,
-                    default_value="on",
+                    title=_("Target sync state"),
+                    help=_("Configure the target state of the protection domain sync state."),
+                    choices=[
+                        ("Enabled", "Sync enabled"),
+                        ("Disabled", "Symc disabled"),
+                        ("Synchronizing", "Syncing"),
+                    ],
+                    default_value=False,
                 ),
             ),
         ],
-        title=_("Wanted VM State for defined Nutanix VMs"),
     )
 
 
 rulespec_registry.register(
     CheckParameterRulespecWithItem(
-        check_group_name="prism_vms",
-        item_spec=lambda: TextInput(title=_("VM")),
+        check_group_name="prism_protection_domains",
+        item_spec=lambda: TextInput(title=_("Protection Domain")),
         group=RulespecGroupCheckParametersVirtualization,
         match_type="dict",
-        parameter_valuespec=_parameters_valuespec_prism_vms,
-        title=lambda: _("Nutanix VM State"),
+        parameter_valuespec=_parameter_valuespec_prism_protection_domains,
+        title=lambda: _("Nutanix Prism MetroAvail Sync State"),
     )
 )
