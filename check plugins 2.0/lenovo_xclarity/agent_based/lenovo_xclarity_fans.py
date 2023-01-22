@@ -18,11 +18,15 @@
 from .agent_based_api.v1.type_defs import (
     CheckResult, )
 
-from .agent_based_api.v1 import (register)
+from .agent_based_api.v1 import (register, Result, State)
 
 from .utils.lenovo_xclarity import (parse_lenovo_xclarity,
-                                    discovery_lenovo_xclarity_multiple)
-from .utils.fan import (check_fan, FanParamType)
+                                    discovery_lenovo_xclarity_multiple,
+                                    process_xclarity_perfdata,
+                                    xclarity_health_state,
+                                    xclarity_check_fan_rpm,
+                                    xclarity_check_fan_percent,
+                                    FanParamType)
 
 xclarity_fan_default_levels = {
     'levels_lower': (500, 300),
@@ -39,22 +43,19 @@ def check_lenovo_xclarity_fans(item: str, params: FanParamType,
     if not (data := section.get(item)):
         return
 
-    state = data.get("Status", {"State": "Unknown"}).get("State", "Unknown")
-    reading = float(data.get("Reading", 0))
+    perfdata = process_xclarity_perfdata(data)
+    units = data.get("ReadingUnits")
 
-    dev_levels = (data.get("UpperThresholdNonCritical"),
-                  data.get("UpperThresholdCritical"))
-    dev_levels_lower = (data.get("LowerThresholdNonCritical"),
-                        data.get("LowerThresholdCritical"))
+    if units == "Percent":
+        yield from xclarity_check_fan_percent(perfdata, params)
+    elif units == "RPM":
+        yield from xclarity_check_fan_rpm(perfdata, params)
+    else:
+        yield Result(state=State(0), summary="No performance data available")
 
-    yield from check_fan(
-        reading,
-        params,
-        dev_levels=dev_levels,
-        dev_levels_lower=dev_levels_lower,
-        dev_status=0 if state == "Enabled" else 1,
-        dev_status_name=state,
-    )
+    dev_state, dev_msg = xclarity_health_state(data["Status"])
+
+    yield Result(state=State(dev_state), notice=dev_msg)
 
 
 register.check_plugin(
