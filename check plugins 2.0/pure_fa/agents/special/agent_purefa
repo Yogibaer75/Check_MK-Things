@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+# Copyright (c) 2018, 2019, 2020 Pure Storage, Inc.
+#
+
+import argparse
+import logging
+import logging.handlers
+import purestorage
+
+# Disable warnings using urllib3 embedded in requests or directly
+try:
+    import requests
+    from requests.packages.urllib3.exceptions import InsecureRequestWarning
+    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+except:
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+
+class PureFAhw():
+    """Pure Storage FlashArray hardware status"""
+
+    def __init__(self, endpoint, username, password):
+        self.endpoint = endpoint
+        self.username = username
+        self.password = password
+        self.logger = logging.getLogger(self.name)
+        handler = logging.handlers.SysLogHandler(address = '/dev/log')
+        handler.setLevel(logging.ERROR)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+
+        try:
+            fa = purestorage.FlashArray(self.endpoint, username=self.username, password=self.password)
+            print("<<<pure_fa_hw:sep(0)>>>")
+            print(fa.list_hardware())
+            print("<<<pure_fa_drives:sep(0)>>>")
+            print(fa.list_drives())
+            print("<<<pure_fa_hosts:sep(0)>>>")
+            print(fa.list_hosts())
+            print("<<<pure_fa_network:sep(0)>>>")
+            print(fa.list_network_interfaces())
+            print("<<<pure_fa_volumes:sep(0)>>>")
+            print(fa.list_volumes())
+            print("<<<pure_fa_vgroups:sep(0)>>>")
+            print(fa.list_vgroups())
+            print("<<<pure_fa_pod:sep(0)>>>")
+            print(fa.list_pods())
+            print("<<<pure_fa_pgroups:sep(0)>>>")
+            print(fa.list_pgroups())
+            print("<<<pure_fa_hgroups:sep(0)>>>")
+            print(fa.list_hgroups())
+            print("<<<pure_fa_alerts:sep(0)>>>")
+            print(fa.list_messages(open = True))
+            print("<<<pure_fa_occ:sep(0)>>>")
+            print(fa.get(space=True))
+            print("<<<pure_fa_performance:sep(0)>>>")
+            print(fa.get(action='monitor'))
+        except Exception as e:
+            print(f'FA REST call returned "{e}"')
+        fa.invalidate_cookie()
+
+    @property
+    def name(self):
+        return 'PURE_FA_HW'
+
+def parse_args():
+    argp = argparse.ArgumentParser()
+    argp.add_argument('endpoint', help="FA hostname or ip address")
+    argp.add_argument('username', help="FA user")
+    argp.add_argument('password', help="FA password")
+    argp.add_argument('-v', '--verbose', action='count', default=0,
+                      help='increase output verbosity (use up to 3 times)')
+    argp.add_argument('-t', '--timeout', default=30,
+                      help='abort execution after TIMEOUT seconds')
+    return argp.parse_args()
+
+
+def main():
+    args = parse_args()
+    check = PureFAhw(args.endpoint, args.username, args.password)
+
+if __name__ == '__main__':
+    main()
+
