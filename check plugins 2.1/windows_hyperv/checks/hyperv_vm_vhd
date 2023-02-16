@@ -1,0 +1,60 @@
+#!/usr/bin/python
+# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+#   .--VM VHDs-------------------------------------------------------------.
+#   |    __      ___    _ _____                                            |
+#   |    \ \    / / |  | |  __ \                                           |
+#   |     \ \  / /| |__| | |  | |___                                       |
+#   |      \ \/ / |  __  | |  | / __|                                      |
+#   |       \  /  | |  | | |__| \__ \                                      |
+#   |        \/   |_|  |_|_____/|___/                                      |
+#   |                                                                      |
+#   +----------------------------------------------------------------------+
+#   |                                                                      |
+#   '----------------------------------------------------------------------'
+from cmk.base.check_legacy_includes.df import *
+from cmk.base.check_legacy_includes.size_trend import *
+
+
+def inventory_hyperv_vm_vhd(parsed):
+    for key, values in parsed.items():
+        if "vhd.path" in values:
+            yield key, None
+
+
+def check_hyperv_vm_vhd(item, params, parsed):
+
+    disk_types = {
+        "Differencing" : (0, "Differencing disk size"),
+        "Dynamic" : (0, "Dynamic disk size"),
+        "Fixed" : (0, "Fixed disk size"),
+        "Unknown" : (3, "Disk type not found"),
+    }
+
+    data = parsed.get(item)
+
+    if not data:
+        yield 3, "Drive information is missing"
+    else:
+        disk_type = data.get("vhd.type", "Unknown")
+
+        disk_status, disk_txt = disk_types.get(disk_type, (3, "Disk type not found"))
+        yield disk_status, disk_txt
+
+        capacity = float(data.get("vhd.maximumcapacity", "0.0").replace(',','.')) * 1.0
+        used_space = float(data.get("vhd.usedcapacity", "0.0").replace(',','.')) * 1.0
+        avail_mb = capacity - used_space
+
+        yield df_check_filesystem_single(item, capacity, avail_mb, 0, 0, 0, params)   
+
+
+check_info['hyperv_vm_vhd'] = {
+    "inventory_function": inventory_hyperv_vm_vhd,
+    "check_function": check_hyperv_vm_vhd,
+    "parse_function": parse_hyperv,
+    "has_perfdata": True,
+    "group": "filesystem",
+    "service_description": "HyperV VHD %s",
+    "includes": ["hyperv.include"],
+    "default_levels_variable": "filesystem_default_levels",
+}

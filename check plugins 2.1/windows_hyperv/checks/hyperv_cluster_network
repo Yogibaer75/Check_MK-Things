@@ -1,0 +1,30 @@
+#!/usr/bin/python
+# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+def inventory_hyperv_cluster_network(parsed):
+    for network in parsed.keys():
+        yield network, {}
+
+
+def check_hyperv_cluster_network(item, _no_params, parsed):
+
+    network = parsed.get(item, "")
+
+    if not network:
+        yield 3, "Network not found in agent output"
+        return
+
+    state = 0
+    if network['cluster.network.state'] != 'Up':
+        state = 3
+    message = "is %s, has address %s and role %s." % (network['cluster.network.state'], network['cluster.network.ip'], network['cluster.network.role'])
+    yield state, message
+
+
+check_info['hyperv_cluster_network'] = {
+    "inventory_function": inventory_hyperv_cluster_network,
+    "check_function": check_hyperv_cluster_network,
+    "parse_function": parse_hyperv,
+    "service_description": "HyperV Network %s",
+    "includes": ["hyperv.include"],
+}

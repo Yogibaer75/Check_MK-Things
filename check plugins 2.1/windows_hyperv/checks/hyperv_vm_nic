@@ -1,0 +1,46 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+#
+#   .--VM NIC--------------------------------------------------------------.
+#   |      _   _ _____ _____                                               |
+#   |     | \ | |_   _/ ____|                                              |
+#   |     |  \| | | || |                                                   |
+#   |     | . ` | | || |                                                   |
+#   |     | |\  |_| || |____                                               |
+#   |     |_| \_|_____\_____|                                              |
+#   |                                                                      |
+#   +----------------------------------------------------------------------+
+#   |                                                                      |
+#   '----------------------------------------------------------------------'
+
+
+def inventory_hyperv_vm_nic(parsed):
+    for key, values in parsed.items():
+        if "nic.connectionstate" in values:
+            yield key, None 
+
+
+def check_hyperv_vm_nic(item, params, parsed):
+    data = parsed.get(item)
+
+    if not data:
+        return 3, "NIC information is missing"
+
+    connection_state = data.get("nic.connectionstate", False)
+    vswitch = data.get("nic.vswitch", "no vSwitch")
+    vlan_id = data.get("nic.VLAN.id", 0)
+    vlan_mode = data.get("nic.VLAN.mode", "Access")
+
+    if connection_state == "True":
+        return (0, "%s connected to %s with VLAN ID %s" % (item, vswitch, vlan_id))
+    else:
+        return (1, "%s disconnected" % item) 
+
+
+check_info['hyperv_vm_nic'] = {
+    "inventory_function": inventory_hyperv_vm_nic,
+    "check_function": check_hyperv_vm_nic,
+    "parse_function": parse_hyperv,
+    "service_description": "HyperV NIC %s",
+    "includes": ["hyperv.include"],
+}

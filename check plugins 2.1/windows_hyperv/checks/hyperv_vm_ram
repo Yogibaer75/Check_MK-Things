@@ -1,0 +1,41 @@
+#!/usr/bin/python
+# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+#   .--VM RAM--------------------------------------------------------------.
+#   |      _____            __  __                                         |
+#   |     |  __ \     /\   |  \/  |                                        |
+#   |     | |__) |   /  \  | \  / |                                        |
+#   |     |  _  /   / /\ \ | |\/| |                                        |
+#   |     | | \ \  / ____ \| |  | |                                        |
+#   |     |_|  \_\/_/    \_\_|  |_|                                        |
+#   |                                                                      |
+#   +----------------------------------------------------------------------+
+#   |                                                                      |
+#   '----------------------------------------------------------------------'
+
+
+def inventory_hyperv_vm_ram(parsed):
+    if "config.hardware.RAMType" in parsed:
+        yield None, None
+
+
+def check_hyperv_vm_ram(item, _no_params, parsed):
+    if not parsed:
+        yield 3, "RAM information is missing"
+    elif parsed.get("config.hardware.RAMType") == "Dynamic Memory":
+        message = "Dynamic Memory configured with %s MB minimum and %s MB maximum - start %s MB" % \
+                  (parsed.get("config.hardware.MinRAM", "missing"), parsed.get("config.hardware.MaxRAM", "missing"), \
+                   parsed.get("config.hardware.StartRAM", "missing"))
+    else:
+        message = "Static Memory configured with %s MB" % parsed.get("config.hardware.RAM", "missing")
+
+    yield 0, message
+
+
+check_info['hyperv_vm_ram'] = {
+    "inventory_function": inventory_hyperv_vm_ram,
+    "check_function": check_hyperv_vm_ram,
+    "parse_function": hyperv_vm_convert,
+    "service_description": "HyperV RAM",
+    "includes": ["hyperv.include"],
+}

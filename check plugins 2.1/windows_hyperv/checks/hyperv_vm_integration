@@ -1,0 +1,58 @@
+#!/usr/bin/python
+# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+#   .--Integration---------------------------------------------------------.
+#   |     ___       _                       _   _                          |
+#   |    |_ _|_ __ | |_ ___  __ _ _ __ __ _| |_(_) ___  _ __               |
+#   |     | || '_ \| __/ _ \/ _` | '__/ _` | __| |/ _ \| '_ \              |
+#   |     | || | | | ||  __/ (_| | | | (_| | |_| | (_) | | | |             |
+#   |    |___|_| |_|\__\___|\__, |_|  \__,_|\__|_|\___/|_| |_|             |
+#   |                       |___/                                          |
+#   '----------------------------------------------------------------------'
+#   |                                                                      |
+#   '----------------------------------------------------------------------'
+
+
+factory_settings["hyperv_vm_integration_default_levels"] = {
+        'default_status': 'active', 
+        'match_services': [('Guest Service Interface','inactive')],
+}
+
+
+def inventory_hyperv_vm_integration(parsed):
+    if 'guest.tools.number' in parsed:
+        return [(None, None)]
+
+
+def check_hyperv_vm_integration(_no_item, params, parsed):
+    is_state = {
+        "active" : 0,
+        "inactive" : 1,
+    }
+    for key in parsed:
+        if key.startswith("guest.tools.service"):
+            service = key.replace("guest.tools.service.", "").replace("_", " ")
+            if service in (item[0] for item in params['match_services']):
+                serv_params = ""
+                for element in params['match_services']:
+                    if element[0] == service:
+                        serv_params = element[1]
+                        break
+                if parsed[key] == serv_params:
+                    yield 0, "%s - %s" % (service, parsed[key])
+                else:
+                    yield 1, "%s - %s" % (service, parsed[key])
+            else:
+                state = is_state.get(parsed[key], 3)
+                yield state, "%s - %s" % (service, parsed[key])
+
+
+check_info['hyperv_vm_integration'] = {
+    "inventory_function": inventory_hyperv_vm_integration,
+    "check_function": check_hyperv_vm_integration,
+    "parse_function": hyperv_vm_convert, 
+    "service_description": "HyperV Intergration Services",
+    "includes": ["hyperv.include"],
+    "default_levels_variable": "hyperv_vm_integration_default_levels",
+    "group": "hyperv_vm_integration",
+}

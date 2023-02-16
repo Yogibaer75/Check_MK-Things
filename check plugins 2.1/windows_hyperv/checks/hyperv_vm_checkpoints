@@ -1,0 +1,75 @@
+#!/usr/bin/python
+# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+#   .--VM Checkpoints------------------------------------------------------.
+#   |       _____ _               _                _       _               |
+#   |      / ____| |             | |              (_)     | |              |
+#   |     | |    | |__   ___  ___| | ___ __   ___  _ _ __ | |_             |
+#   |     | |    | '_ \ / _ \/ __| |/ / '_ \ / _ \| | '_ \| __|            |
+#   |     | |____| | | |  __/ (__|   <| |_) | (_) | | | | | |_             |
+#   |      \_____|_| |_|\___|\___|_|\_\ .__/ \___/|_|_| |_|\__|            |
+#   |                                 | |                                  |
+#   |                                 |_|                                  |
+#   +----------------------------------------------------------------------+
+#   |                                                                      |
+#   '----------------------------------------------------------------------'
+
+
+def inventory_hyperv_vm_checkpoints(parsed):
+    return [(None, {})]
+
+
+def check_hyperv_vm_checkpoints(_no_item, params, parsed):
+    if len(parsed) > 0:
+        last_checkpoint = float('inf')
+        last_checkpoint_name = ""
+        oldest_checkpoint = 0
+
+        for checkpoint in parsed:
+            checkpoint_date = parsed[checkpoint].get("checkpoint.created")
+            checkpoint_time = time.strptime(checkpoint_date, '%d.%m.%Y %H:%M:%S')
+            checkpoint_age = time.time() - time.mktime(checkpoint_time)
+            if checkpoint_age > oldest_checkpoint:
+                oldest_checkpoint = checkpoint_age
+                oldest_checkpoint_name = checkpoint
+            if checkpoint_age < last_checkpoint:
+                last_checkpoint = checkpoint_age
+                last_checkpoint_name = checkpoint
+        if params.get("age_oldest"):
+            warn, crit = params["age_oldest"]
+            if crit < warn:
+                crit = float('inf')
+            if oldest_checkpoint > crit:
+                yield 2, "Oldest Checkpoint is older than %s" % get_age_human_readable(crit)
+            elif oldest_checkpoint > warn:
+                yield 1, "Oldest Checkpoint is older than %s" % get_age_human_readable(warn)
+            perfdata = [("age_oldest", oldest_checkpoint, warn, crit)]
+        else:
+            perfdata = [("age_oldest", oldest_checkpoint)]
+
+        if params.get("age"):
+            warn, crit = params["age"]
+            if crit < warn:
+                crit = float('inf')
+            if last_checkpoint > crit:
+                yield 2, "Last Checkpoint is older than %s" % get_age_human_readable(crit)
+            elif last_checkpoint > warn:
+                yield 1, "Last Checkpoint is older than %s" % get_age_human_readable(warn)
+            perfdata = [("age_last", last_checkpoint, warn, crit)]
+        else:
+            perfdata = [("age_last", last_checkpoint)]
+
+        yield 0, "Last Checkpoint: %s is %s old" % (last_checkpoint_name, get_age_human_readable(last_checkpoint)), perfdata
+    yield 0, "No Checkpoints existing"
+
+
+check_info['hyperv_vm_checkpoints'] = {
+    "inventory_function": inventory_hyperv_vm_checkpoints,
+    "check_function": check_hyperv_vm_checkpoints,
+    "parse_function": parse_hyperv,
+    "has_perfdata": True,
+    "group": "vm_snapshots",
+    "service_description": "HyperV Checkpoints",
+    "includes": ["hyperv.include"],
+}
+
