@@ -46,14 +46,14 @@ def discovery_ilo_api_mem(section) -> DiscoveryResult:
 def check_ilo_api_mem(item: str, section) -> CheckResult:
     data = section.get(item)
     if data:
-        if data[3] == "GoodInUse" or "OK":
+        if data[3] == "GoodInUse" or data[3] == "OK":
             yield Result(
                 state=State(0),
                 summary="Operational state OK - Type %s - Size %s MB" %
                 (data[1], data[2]))
         else:
             yield Result(state=State(2),
-                         summary="Error in Modul %s with Status %s" %
+                         summary="Error in Module %s with Status %s" %
                          (data[0], data[3]))
 
 
