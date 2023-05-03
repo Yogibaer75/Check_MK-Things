@@ -29,12 +29,19 @@ def check_prism_info_mem(params: Mapping[str, Any], section: Section) -> CheckRe
     if mem_used is None:
         return
 
+    check_params = tuple
+
+    if "levels_upper" in params.keys():
+        check_params = params["levels_upper"]
+    else:
+        check_params = params["levels"]
+
     mem_usage = int(mem_used) / 10000
 
     yield from check_levels(
         mem_usage,
         metric_name="prism_cluster_mem_used",
-        levels_upper=params["levels"],
+        levels_upper=check_params,
         boundaries=(0.0, 100.0),
         render_func=render.percent,
         label="Total Memory Usage",

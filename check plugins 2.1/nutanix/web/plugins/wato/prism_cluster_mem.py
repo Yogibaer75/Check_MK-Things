@@ -27,7 +27,7 @@ def _parameter_valuespec_prism_cluster_mem():
     return Dictionary(
         elements=[
             (
-                "levels_upper",
+                "levels",
                 Tuple(
                     title=_("Specify levels in percentage of total RAM"),
                     elements=[
