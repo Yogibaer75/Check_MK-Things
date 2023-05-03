@@ -21,5 +21,6 @@ Write-Host 'TaskName|LastRunTime|NextRunTime|LastTaskResult|State|NumberOfMissed
 $tasks = Get-ScheduledTask
 $tasks | Where-Object { $_.TaskPath -notlike '\Microsoft\*' } | Get-ScheduledTaskInfo | ForEach-Object {
     $task = $tasks | Where-Object TaskName -eq $_.TaskName
-    '{0}|{1}|{2}|{3}|{4}|{5}' -f $_.TaskName, $_.LastRunTime, $_.NextRunTime, $_.LastTaskResult, $task.state, $_.NumberOfMissedRuns
+    $name = $_.TaskPath + $_.TaskName
+    '{0}|{1}|{2}|{3}|{4}|{5}' -f $name, $_.LastRunTime, $_.NextRunTime, $_.LastTaskResult, $task.state, $_.NumberOfMissedRuns
 }

@@ -2,6 +2,7 @@
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+# ported from old API check and extented for the new agent plugin
 
 # This is free software;  you can redistribute it and/or modify it
 # under the  terms of the  GNU General Public License  as published by
@@ -23,10 +24,12 @@ Section = Dict[Any, Any]
 def parse_windows_tasks(string_table: StringTable) -> Section:
     parsed = {}
     if string_table[0][1] == "LastRunTime":
+        # new plugin output parsing
         keys = string_table[0]
         data = string_table[1:]
         parsed = {entry[0]: dict(zip(keys, entry)) for entry in data}
     else:
+        # old legacy parse function
         last_task = False
         for line in string_table:
             name = line[0].strip()
@@ -152,7 +155,6 @@ class DiscoveryParams(TypedDict):
 def discovery_windows_tasks(
     params: DiscoveryParams, section: Section
 ) -> DiscoveryResult:
-    print(params)
     for element in section.keys():
         if (
             section[element].get("State")
