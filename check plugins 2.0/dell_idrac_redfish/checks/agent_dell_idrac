@@ -14,15 +14,16 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
+import shlex
 
 def agent_dell_idrac_arguments(params, hostname, ipaddress):
     args = ""
     if params["user"] != "":
-        args += " -u " + quote_shell_string(params["user"])
+        args += " -u " + shlex.quote(params["user"])
     if params["password"] != "":
-        args += " -p " + quote_shell_string(params["password"])
+        args += " -p " + shlex.quote(params["password"])
 
-    args += " %s " % quote_shell_string(ipaddress)
+    args += " %s " % shlex.quote(ipaddress)
     return args
 
 
