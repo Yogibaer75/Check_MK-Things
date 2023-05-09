@@ -36,6 +36,7 @@ class Perfdata(NamedTuple):
 
 def parse_dell_idrac_rf(string_table):
     import ast
+
     parsed = {}
     list = []
     if len(string_table) == 1:
@@ -50,10 +51,12 @@ def parse_dell_idrac_rf(string_table):
 
 def parse_dell_idrac_rf_multiple(string_table):
     import ast
+
     parsed = {}
     for line in string_table:
         entry = ast.literal_eval(line[0])
-        parsed.setdefault(entry.get("Id"), entry)
+        if entry.get("Id"):
+            parsed.setdefault(entry.get("Id"), entry)
 
     return parsed
 
@@ -72,11 +75,12 @@ def _try_convert_to_float(value: str) -> Optional[float]:
         return None
 
 
-def idrac_health_state(state):
+def idrac_health_state(state: dict):
     health_map = {
         "OK": (0, "Normal"),
         "Warning": (1, "A condition requires attention."),
         "Critical": (2, "A critical condition requires immediate attention."),
+        "Unknown": (3, "Unknown health state."),
     }
 
     state_map = {
@@ -96,19 +100,30 @@ def idrac_health_state(state):
         ),
         "Starting": (0, "This resource is starting."),
         "Absent": (1, "This resource is either not present or detected."),
-        "Deferring": (1, "The element will not process any commands but will queue new requests."),
-        "Quiesced": (0, "The element is enabled but only processes a restricted set of commands."),
-        "UnavailableOffline": (1, " This function or resource is present but cannot be used."),
+        "Deferring": (
+            1,
+            "The element will not process any commands but will queue new requests.",
+        ),
+        "Quiesced": (
+            0,
+            "The element is enabled but only processes a restricted set of commands.",
+        ),
+        "UnavailableOffline": (
+            1,
+            " This function or resource is present but cannot be used.",
+        ),
         "Updating": (1, "The element is updating and may be unavailable or degraded."),
     }
 
     dev_state = 0
     dev_msg = []
     for key in state.keys():
+        state_msg = ""
+        temp_state = 0
         if key in ["Health"]:
             if state[key] is None:
                 continue
-            temp_state, state_msg = health_map.get(state[key])
+            temp_state, state_msg = health_map.get(state[key]))
             state_msg = "Component State: %s" % state_msg
         elif key == "HealthRollup":
             if state[key] is None:
@@ -130,13 +145,13 @@ def idrac_health_state(state):
 
 def process_redfish_perfdata(entry):
     name = entry.get("Name")
-
+    value = None
     if "Reading" in entry.keys():
-        value = entry.get("Reading", 0)
+        value = entry.get("Reading", 0.0)
     elif "ReadingVolts" in entry.keys():
-        value = entry.get("ReadingVolts", 0)
+        value = entry.get("ReadingVolts", 0.0)
     elif "ReadingCelsius" in entry.keys():
-        value = entry.get("ReadingCelsius", 0)
+        value = entry.get("ReadingCelsius", 0.0)
 
     value = _try_convert_to_float(value)
     min_range = _try_convert_to_float(entry.get("MinReadingRange", None))
