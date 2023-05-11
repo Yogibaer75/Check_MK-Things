@@ -30,24 +30,20 @@ LOGGER = logging.getLogger("agent_redfish")
 
 def parse_arguments(argv: List[str]) -> argparse.Namespace:
     sections = [
-        "power",
-        "thermal",
-        "memory",
-        "networkadapters",
-        "networkinterfaces",
-        "drives",
-        "processors",
-        "storage",
-        "volumes",
-        "pciedevices",
-        "pcieslots",
-        "ethernetinterfaces",
-        "firmwareinventory",
-        "smartstorage",
-        "arraycontrollers",
-        "hostbusadapters",
-        "logicaldrives",
-        "physicaldrives",
+        "Power",
+        "Thermal",
+        "Memory",
+        "NetworkAdapters",
+        "NetworkInterfaces",
+        "Processors",
+        "Storage",
+        "EthernetInterfaces",
+        "FirmwareInventory",
+        "SmartStorage",
+        "ArrayControllers",
+        "HostBusAdapters",
+        "LogicalDrives",
+        "PhysicalDrives",
     ]
 
     parser = argparse.ArgumentParser(description=__doc__)
@@ -141,7 +137,7 @@ def fetch_collection(redfishobj, data, component):
 def fetch_sections(redfishobj, fetch_sections, sections, data):
     result_set = {}
     for section in fetch_sections:
-        if section.lower() not in sections:
+        if section not in sections:
             continue
         if section not in data.keys():
             continue
@@ -168,6 +164,7 @@ def process_result(result):
 
 
 def get_information(redfishobj, sections):
+    sections = sections.split(',')
     base_data = fetch_data(redfishobj, "/redfish/v1", "Base")
 
     manager_url = base_data.get("Managers").get("@odata.id")
@@ -211,13 +208,16 @@ def get_information(redfishobj, sections):
         "Storage",
         "Memory",
     ]
-
+    print(systems_sections)
+    print(sections)
+    resulting_sections = list(set(systems_sections).intersection(sections))
+    print(resulting_sections)
     if isinstance(systems_data, list):
         for system in systems_data:
-            result = fetch_sections(redfishobj, systems_sections, sections, system)
+            result = fetch_sections(redfishobj, resulting_sections, sections, system)
             process_result(result)
     else:
-        result = fetch_sections(redfishobj, systems_sections, sections, systems_data)
+        result = fetch_sections(redfishobj, resulting_sections, sections, systems_data)
         process_result(result)
 
     # fetch chassis
