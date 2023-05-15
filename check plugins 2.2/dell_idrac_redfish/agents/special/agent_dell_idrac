@@ -1,0 +1,276 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# This is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# ails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+import logging
+import sys
+from collections.abc import Sequence
+from typing import Optional
+import urllib3
+import cmk.utils.password_store
+import redfish
+from redfish.rest.v1 import ServerDownOrUnreachableError, RetriesExhaustedError
+from cmk.special_agents.utils.agent_common import special_agent_main
+from cmk.special_agents.utils.argument_parsing import Args, create_default_argument_parser
+
+cmk.utils.password_store.replace_passwords()
+
+LOGGER = logging.getLogger("agent_dell_idrac")
+
+
+def dropnonascii(input_str):
+    """Drop all non ASCII characters from string"""
+    output_str = ""
+    for i in input_str:
+        num = ord(i)
+        if num >= 0:
+            if num <= 127:
+                output_str = output_str + i
+
+    return output_str
+
+
+def get_information(redfishobj):
+    """fetch information from Redfish"""
+    response_base_url = redfishobj.get("/redfish/v1", None)
+    if response_base_url.status == 200:
+        chassis_url = response_base_url.dict["Chassis"]["@odata.id"]
+    else:
+        sys.stdout.write("Base URL for chassis cannot be fetched\n")
+        redfishobj.logout()
+        sys.exit(1)
+
+    sys.stdout.write('<<<check_mk>>>\n')
+    sys.stdout.write('Version: 9\n')
+    sys.stdout.write('AgentOS: iDRAC ...\n')
+
+    # fetch chassis
+    response_chassis_url = redfishobj.get(chassis_url, None)
+    if response_chassis_url.status == 200:
+        chassis = response_chassis_url.dict["Members"]
+    else:
+        sys.stdout.write("Chassis data could not be fetched\n")
+        redfishobj.logout()
+        sys.exit(1)
+
+    for element in chassis:
+        sys.stdout.write("<<<dell_idrac_rf_system:sep(0)>>>\n")
+        element_dict = {}
+        element_url = element['@odata.id']
+        element_data = redfishobj.get(element_url, None)
+        if element_data.status != 200:
+            sys.stdout.write('Problem fetching element data\n')
+            continue
+        else:
+            element_dict = element_data.dict
+            if element_dict.get("ChassisType") == "StorageEnclosure":
+                continue
+            print(element_dict)
+
+        if "Power" in element_dict:
+            power_url = element_dict["Power"].get("@odata.id", None)
+            if power_url:
+                power_response = redfishobj.get(power_url, None)
+            sys.stdout.write("<<<dell_idrac_rf_power:sep(0)>>>\n")
+            print(power_response.dict)
+        if "Thermal" in element_dict:
+            thermal_url = element_dict["Thermal"].get("@odata.id", None)
+            if thermal_url:
+                thermal_response = redfishobj.get(thermal_url, None)
+            sys.stdout.write("<<<dell_idrac_rf_thermal:sep(0)>>>\n")
+            print(thermal_response.dict)
+        if "Memory" in element_dict:
+            memory_url = element_dict["Memory"].get("@odata.id", None)
+            if memory_url:
+                memory_response = redfishobj.get(memory_url, None)
+            memory_dict = memory_response.dict
+            sys.stdout.write("<<<dell_idrac_rf_memory:sep(0)>>>\n")
+            for mem_dev in memory_dict.get("Members"):
+                mem_dev_response = redfishobj.get(
+                    mem_dev.get("@odata.id", None), None)
+                print(mem_dev_response.dict)
+        if "NetworkAdapters" in element_dict:
+            network_url = element_dict["NetworkAdapters"].get(
+                "@odata.id", None)
+            if network_url:
+                network_response = redfishobj.get(network_url, None)
+            network_dict = network_response.dict
+            for network_dev in network_dict.get("Members"):
+                sys.stdout.write("<<<dell_idrac_rf_network:sep(0)>>>\n")
+                network_dev_response = redfishobj.get(
+                    network_dev.get("@odata.id", None), None)
+                network_dev_dict = network_dev_response.dict
+                print(network_dev_dict)
+                if "NetworkPorts" in network_dev_dict.keys():
+                    ports = redfishobj.get(
+                        network_dev_dict["NetworkPorts"].get(
+                            "@odata.id", None), None)
+                    ports_dict = ports.dict
+                    for port in ports_dict["Members"]:
+                        port_response = redfishobj.get(
+                            port.get("@odata.id", None), None)
+                        sys.stdout.write("<<<dell_idrac_rf_interface:sep(0)>>>\n")
+                        print(port_response.dict)
+        links = element_dict.get("Links")
+        for element in links.keys():
+            if element == "Drives" and links.get("Drives@odata.count", 0) != 0:
+                sys.stdout.write("<<<dell_idrac_rf_drives:sep(0)>>>\n")
+                for drive in links.get("Drives"):
+                    drive_url = drive.get("@odata.id", None)
+                    if drive_url:
+                        drive_response = redfishobj.get(drive_url, None)
+                    print(drive_response.dict)
+            if element == "Processors" and links.get("Processors@odata.count", 0) != 0:
+                sys.stdout.write("<<<dell_idrac_rf_cpu:sep(0)>>>\n")
+                for cpu in links.get("Processors"):
+                    cpu_url = cpu.get("@odata.id", None)
+                    if cpu_url:
+                        cpu_response = redfishobj.get(cpu_url, None)
+                    print(cpu_response.dict)
+            if element == "Storage" and links.get("Storage@odata.count", 0) != 0:
+                for storage in links.get("Storage"):
+                    storage_url = storage.get("@odata.id", None)
+                    if storage_url:
+                        storage_response = redfishobj.get(storage_url, None)
+                    storage_dict = storage_response.dict
+                    sys.stdout.write("<<<dell_idrac_rf_storage:sep(0)>>>\n")
+                    print(storage_dict)
+                    if "Drives" in storage_dict.keys() and storage_dict.get("Drives@odata.count", 0) != 0:
+                        sys.stdout.write("<<<dell_idrac_rf_drives:sep(0)>>>\n")
+                        for drive in storage_dict.get("Drives"):
+                            drive_url = drive.get("@odata.id", None)
+                            if drive_url:
+                                drive_response = redfishobj.get(drive_url, None)
+                            print(drive_response.dict)
+                    if "Volumes" in storage_dict.keys():
+                        sys.stdout.write("<<<dell_idrac_rf_volumes:sep(0)>>>\n")
+                        volume_url = storage_dict["Volumes"].get("@odata.id", None)
+                        if volume_url:
+                            volume_response = redfishobj.get(volume_url, None)
+                            volume_dict = volume_response.dict
+                            members = volume_dict.get("Members", None)
+                            if members:
+                                for member in members:
+                                    member_response = redfishobj.get(
+                                        member.get("@odata.id", None), None)
+                                    print(member_response.dict)
+
+
+def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
+    """Parse arguments needed to construct an URL and for connection conditions"""
+
+    parser = create_default_argument_parser(description=__doc__)
+    # required
+    parser.add_argument(
+        "-u", "--user", default=None, help="Username for Redfish Login", required=True
+    )
+    parser.add_argument(
+        "-s",
+        "--password",
+        default=None,
+        help="""Password for Redfish Login""",
+        required=True,
+    )
+    # optional
+    parser.add_argument(
+        "-P",
+        "--proto",
+        default="https",
+        help="""Use 'http' or 'https' (default=https)""",
+    )
+    parser.add_argument(
+        "-p",
+        "--port",
+        default=443,
+        type=int,
+        help="Use alternative port (default: 443)",
+    )
+    parser.add_argument(
+        "--verify_ssl",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--timeout",
+        default=3,
+        type=int,
+        help="""Timeout in seconds for a connection attempt"""
+    )
+    parser.add_argument(
+        "--retries",
+        default=2,
+        type=int,
+        help="""Number auf connection retries before failing"""
+    )
+    # required
+    parser.add_argument(
+        "host",
+        metavar="HOSTNAME",
+        help="""IP address or hostname of your Netapp E-Series Controller""",
+    )
+
+    return parser.parse_args(argv)
+
+
+def get_session(args):
+    """create a Redfish session with given arguments"""
+    try:
+        redfish_host = f"{args.proto}://{args.host}:{args.port}"
+        # Create a Redfish client object
+        REDFISHOBJ = redfish.redfish_client(
+            base_url=redfish_host,
+            username=args.user,
+            password=args.password,
+            cafile="",
+            default_prefix="/redfish/v1",
+            timeout=args.timeout,
+            max_retry=args.retries,
+        )
+        # Login with the Redfish client
+        REDFISHOBJ.login(auth="session")
+    except ServerDownOrUnreachableError as excp:
+        sys.stderr.write(
+            f"ERROR: server not reachable or does not support RedFish. Error Message: {excp}\n"
+        )
+        sys.exit()
+    except RetriesExhaustedError as excp:
+        sys.stderr.write(
+            f"ERROR: too many retries for connection attempt: {excp}\n"
+        )
+        sys.exit()
+    return REDFISHOBJ
+
+
+def agent_dell_idrac_main(args: Args) -> int:
+    """main function for the special agent"""
+
+    if not args.verify_ssl:
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    # Start Redfish Session Object
+    REDFISHOBJ = get_session(args)
+    get_information(REDFISHOBJ)
+    REDFISHOBJ.logout()
+
+    return 0
+
+
+def main() -> int:
+    """Main entry point to be used"""
+    return special_agent_main(parse_arguments, agent_dell_idrac_main)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

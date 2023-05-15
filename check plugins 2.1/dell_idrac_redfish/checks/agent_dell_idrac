@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+# License: GNU General Public License v2
+from typing import Any, Mapping, Optional, Sequence
+
+from cmk.base.check_api import passwordstore_get_cmdline
+from cmk.base.config import special_agent_info
+
+
+def agent_dell_idrac_arguments(
+    params: Mapping[str, Any], hostname: str, ipaddress: Optional[str]
+) -> Sequence[str]:
+    '''build command line arguments'''
+    return [
+        "-u",
+        f"{params['user']}",
+        "-s",
+        passwordstore_get_cmdline("%s", params["password"]),
+        *(["-p", f"{params['port']}"] if "port" in params else []),
+        *(["-P", f"{params['proto']}"] if "proto" in params else []),
+        *(["--timeout", f"{params['timeout']}"] if "timeout" in params else []),
+        *(["--retries", f"{params['retries']}"] if "retries" in params else []),
+        ipaddress or hostname,
+    ]
+
+
+special_agent_info["dell_idrac"] = agent_dell_idrac_arguments
