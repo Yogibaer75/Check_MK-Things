@@ -38,6 +38,7 @@ def _parameters_valuespec_prism_vms():
         ("resuming", _("Resuming")),
         ("resetting", _("Resetting")),
         ("migrating", _("Migrating")),
+        ("ignore", _("Ignore")),
     ]
     return Dictionary(
         elements=[
