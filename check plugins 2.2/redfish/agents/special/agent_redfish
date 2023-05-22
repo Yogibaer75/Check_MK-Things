@@ -259,17 +259,17 @@ def get_information(redfishobj, sections):
     manager_os = []
     data_model = ""
     for element in manager_data:
-        data_model = list(element.get("Oem",{}).keys())[0]
+        data_model = list(element.get("Oem", {"Unknown": "Unknown model"}).keys())[0]
         manager_os.append(element.get("FirmwareVersion"))
     sys.stdout.write(f"AgentOS: {' '.join(manager_os)}\n")
 
     data_model_links = {
         "Hpe": ["SmartStorage",
                 "NetworkAdapters"],
-        "Hp":  ["Memory",
-                "NetworkAdapters",
-                "SmartStorage",
-                "FirmwareInventory"],
+        "Hp": ["Memory",
+               "NetworkAdapters",
+               "SmartStorage",
+               "FirmwareInventory"],
     }
 
     extra_links = list(set(data_model_links.get(data_model, [])).intersection(sections))
