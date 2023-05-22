@@ -26,10 +26,9 @@ from cmk.gui.plugins.wato.utils import (
     HostRulespec,
     IndividualOrStoredPassword,
     rulespec_registry,
-
 )
 
-from cmk.gui.plugins.wato.special_agents.common import RulespecGroupDatasourceProgramsHardware
+from cmk.gui.plugins.wato.datasource_programs import RulespecGroupDatasourceProgramsHardware
 
 
 def _valuespec_special_agents_redfish():
