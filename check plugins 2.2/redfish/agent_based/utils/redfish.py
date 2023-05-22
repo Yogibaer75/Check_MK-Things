@@ -94,7 +94,7 @@ def redfish_item_hpe(section):
     logical_item = section.get("@odata.id", None).strip("/")
     logical_list = logical_item.split("/")
     if any(x in logical_list for x in hpe_types):
-        item = f"{logical_list[-4]}:{logical_list[-2]}"
+        item = f"{logical_list[-3]}:{logical_list[-1]}"
     return item
 
 
