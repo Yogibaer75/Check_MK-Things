@@ -114,7 +114,7 @@ def _valuespec_special_agents_redfish():
                 maxvalue = 20,
             )),
         ],
-        optional_keys=["port", "proto", "sections"],
+        optional_keys=["port", "proto", "sections", "retries", "timeout"],
     )
 
 
