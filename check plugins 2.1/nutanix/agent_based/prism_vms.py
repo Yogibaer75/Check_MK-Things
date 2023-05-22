@@ -57,7 +57,7 @@ def check_prism_vms(item: str, params: Mapping[str, Any], section: Section) -> C
     prot_domain = data["protectionDomainName"]
     host_name = data["hostName"]
     memory = render.bytes(data["memoryCapacityInBytes"])
-    if wanted_state == state_text.lower():
+    if wanted_state == state_text.lower() or wanted_state == "ignore":
         state = 0
     else:
         state = state_value
