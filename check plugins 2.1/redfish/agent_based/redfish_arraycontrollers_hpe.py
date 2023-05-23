@@ -28,7 +28,7 @@ from .utils.redfish import redfish_health_state
 
 def discovery_redfish_arraycontrollers_hpe(section) -> DiscoveryResult:
     for key in section.keys():
-        if "HpeSmartStorageArrayController" in section[key]["@odata.type"]:
+        if "SmartStorageArrayController" in section[key]["@odata.type"]:
             yield Service(item=section[key]["Id"])
 
 
