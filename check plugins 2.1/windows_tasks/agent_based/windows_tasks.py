@@ -231,6 +231,8 @@ def check_windows_tasks(
         ("NextRunTime", "Next run time"),
         ("Last Run Time", "Last run time"),
         ("Next Run Time", "Next run time"),
+        ("Owner", "Owner"),
+        ("Author", "Author"),
     ]:
         if key in data:
             additional_infos.append("%s: %s" % (title, data[key]))

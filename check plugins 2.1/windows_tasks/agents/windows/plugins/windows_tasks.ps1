@@ -17,10 +17,10 @@ $pswindow.windowsize = $newsize # Set the new Window Size as active.
 ###
 
 Write-Host '<<<windows_tasks:sep(124)>>>'
-Write-Host 'TaskName|LastRunTime|NextRunTime|LastTaskResult|State|NumberOfMissedRuns'
+Write-Host 'TaskName|LastRunTime|NextRunTime|LastTaskResult|State|NumberOfMissedRuns|Owner|Author'
 $tasks = Get-ScheduledTask
 $tasks | Where-Object { $_.TaskPath -notlike '\Microsoft\*' } | Get-ScheduledTaskInfo | ForEach-Object {
     $task = $tasks | Where-Object TaskName -eq $_.TaskName
     $name = $_.TaskPath + $_.TaskName
-    '{0}|{1}|{2}|{3}|{4}|{5}' -f $name, $_.LastRunTime, $_.NextRunTime, $_.LastTaskResult, $task.state, $_.NumberOfMissedRuns
+    '{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}' -f $name, $_.LastRunTime, $_.NextRunTime, $_.LastTaskResult, $task.state, $_.NumberOfMissedRuns, $task.Owner, $task.Principal.userid
 }
