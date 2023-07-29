@@ -4,7 +4,9 @@ To use this agent you need to install the "redfish" library.
 
 for CMK 2.0
 
-`pip3 install redfish`
+**Attention: after the release of urllib3 v2 now please do**
+
+`pip3 install 'urllib3<2' redfish`
 
 The agent call is
 
