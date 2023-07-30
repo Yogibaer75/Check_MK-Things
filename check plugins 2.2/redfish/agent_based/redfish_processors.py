@@ -17,12 +17,17 @@
 # Example Output:
 #
 #
-from .agent_based_api.v1.type_defs import (
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
 )
 
-from .agent_based_api.v1 import register, Result, State, Service
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
+    register,
+    Result,
+    State,
+    Service,
+)
 
 from .utils.redfish import parse_redfish_multiple, redfish_health_state
 
@@ -33,23 +38,25 @@ register.agent_section(
 
 
 def discovery_redfish_processors(section) -> DiscoveryResult:
+    """Discover single present CPUs"""
     for key in section.keys():
+        if section[key].get("Status", {}).get("State") == "Absent":
+            continue
         yield Service(item=section[key]["Id"])
 
 
 def check_redfish_processors(item: str, section) -> CheckResult:
+    """Check state of CPU"""
     data = section.get(item, None)
     if data is None:
         return
 
-    cpu_msg = "Type: %s, Model: %s" % (data.get("ProcessorType"), data.get("Model"))
+    cpu_msg = f"Type: {data.get('ProcessorType')}, Model: {data.get('Model')}"
 
     if "TotalCores" in data.keys():
-        cpu_msg = cpu_msg + ", Cores: %s, Threads: %s, Speed %s MHz" % (
-            data.get("TotalCores"),
-            data.get("TotalThreads"),
-            data.get("OperatingSpeedMHz"),
-        )
+        cpu_msg = cpu_msg + f", Cores: {data.get('TotalCores')}, \
+            Threads: {data.get('TotalThreads')}, \
+            Speed {data.get('OperatingSpeedMHz')} MHz"
     yield Result(state=State(0), summary=cpu_msg)
 
     dev_state, dev_msg = redfish_health_state(data["Status"])

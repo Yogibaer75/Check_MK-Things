@@ -17,12 +17,17 @@
 # Example Output:
 #
 #
-from .agent_based_api.v1.type_defs import (
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
 )
 
-from .agent_based_api.v1 import register, Result, State, Service
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
+    register,
+    Result,
+    State,
+    Service,
+)
 
 from .utils.redfish import parse_redfish_multiple, redfish_health_state
 
@@ -33,30 +38,33 @@ register.agent_section(
 
 
 def discovery_redfish_storage(section) -> DiscoveryResult:
+    """Discover single controllers"""
     for key in section.keys():
         yield Service(item=section[key]["Id"])
 
 
 def check_redfish_storage(item: str, section) -> CheckResult:
+    """Check single Controller state"""
     data = section.get(item, None)
     if data is None:
         return
 
-    if data.get("StorageControllers@odata.count") == 1:
-        ctrl_data = data.get("StorageControllers")[0]
+    controller_list = data.get("StorageControllers")
+    if len(controller_list) >= 1:
+        for ctrl_data in controller_list:
+            storage_msg = f"Type: {ctrl_data.get('Model')}, \
+                RaidLevels: {','.join(ctrl_data.get('SupportedRAIDTypes', []))}, \
+                DeviceProtocols: {','.join(ctrl_data.get('SupportedDeviceProtocols', []))}"
+            dev_state, dev_msg = redfish_health_state(ctrl_data.get("Status", {}))
+            status = dev_state
+            message = dev_msg
+            yield Result(state=State(status), summary=storage_msg, details=message)
+    else:
+        dev_state, dev_msg = redfish_health_state(data.get("Status", {}))
+        status = dev_state
+        message = dev_msg
 
-        storage_msg = "Type: %s, RaidLevels: %s, DeviceProtocols: %s" % (
-            ctrl_data.get("Model"),
-            ",".join(ctrl_data.get("SupportedRAIDTypes", [])),
-            ",".join(ctrl_data.get("SupportedDeviceProtocols", [])),
-        )
-        yield Result(state=State(0), summary=storage_msg)
-
-    dev_state, dev_msg = redfish_health_state(data["Status"])
-    status = dev_state
-    message = dev_msg
-
-    yield Result(state=State(status), notice=message)
+        yield Result(state=State(status), notice=message)
 
 
 register.check_plugin(

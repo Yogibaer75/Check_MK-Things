@@ -17,12 +17,17 @@
 # Example Output:
 #
 #
-from .agent_based_api.v1.type_defs import (
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
 )
 
-from .agent_based_api.v1 import register, Result, State, Service
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
+    register,
+    Result,
+    State,
+    Service,
+)
 
 from .utils.redfish import parse_redfish_multiple, redfish_health_state
 
@@ -51,9 +56,10 @@ LEGACY_DIMM_STATE = {
 
 def discovery_redfish_memory(section) -> DiscoveryResult:
     for key in section.keys():
-        if section[key].get("Status"):
-            if section[key].get("Status").get("State") == "Absent":
-                continue
+        if "Collection" in section[key].get("@odata.type"):
+            continue
+        if section[key].get("Status", {}).get("State") == "Absent":
+            continue
         yield Service(item=section[key]["Id"])
 
 

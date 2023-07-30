@@ -17,14 +17,23 @@
 # Example Output:
 #
 #
-from .agent_based_api.v1.type_defs import (
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
 )
 
-from .agent_based_api.v1 import register, Result, State, Service
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
+    register,
+    Result,
+    State,
+    Service,
+)
 
-from .utils.redfish import parse_redfish_multiple, redfish_health_state, redfish_item_hpe
+from .utils.redfish import (
+    parse_redfish_multiple,
+    redfish_health_state,
+    redfish_item_hpe,
+)
 
 register.agent_section(
     name="redfish_logicaldrives",
@@ -56,10 +65,7 @@ def check_redfish_logicaldrives(item: str, section) -> CheckResult:
     else:
         size = size / 1024 / 1024 / 1024
 
-    volume_msg = "Raid Type: %s, Size: %0.0fGB" % (
-        raid_type,
-        size
-    )
+    volume_msg = "Raid Type: %s, Size: %0.0fGB" % (raid_type, size)
     yield Result(state=State(0), summary=volume_msg)
 
     dev_state, dev_msg = redfish_health_state(data["Status"])

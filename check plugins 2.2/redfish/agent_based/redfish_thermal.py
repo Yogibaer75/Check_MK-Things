@@ -14,9 +14,9 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-from .agent_based_api.v1 import (register)
+from cmk.base.plugins.agent_based.agent_based_api.v1 import register
 
-from .utils.redfish import (parse_redfish)
+from .utils.redfish import parse_redfish
 
 register.agent_section(
     name="redfish_thermal",

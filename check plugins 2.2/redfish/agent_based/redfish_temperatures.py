@@ -17,13 +17,22 @@
 # Example Output:
 #
 #
-from .agent_based_api.v1.type_defs import (
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
 )
 
-from .agent_based_api.v1 import register, Result, State, Service, get_value_store
-from .utils.temperature import check_temperature, TempParamDict
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
+    register,
+    Result,
+    State,
+    Service,
+    get_value_store,
+)
+from cmk.base.plugins.agent_based.utils.temperature import (
+    check_temperature,
+    TempParamDict,
+)
 from .utils.redfish import process_redfish_perfdata, redfish_health_state
 
 

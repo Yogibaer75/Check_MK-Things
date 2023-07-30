@@ -18,12 +18,19 @@
 #
 #
 
-from .agent_based_api.v1.type_defs import (
-    CheckResult, DiscoveryResult,)
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+    CheckResult,
+    DiscoveryResult,
+)
 
-from .agent_based_api.v1 import (register, Result, State, Service)
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
+    register,
+    Result,
+    State,
+    Service,
+)
 
-from .utils.redfish import (parse_redfish_multiple, redfish_health_state)
+from .utils.redfish import parse_redfish_multiple, redfish_health_state
 
 register.agent_section(
     name="redfish_networkadapters",

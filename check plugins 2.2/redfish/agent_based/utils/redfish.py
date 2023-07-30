@@ -15,11 +15,11 @@
 # Boston, MA 02110-1301 USA.
 
 from typing import Any, Dict, NamedTuple, Optional, Tuple
-from ..agent_based_api.v1.type_defs import (
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     DiscoveryResult,
 )
 
-from ..agent_based_api.v1 import (
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     Service,
 )
 

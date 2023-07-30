@@ -19,10 +19,19 @@
 #
 #
 from typing import Any, Dict, Mapping
-from .agent_based_api.v1.type_defs import CheckResult, DiscoveryResult
-from .agent_based_api.v1 import register, Result, State, Service
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+    CheckResult,
+    DiscoveryResult,
+)
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
+    register,
+    Result,
+    State,
+    Service,
+)
 
 from .utils.redfish import redfish_health_state
+
 Section = Dict[str, Mapping[str, Any]]
 
 
@@ -43,7 +52,10 @@ def check_redfish_memory_summary(section) -> CheckResult:
     for element in data:
         state = element.get("Status", {"Health": "Unknown"})
         result_state, state_text = redfish_health_state(state)
-        message = "Capacity: %sGB, with State: %s" % (element.get("TotalSystemMemoryGiB"), state_text)
+        message = "Capacity: %sGB, with State: %s" % (
+            element.get("TotalSystemMemoryGiB"),
+            state_text,
+        )
 
         yield Result(state=State(result_state), summary=message)
 

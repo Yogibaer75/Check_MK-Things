@@ -17,12 +17,20 @@
 # Example Output:
 #
 #
-from .agent_based_api.v1.type_defs import (
-    CheckResult, DiscoveryResult,)
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+    CheckResult,
+    DiscoveryResult,
+)
 
-from .agent_based_api.v1 import (register, Result, State, Service, check_levels)
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
+    register,
+    Result,
+    State,
+    Service,
+    check_levels,
+)
 
-from .utils.redfish import (process_redfish_perfdata, redfish_health_state)
+from .utils.redfish import process_redfish_perfdata, redfish_health_state
 
 
 def _fan_item_name(data):
@@ -62,7 +70,7 @@ def check_redfish_fans(item: str, section) -> CheckResult:
                     metric_name="perc",
                     label="Speed",
                     render_func=lambda v: "%.1f%%" % v,
-                    boundaries=(0, 100)
+                    boundaries=(0, 100),
                 )
             elif units == "RPM":
                 yield from check_levels(
@@ -72,7 +80,7 @@ def check_redfish_fans(item: str, section) -> CheckResult:
                     metric_name="fan",
                     label="Speed",
                     render_func=lambda v: "%.1f rpm" % v,
-                    boundaries=perfdata.boundaries
+                    boundaries=perfdata.boundaries,
                 )
             else:
                 yield Result(state=State(0), summary="No performance data available")
