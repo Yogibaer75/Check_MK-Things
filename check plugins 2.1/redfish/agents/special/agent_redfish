@@ -14,16 +14,22 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
+import json
 import logging
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Optional
-import urllib3
+
 import cmk.utils.password_store
+import cmk.utils.paths
 import redfish
-from redfish.rest.v1 import ServerDownOrUnreachableError, RetriesExhaustedError
+import urllib3
+
 from cmk.special_agents.utils.agent_common import special_agent_main
 from cmk.special_agents.utils.argument_parsing import Args, create_default_argument_parser
+
+from redfish.rest.v1 import ServerDownOrUnreachableError, RetriesExhaustedError
 
 cmk.utils.password_store.replace_passwords()
 
@@ -331,6 +337,32 @@ def get_information(redfishobj, sections):
         process_result(result)
 
 
+def store_session_key(redfishobj, host):
+    """save session data to file"""
+    store_data = {}
+    temp_path = Path(cmk.utils.paths.tmp_dir, "agents/agent_redfish")
+    temp_path.mkdir(parents=True, exist_ok=True)
+    store_path = temp_path / (f"{host}.json")
+    # store_path = paths.tmp_dir / "agents" / "agent_redfish" / f"{host}.json"
+    store_data.setdefault("location", redfishobj.get_session_location())
+    store_data.setdefault("session", redfishobj.get_session_key())
+    with store_path.open("w", encoding="utf-8") as f_handle:
+        f_handle.write(json.dumps(store_data))
+    # store.save_text_to_file(store_path, json.dumps(store_data))
+
+
+def load_session_key(host):
+    """load existing redfish session data"""
+    store_path = Path(cmk.utils.paths.tmp_dir, "agents/agent_redfish", f"{host}.json")
+    # store_path = paths.tmp_dir / "agents" / "agent_redfish" / f"{host}.json"
+    if store_path.exists():
+        data = json.loads(store_path.open(encoding="utf-8").read())
+        # data = json.loads(store.load_text_from_file(store_path, default="{}"))
+        if data.get("session") and data.get("location"):
+            return data
+    return None
+
+
 def get_session(args):
     """create a Redfish session with given arguments"""
     try:
@@ -345,7 +377,22 @@ def get_session(args):
             timeout=args.timeout,
             max_retry=args.retries,
         )
+        existing_session = load_session_key(args.host)
+        # existing session with key found return this session instead of login
+        if existing_session:
+            REDFISHOBJ.set_session_location(existing_session.get("location"))
+            REDFISHOBJ.set_session_key(existing_session.get("session"))
+            response_url = REDFISHOBJ.get("/redfish/v1/SessionService/Sessions", None)
+            if response_url.status == 200:
+                return REDFISHOBJ
+            response_url = REDFISHOBJ.get("/redfish/v1/Sessions", None)
+            if response_url.status == 200:
+                return REDFISHOBJ
+
         # Login with the Redfish client
+        # cleanup old session information
+        REDFISHOBJ.set_session_location(None)
+        REDFISHOBJ.set_session_key(None)
         REDFISHOBJ.login(auth="session")
     except ServerDownOrUnreachableError as excp:
         sys.stderr.write(
@@ -369,7 +416,9 @@ def agent_redfish_main(args: Args) -> None:
     # Start Redfish Session Object
     REDFISHOBJ = get_session(args)
     get_information(REDFISHOBJ, args.sections)
-    REDFISHOBJ.logout()
+    # logout not needed anymore if no problem - session saved to file
+    # logout is done if some query fails
+    # REDFISHOBJ.logout()
 
     sys.exit(0)
 

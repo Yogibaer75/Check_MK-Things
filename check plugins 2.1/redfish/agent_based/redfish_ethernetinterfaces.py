@@ -18,12 +18,19 @@
 #
 #
 
-from .agent_based_api.v1.type_defs import (
-    CheckResult, DiscoveryResult,)
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+    CheckResult,
+    DiscoveryResult,
+)
 
-from .agent_based_api.v1 import (register, Result, State, Service)
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
+    register,
+    Result,
+    State,
+    Service,
+)
 
-from .utils.redfish import (parse_redfish_multiple, redfish_health_state)
+from .utils.redfish import parse_redfish_multiple, redfish_health_state
 
 register.agent_section(
     name="redfish_ethernetinterfaces",
@@ -61,7 +68,11 @@ def check_redfish_ethernetinterfaces(item: str, section) -> CheckResult:
         if link_status is None:
             link_status = "Down"
 
-    int_msg = "Link: %s, Speed: %0.0fMbps, MAC: %s" % (link_status, link_speed, mac_addr)
+    int_msg = "Link: %s, Speed: %0.0fMbps, MAC: %s" % (
+        link_status,
+        link_speed,
+        mac_addr,
+    )
     yield Result(state=State(0), summary=int_msg)
 
     if data.get("Status"):

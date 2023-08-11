@@ -213,3 +213,15 @@ def process_redfish_perfdata(entry):
             max_range,
         ),
     )
+
+
+def find_key_recursive(d, key):
+    """Search multilevel dict for key"""
+    if key in d:
+        return d[key]
+    for _k, v in d.items():
+        if isinstance(v, dict):
+            value = find_key_recursive(v, key)
+            if value:
+                return value
+    return None
