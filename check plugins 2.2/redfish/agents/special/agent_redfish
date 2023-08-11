@@ -374,6 +374,8 @@ def get_session(args: Args):
             password=args.password,
             cafile="",
             default_prefix="/redfish/v1",
+            timeout=args.timeout,
+            max_retry=args.retries,
         )
         existing_session = load_session_key(args.host)
         # existing session with key found return this session instead of login

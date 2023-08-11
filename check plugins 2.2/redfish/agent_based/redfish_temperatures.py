@@ -37,6 +37,7 @@ from .utils.redfish import process_redfish_perfdata, redfish_health_state
 
 
 def discovery_redfish_temperatures(section) -> DiscoveryResult:
+    """Discover temperature sensors"""
     temps = section.get("Temperatures", None)
     for temp in temps:
         if temp.get("Status").get("State") == "Absent":
@@ -48,25 +49,27 @@ def discovery_redfish_temperatures(section) -> DiscoveryResult:
 def check_redfish_temperatures(
     item: str, params: TempParamDict, section
 ) -> CheckResult:
+    """Check single temperature sensor state"""
     temps = section.get("Temperatures", None)
     if temps is None:
         return
 
     for temp in temps:
         if temp.get("Name") == item:
-            dev_state, dev_msg = redfish_health_state(temp["Status"])
-            if dev_state == 0:
-                perfdata = process_redfish_perfdata(temp)
-
+            perfdata = process_redfish_perfdata(temp)
+            if perfdata:
                 yield from check_temperature(
                     perfdata.value,
                     params,
-                    unique_name="redfish.temp.%s" % item,
+                    unique_name=f"redfish.temp.{item}",
                     value_store=get_value_store(),
                     dev_levels=perfdata.levels_upper,
                     dev_levels_lower=perfdata.levels_lower,
                 )
+            else:
+                yield Result(state=State(0), summary="No temperature data found")
 
+            dev_state, dev_msg = redfish_health_state(temp["Status"])
             yield Result(state=State(dev_state), notice=dev_msg)
 
 

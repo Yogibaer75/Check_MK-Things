@@ -61,14 +61,13 @@ def check_redfish_drives(item: str, section) -> CheckResult:
             disc_msg = disc_msg + ", Media Life Left: %d%%" % (
                 int(data.get("PredictedMediaLifeLeftPercent", 0))
             )
+        else:
+            disc_msg = disc_msg + ", no SSD Media information available"
 
     yield Result(state=State(0), summary=disc_msg)
 
     dev_state, dev_msg = redfish_health_state(data["Status"])
-    status = dev_state
-    message = dev_msg
-
-    yield Result(state=State(status), notice=message)
+    yield Result(state=State(dev_state), notice=dev_msg)
 
 
 register.check_plugin(

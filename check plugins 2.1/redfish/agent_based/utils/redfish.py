@@ -15,11 +15,11 @@
 # Boston, MA 02110-1301 USA.
 
 from typing import Any, Dict, NamedTuple, Optional, Tuple
-from ..agent_based_api.v1.type_defs import (
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     DiscoveryResult,
 )
 
-from ..agent_based_api.v1 import (
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     Service,
 )
 
@@ -136,6 +136,7 @@ def redfish_health_state(state: Dict[str, Any]):
             0,
             "The element is enabled but only processes a restricted set of commands",
         ),
+        "Present": (0, "Unoffical resource state - device is present"),
     }
 
     dev_state = 0
@@ -146,17 +147,23 @@ def redfish_health_state(state: Dict[str, Any]):
         if key in ["Health"]:
             if state[key] is None:
                 continue
-            temp_state, state_msg = health_map.get(state[key])
+            temp_state, state_msg = health_map.get(
+                state[key], (3, f"Unknown health state: {state[key]}")
+            )
             state_msg = f"Component State: {state_msg}"
         elif key == "HealthRollup":
             if state[key] is None:
                 continue
-            temp_state, state_msg = health_map.get(state[key])
+            temp_state, state_msg = health_map.get(
+                state[key], (3, f"Unknown rollup health state: {state[key]}")
+            )
             state_msg = f"Rollup State: {state_msg}"
         elif key == "State":
             if state[key] is None:
                 continue
-            temp_state, state_msg = state_map.get(state[key])
+            temp_state, state_msg = state_map.get(
+                state[key], (3, f"Unknown state: {state[key]}")
+            )
         dev_state = max(dev_state, temp_state)
         dev_msg.append(state_msg)
 
@@ -169,13 +176,15 @@ def redfish_health_state(state: Dict[str, Any]):
 def process_redfish_perfdata(entry):
     """Redfish performance data to monitoring performance data"""
     name = entry.get("Name")
-    value = "0"
+    value = None
     if "Reading" in entry.keys():
         value = entry.get("Reading", 0)
     elif "ReadingVolts" in entry.keys():
         value = entry.get("ReadingVolts", 0)
     elif "ReadingCelsius" in entry.keys():
         value = entry.get("ReadingCelsius", 0)
+    if value is None:
+        return None
 
     value = _try_convert_to_float(value)
     min_range = _try_convert_to_float(entry.get("MinReadingRange", None))

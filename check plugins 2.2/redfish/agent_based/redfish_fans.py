@@ -43,6 +43,7 @@ def _fan_item_name(data):
 
 
 def discovery_redfish_fans(section) -> DiscoveryResult:
+    """Discover single fans"""
     fans = section.get("Fans", None)
     for fan in fans:
         if fan.get("Status").get("State") == "Absent":
@@ -53,6 +54,7 @@ def discovery_redfish_fans(section) -> DiscoveryResult:
 
 
 def check_redfish_fans(item: str, section) -> CheckResult:
+    """Check single fan state"""
     fans = section.get("Fans", None)
     if fans is None:
         return
@@ -61,8 +63,11 @@ def check_redfish_fans(item: str, section) -> CheckResult:
         fan_name = _fan_item_name(fan)
         if fan_name == item:
             perfdata = process_redfish_perfdata(fan)
-            units = fan.get("ReadingUnits")
-            if units == "Percent":
+            units = fan.get("ReadingUnits", None)
+
+            if not perfdata:
+                yield Result(state=State(0), summary="No performance data found")
+            elif units == "Percent":
                 yield from check_levels(
                     perfdata.value,
                     levels_upper=perfdata.levels_upper,
@@ -83,7 +88,16 @@ def check_redfish_fans(item: str, section) -> CheckResult:
                     boundaries=perfdata.boundaries,
                 )
             else:
-                yield Result(state=State(0), summary="No performance data available")
+                yield from check_levels(
+                    perfdata.value,
+                    levels_upper=perfdata.levels_upper,
+                    levels_lower=perfdata.levels_lower,
+                    metric_name="fan",
+                    label="Speed",
+                    render_func=lambda v: "%.1f rpm" % v,
+                    boundaries=perfdata.boundaries,
+                )
+                yield Result(state=State(0), summary="No unit found assume RPM!")
 
             dev_state, dev_msg = redfish_health_state(fan["Status"])
 

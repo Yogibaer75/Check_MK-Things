@@ -49,22 +49,32 @@ def check_redfish_storage(item: str, section) -> CheckResult:
     if data is None:
         return
 
-    controller_list = data.get("StorageControllers")
-    if len(controller_list) >= 1:
+    controller_list = data.get("StorageControllers", [])
+    if len(controller_list) == 1:
         for ctrl_data in controller_list:
             storage_msg = f"Type: {ctrl_data.get('Model')}, \
                 RaidLevels: {','.join(ctrl_data.get('SupportedRAIDTypes', []))}, \
                 DeviceProtocols: {','.join(ctrl_data.get('SupportedDeviceProtocols', []))}"
             dev_state, dev_msg = redfish_health_state(ctrl_data.get("Status", {}))
-            status = dev_state
-            message = dev_msg
-            yield Result(state=State(status), summary=storage_msg, details=message)
+            yield Result(state=State(dev_state), summary=storage_msg, details=dev_msg)
+    elif len(controller_list) > 1:
+        global_state = 0
+        global_msg = ""
+        for ctrl_data in controller_list:
+            storage_msg = f"Type: {ctrl_data.get('Model')}, \
+                RaidLevels: {','.join(ctrl_data.get('SupportedRAIDTypes', []))}, \
+                DeviceProtocols: {','.join(ctrl_data.get('SupportedDeviceProtocols', []))}\n"
+            dev_state, dev_msg = redfish_health_state(ctrl_data.get("Status", {}))
+            global_state = max(global_state, dev_state)
+            yield Result(state=State(dev_state), details=storage_msg, notice=dev_msg)
+        if global_state != 0:
+            global_msg = "One or more controllers with problems"
+        else:
+            global_msg = "All controllers are working properly"
+        yield Result(state=State(global_state), summary=global_msg)
     else:
         dev_state, dev_msg = redfish_health_state(data.get("Status", {}))
-        status = dev_state
-        message = dev_msg
-
-        yield Result(state=State(status), notice=message)
+        yield Result(state=State(dev_state), notice=dev_msg)
 
 
 register.check_plugin(

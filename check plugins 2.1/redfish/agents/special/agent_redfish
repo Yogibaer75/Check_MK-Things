@@ -343,21 +343,17 @@ def store_session_key(redfishobj, host):
     temp_path = Path(cmk.utils.paths.tmp_dir, "agents/agent_redfish")
     temp_path.mkdir(parents=True, exist_ok=True)
     store_path = temp_path / (f"{host}.json")
-    # store_path = paths.tmp_dir / "agents" / "agent_redfish" / f"{host}.json"
     store_data.setdefault("location", redfishobj.get_session_location())
     store_data.setdefault("session", redfishobj.get_session_key())
     with store_path.open("w", encoding="utf-8") as f_handle:
         f_handle.write(json.dumps(store_data))
-    # store.save_text_to_file(store_path, json.dumps(store_data))
 
 
 def load_session_key(host):
     """load existing redfish session data"""
     store_path = Path(cmk.utils.paths.tmp_dir, "agents/agent_redfish", f"{host}.json")
-    # store_path = paths.tmp_dir / "agents" / "agent_redfish" / f"{host}.json"
     if store_path.exists():
         data = json.loads(store_path.open(encoding="utf-8").read())
-        # data = json.loads(store.load_text_from_file(store_path, default="{}"))
         if data.get("session") and data.get("location"):
             return data
     return None
@@ -404,6 +400,7 @@ def get_session(args):
             f"ERROR: too many retries for connection attempt: {excp}\n"
         )
         sys.exit()
+    store_session_key(REDFISHOBJ, args.host)
     return REDFISHOBJ
 
 

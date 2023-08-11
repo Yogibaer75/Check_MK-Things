@@ -46,10 +46,9 @@ def check_redfish_volumes(item: str, section) -> CheckResult:
     data = section.get(item, None)
     if data is None:
         return
-
-    volume_msg = "Raid Type: %s, Size: %0.0fGB" % (
+    volume_msg = "Raid Type: %s, Size: %0.1fGB" % (
         data.get("RAIDType", None),
-        int(data.get("CapacityBytes", 0)) / 1024 / 1024 / 1024,
+        int(data.get("CapacityBytes", 0.0)) / 1024 / 1024 / 1024,
     )
     yield Result(state=State(0), summary=volume_msg)
 

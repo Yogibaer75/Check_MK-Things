@@ -51,12 +51,20 @@ def check_redfish_processors(item: str, section) -> CheckResult:
     if data is None:
         return
 
-    cpu_msg = f"Type: {data.get('ProcessorType')}, Model: {data.get('Model')}"
+    if data.get('Model') == "Undefined":
+        cpu_model = data.get("ProcessorId", {}).get("EffectiveFamily")
+    else:
+        cpu_model = data.get('Model')
+    cpu_msg = f"Type: {data.get('ProcessorType')}, Model: {cpu_model}"
 
     if "TotalCores" in data.keys():
+        if data.get('OperatingSpeedMHz'):
+            cpu_speed = data.get('OperatingSpeedMHz')
+        else:
+            cpu_speed = "maximum " + str(data.get('MaxSpeedMHz'))
         cpu_msg = cpu_msg + f", Cores: {data.get('TotalCores')}, \
             Threads: {data.get('TotalThreads')}, \
-            Speed {data.get('OperatingSpeedMHz')} MHz"
+            Speed {cpu_speed} MHz"
     yield Result(state=State(0), summary=cpu_msg)
 
     dev_state, dev_msg = redfish_health_state(data["Status"])
