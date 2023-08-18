@@ -35,8 +35,9 @@ from .utils.redfish import redfish_health_state
 
 def discovery_redfish_psu(section) -> DiscoveryResult:
     data = section.get("PowerSupplies", None)
-    for count, entry in enumerate(data):
-        yield Service(item="%s-%s" % (count, entry["Name"]))
+    if data:
+        for count, entry in enumerate(data):
+            yield Service(item="%s-%s" % (count, entry["Name"]))
 
 
 def check_redfish_psu(item: str, section) -> CheckResult:
