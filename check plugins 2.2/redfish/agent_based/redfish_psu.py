@@ -37,6 +37,8 @@ def discovery_redfish_psu(section) -> DiscoveryResult:
     data = section.get("PowerSupplies", None)
     if data:
         for count, entry in enumerate(data):
+            if entry.get("Status").get("State") in ["Absent", "Disabled"]:
+                continue
             yield Service(item="%s-%s" % (count, entry["Name"]))
 
 
