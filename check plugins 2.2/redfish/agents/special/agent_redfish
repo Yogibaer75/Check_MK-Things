@@ -251,10 +251,160 @@ def process_result(result):
             sys.stdout.write(f"{result.get(element)}\n")
 
 
+class VendorGeneric:
+    name = "Generic"
+    view_supported = False
+    view_select = None
+    expand_string = ""
+
+
+class VendorHPEData(VendorGeneric):
+    name = "HPE"
+    version = None
+    firmware_version = None
+    expand_string = "?$expand=."
+
+    """
+        Select and store view (supported from ILO 5)
+        ATTENTION: This will only work as long as we are querying servers
+        with "1" System, "1" Chassi and "1" Manager
+        OK for now but will be changed once we have to query blade centers
+    """
+    view_supported = False
+    view_select = {
+        "Select": [
+            {
+                "From": f"/Systems/1/Memory/{expand_string}",
+                "Properties": ["Members AS Memory"]
+            },
+            {
+                "From": f"/Systems/1/Processors/{expand_string}",
+                "Properties": ["Members AS Processors"]
+            },
+            {
+                "From": f"/Systems/1/EthernetInterfaces/{expand_string}",
+                "Properties": ["Members AS EthernetInterfaces"]
+            },
+            {
+                "From": f"/Systems/1/BaseNetworkAdapters/{expand_string}",
+                "Properties": ["Members AS NetworkAdapters"]
+            },
+            {
+                "From": f"/Chassis/1/Power/{expand_string}",
+                "Properties": ["PowerSupplies", "Redundancy AS PowerRedundancy"]
+            },
+            {
+                "From": "/Chassis/1/Thermal/",
+                "Properties": ["Temperatures", "Fans"]
+            },
+            {
+                "From": f"/Managers/{expand_string}",
+                "Properties": ["Members as ILO"]
+            },
+            {
+                "From": f"/Managers/1/EthernetInterfaces/{expand_string}",
+                "Properties": ["Members as ILOInterfaces"]
+            }
+        ]
+    }
+    view_response = None
+
+
+class VendorLenovoData(VendorGeneric):
+    name = "Lenovo"
+    version = None
+    firmware_version = None
+    expand_string = "?$expand=*"
+
+
+class VendorDellData(VendorGeneric):
+    name = "Dell"
+    version = None
+    firmware_version = None
+    expand_string = "?$expand=*($levels=1)"
+
+
+class VendorHuaweiData(VendorGeneric):
+    name = "Huawei"
+    version = None
+    firmware_version = None
+    expand_string = "?$expand=.%28$levels=1%29"
+
+
+class VendorFujitsuData(VendorGeneric):
+    name = "Fujitsu"
+    version = None
+    firmware_version = None
+    expand_string = "?$expand=Members"
+
+
+class VendorCiscoData(VendorGeneric):
+    name = "Cisco"
+    version = None
+    firmware_version = None
+    expand_string = ""
+
+
+class VendorAmiData(VendorGeneric):
+    name = "Ami"
+    version = None
+    firmware_version = None
+    expand_string = ""
+
+
+class VendorSupermicroData(VendorGeneric):
+    name = "Supermicro"
+    version = None
+    firmware_version = None
+    expand_string = ""
+
+
+def detect_vendor(root_data):
+    vendor_string = ""
+    if root_data.get("Oem"):
+        if len(root_data.get("Oem")) > 0:
+            vendor_string = list(root_data.get("Oem"))[0]
+    if vendor_string == "" and root_data.get("Vendor") is not None:
+        vendor_string = root_data.get("Vendor")
+
+    if vendor_string in ["Hpe", "Hp"]:
+        vendor_data = VendorHPEData()
+        manager_data = root_data.get("Oem", {}).get(vendor_string, {}).get("Manager", {})[0]
+        if manager_data:
+            vendor_data.ilo_version = manager_data.get("ManagerType")
+            if vendor_data.ilo_version is None:
+                vendor_data.ilo_version = root_data.get("Oem", {}).get(vendor_string, {}).get("Moniker", {}).get("PRODGEN")
+            vendor_data.ilo_firmware_version = manager_data.get("ManagerFirmwareVersion")
+            if vendor_data.ilo_firmware_version is None:
+                vendor_data.ilo_firmware_version = manager_data.get("Languages", {})[0].get("Version")
+            if vendor_data.ilo_version.lower() == "ilo 5":
+                vendor_data.view_supported = True
+    elif vendor_string in ["Lenovo"]:
+        vendor_data = VendorLenovoData()
+    elif vendor_string in ["Dell"]:
+        vendor_data = VendorDellData()
+    elif vendor_string in ["Huawei"]:
+        vendor_data = VendorHuaweiData()
+    elif vendor_string in ["ts_fujitsu"]:
+        vendor_data = VendorFujitsuData()
+    elif vendor_string in ["Ami"]:
+        vendor_data = VendorAmiData()
+    elif vendor_string in ["Supermicro"]:
+        vendor_data = VendorSupermicroData()
+    elif vendor_string in ["Cisco"]:
+        vendor_data = VendorCiscoData()
+    else:
+        vendor_data = VendorGeneric()
+
+    return vendor_data
+
+
 def get_information(redfishobj, sections):
     """get a the information from the Redfish management interface"""
     sections = sections.split(",")
     base_data = fetch_data(redfishobj, "/redfish/v1", "Base")
+
+    vendor_data = detect_vendor(base_data)
 
     manager_url = base_data.get("Managers").get("@odata.id")
     chassis_url = base_data.get("Chassis").get("@odata.id")

@@ -37,9 +37,9 @@ def discovery_redfish_psu(section) -> DiscoveryResult:
     data = section.get("PowerSupplies", None)
     if data:
         for count, entry in enumerate(data):
-            if entry.get("Status").get("State") in ["Absent", "Disabled"]:
+            if entry.get("Status", {}).get("State") in ["Absent", "Disabled"]:
                 continue
-            yield Service(item="%s-%s" % (count, entry["Name"]))
+            yield Service(item=f"{count}-{entry['Name']}")
 
 
 def check_redfish_psu(item: str, section) -> CheckResult:
@@ -48,7 +48,7 @@ def check_redfish_psu(item: str, section) -> CheckResult:
         return
 
     for count, psu in enumerate(psus):
-        if "%s-%s" % (count, psu.get("Name")) == item:
+        if f"{count}-{psu.get('Name')}" == item:
             output_power = float(
                 0
                 if psu.get("PowerOutputWatts", psu.get("LastPowerOutputWatts")) is None
@@ -74,14 +74,8 @@ def check_redfish_psu(item: str, section) -> CheckResult:
             yield Metric("input_voltage", input_voltage)
 
             model_msg = (
-                "%s Watts input, %s Watts output, %s V input, Capacity %s Watts, Typ %s"
-                % (
-                    input_power,
-                    output_power,
-                    input_voltage,
-                    capacity,
-                    dev_model,
-                )
+                f"{input_power} Watts input, {output_power} Watts output, \
+                    {input_voltage} V input, Capacity {capacity} Watts, Typ {dev_model}"
             )
             yield Result(state=State(0), summary=model_msg)
             dev_state, dev_msg = redfish_health_state(psu["Status"])

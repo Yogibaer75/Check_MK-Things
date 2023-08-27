@@ -46,7 +46,7 @@ def discovery_redfish_fans(section) -> DiscoveryResult:
     """Discover single fans"""
     fans = section.get("Fans", None)
     for fan in fans:
-        if fan.get("Status").get("State") == "Absent":
+        if fan.get("Status", {}).get("State") == "Absent":
             continue
         fan_name = _fan_item_name(fan)
         if fan_name:
