@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# Example output from agent:
+# <<<3par_cage:sep(32)>>>
+# 0 1687417-0 OK      Yes    Yes       Unknown      GreenBlnk   16384    8192          100
+# 1 1687417-1 OK      No     Yes       Unknown      GreenBlnk   16384    8192          100
+
+# The names of the columns are:
+#                                                               Control    Data        Cache
+# Node --Name--- -State- Master InCluster -Service_LED ---LED--- Mem(MB) Mem(MB) Available(%)
+from cmk.base.check_legacy_includes.temperature import check_temperature
+
+
+def inventory_3par_cage(info):
+    inventory = []
+    for line in info:
+        if len(line) == 12 and line[0].isdigit():
+            inventory.append((line[0], None))
+    return inventory
+
+
+def check_3par_cage(item, params, info):
+    for line in info:
+        if line[0] == item:
+            (
+                cage_id,
+                _name,
+                _loopa,
+                _posa,
+                _loopb,
+                _posb,
+                drives,
+                temp,
+                _reva,
+                _revb,
+                _model,
+                _side,
+            ) = line
+            temperatures = temp.split("-")
+            yield check_temperature(
+                float(temperatures[1]), params, f"3par_cage_temp_{item}"
+            )
+            message = f"Cage {cage_id} with {drives} Drives is Available"
+            yield 0, message
+
+    return 3, f"Cage {item} not found in agent output"
+
+
+check_info["3par_cage"] = {
+    "check_function": check_3par_cage,
+    "inventory_function": inventory_3par_cage,
+    "service_description": "Cage %s",
+    "has_perfdata": True,
+    "group": "temperature",
+}
