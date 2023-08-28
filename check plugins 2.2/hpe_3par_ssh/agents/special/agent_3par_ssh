@@ -172,7 +172,7 @@ for module, data in command_options.items():
         exit_code = result.wait()
         lines = stdout.split(b"\n")
         for line in lines:
-            print(str(line))
+            print(line.decode('uft-8'))
 
 
 if exit_code not in [0, 1]:
