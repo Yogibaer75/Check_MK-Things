@@ -25,3 +25,5 @@ To use this agent you need the Redfish Python module installed.
 - 2.2.11 - small formatting problems
 - 2.2.12 - CPU discovery modified, storage controller check modified
 - 2.2.13 - memory check respects HPE special states
+- 2.2.16 - bugfixes for PSU & Temp discovery
+- 2.2.17 - small bug fix to not discover ethernetinterfaces not connected
