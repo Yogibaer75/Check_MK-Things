@@ -17,6 +17,7 @@
 import json
 import logging
 import sys
+from dataclasses import dataclass
 from collections.abc import Sequence
 
 import cmk.utils.password_store
@@ -251,14 +252,18 @@ def process_result(result):
             sys.stdout.write(f"{result.get(element)}\n")
 
 
+@dataclass
 class VendorGeneric:
+    """Generic Vendor settings"""
     name = "Generic"
     view_supported = False
     view_select = None
     expand_string = ""
 
 
+@dataclass
 class VendorHPEData(VendorGeneric):
+    """HPE Settings"""
     name = "HPE"
     version = None
     firmware_version = None
@@ -310,49 +315,63 @@ class VendorHPEData(VendorGeneric):
     view_response = None
 
 
+@dataclass
 class VendorLenovoData(VendorGeneric):
+    """Lenovo Settings"""
     name = "Lenovo"
     version = None
     firmware_version = None
     expand_string = "?$expand=*"
 
 
+@dataclass
 class VendorDellData(VendorGeneric):
+    """Dell Settings"""
     name = "Dell"
     version = None
     firmware_version = None
     expand_string = "?$expand=*($levels=1)"
 
 
+@dataclass
 class VendorHuaweiData(VendorGeneric):
+    """Huawei Settings"""
     name = "Huawei"
     version = None
     firmware_version = None
     expand_string = "?$expand=.%28$levels=1%29"
 
 
+@dataclass
 class VendorFujitsuData(VendorGeneric):
+    """Fujitsu Settings"""
     name = "Fujitsu"
     version = None
     firmware_version = None
     expand_string = "?$expand=Members"
 
 
+@dataclass
 class VendorCiscoData(VendorGeneric):
+    """Cisco Settings"""
     name = "Cisco"
     version = None
     firmware_version = None
     expand_string = ""
 
 
+@dataclass
 class VendorAmiData(VendorGeneric):
+    """Ami Settings"""
     name = "Ami"
     version = None
     firmware_version = None
     expand_string = ""
 
 
+@dataclass
 class VendorSupermicroData(VendorGeneric):
+    """Supermicro Settings"""
     name = "Supermicro"
     version = None
     firmware_version = None
@@ -360,6 +379,7 @@ class VendorSupermicroData(VendorGeneric):
 
 
 def detect_vendor(root_data):
+    """Find Vendor of Redfish Device"""
     vendor_string = ""
     if root_data.get("Oem"):
         if len(root_data.get("Oem")) > 0:
@@ -371,13 +391,14 @@ def detect_vendor(root_data):
         vendor_data = VendorHPEData()
         manager_data = root_data.get("Oem", {}).get(vendor_string, {}).get("Manager", {})[0]
         if manager_data:
-            vendor_data.ilo_version = manager_data.get("ManagerType")
-            if vendor_data.ilo_version is None:
-                vendor_data.ilo_version = root_data.get("Oem", {}).get(vendor_string, {}).get("Moniker", {}).get("PRODGEN")
-            vendor_data.ilo_firmware_version = manager_data.get("ManagerFirmwareVersion")
-            if vendor_data.ilo_firmware_version is None:
-                vendor_data.ilo_firmware_version = manager_data.get("Languages", {})[0].get("Version")
-            if vendor_data.ilo_version.lower() == "ilo 5":
+            vendor_data.version = manager_data.get("ManagerType")
+            if vendor_data.version is None:
+                vendor_data.version = \
+                    root_data.get("Oem", {}).get(vendor_string, {}).get("Moniker", {}).get("PRODGEN")
+            vendor_data.firmware_version = manager_data.get("ManagerFirmwareVersion")
+            if vendor_data.firmware_version is None:
+                vendor_data.firmware_version = manager_data.get("Languages", {})[0].get("Version")
+            if vendor_data.version.lower() == "ilo 5":
                 vendor_data.view_supported = True
     elif vendor_string in ["Lenovo"]:
         vendor_data = VendorLenovoData()
