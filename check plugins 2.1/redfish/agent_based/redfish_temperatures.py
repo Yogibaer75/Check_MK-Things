@@ -40,7 +40,7 @@ def discovery_redfish_temperatures(section) -> DiscoveryResult:
     """Discover temperature sensors"""
     temps = section.get("Temperatures", None)
     for temp in temps:
-        if temp.get("Status").get("State") == "Absent":
+        if temp.get("Status").get("State") in ["Absent", "Disabled"]:
             continue
         if temp.get("Name"):
             yield Service(item=temp.get("Name"))

@@ -21,6 +21,8 @@ def agent_redfish_arguments(
         *(["-p", f"{params['port']}"] if "port" in params else []),
         *(["-P", f"{params['proto']}"] if "proto" in params else []),
         *(["-m", f"{','.join(params['sections'])}"] if "sections" in params else []),
+        *(["--timeout", params['timeout']] if "timeout" in params else []),
+        *(["--retries", params['retries']] if "retries" in params else []),
         ipaddress or hostname,
     ]
 
