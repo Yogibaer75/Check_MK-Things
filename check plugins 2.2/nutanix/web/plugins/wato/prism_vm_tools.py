@@ -33,6 +33,7 @@ def _parameter_valuespec_prism_vm_tools():
                     choices=[
                         ("installed", _("installed")),
                         ("not_installed", _("not installed")),
+                        ("ignored", _("ignored")),
                     ],
                     default_value="installed",
                 ),
@@ -44,6 +45,7 @@ def _parameter_valuespec_prism_vm_tools():
                     choices=[
                         ("enabled", _("enabled")),
                         ("disabled", _("disabled")),
+                        ("ignored", _("ignored")),
                     ],
                     default_value="enabled",
                 ),
