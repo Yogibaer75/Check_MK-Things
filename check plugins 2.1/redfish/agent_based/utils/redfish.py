@@ -124,7 +124,7 @@ def redfish_health_state(state: Dict[str, Any]):
         "Starting": (0, "This resource is starting."),
         "Absent": (1, "This resource is either not present or detected."),
         "Updating": (1, "The element is updating and may be unavailable or degraded"),
-        "UnvailableOffline": (
+        "UnavailableOffline": (
             1,
             "This function or resource is present but cannot be used",
         ),
@@ -164,6 +164,8 @@ def redfish_health_state(state: Dict[str, Any]):
             temp_state, state_msg = state_map.get(
                 state[key], (3, f"Unknown state: {state[key]}")
             )
+        else:
+            continue
         dev_state = max(dev_state, temp_state)
         dev_msg.append(state_msg)
 
