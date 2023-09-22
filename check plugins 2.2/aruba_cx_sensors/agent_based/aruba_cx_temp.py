@@ -19,11 +19,11 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     Service,
     SNMPTree,
     State,
-    startswith,
     OIDEnd,
 )
 
 from cmk.base.plugins.agent_based.utils.temperature import check_temperature, TempParamDict
+from .utils.aruba_cx import (DETECT_ARUBA_CX)
 
 Section = Dict[str, Any]
 
@@ -36,7 +36,7 @@ def parse_arbua_cx_temp(string_table: StringTable) -> Optional[Section]:
             parsed.setdefault(line[1], {"state": line[2], "temp": float(line[3]) / 1000})
         return parsed
     except IndexError:
-        pass
+        return {}
 
 
 def discovery_arbua_cx_temp(section: Section) -> DiscoveryResult:
@@ -73,7 +73,7 @@ register.snmp_section(
             '7',
         ]
     ),
-    detect=startswith('.1.3.6.1.2.1.1.2.0', '.1.3.6.1.4.1.47196.4.1.1.1.270'),
+    detect=DETECT_ARUBA_CX,
 )
 
 register.check_plugin(
