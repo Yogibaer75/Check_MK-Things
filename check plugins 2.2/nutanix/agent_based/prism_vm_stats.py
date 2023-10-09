@@ -138,6 +138,8 @@ def check_prism_vm_stats_mem(params: Mapping[str, Any], section: Section) -> Che
             metric_name="mem_used",
         )
         yield Metric("mem_total", mem_total)
+    else:
+        yield Result(state=State.OK, summary="No memory usage data available")
 
 
 register.check_plugin(
