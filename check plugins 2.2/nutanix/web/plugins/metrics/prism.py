@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 from cmk.gui.plugins.metrics.utils import check_metrics, metric_info
-from cmk.gui.plugins.metrics.translation import df_translation
+from cmk.gui.plugins.metrics.translation import df_translation, if_translation
 
 check_metrics["check_mk-prism_host_usage"] = df_translation
 check_metrics["check_mk-prism_containers"] = df_translation
 check_metrics["check_mk-prism_storage_pools"] = df_translation
+check_metrics["check_mk-prism_host_networks"] = if_translation
 
 # prism_protection_domains
 
