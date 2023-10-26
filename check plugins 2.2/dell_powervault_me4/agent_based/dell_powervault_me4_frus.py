@@ -30,7 +30,7 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     Service,
 )
 
-from .dell_powervault_me4 import (parse_dell_powervault_me4)
+from .utils.dell_powervault_me4 import parse_dell_powervault_me4
 
 register.agent_section(
     name="dell_powervault_me4_frus",
@@ -44,7 +44,9 @@ def discovery_dell_powervault_me4_frus(section) -> DiscoveryResult:
 
 
 def check_dell_powervault_me4_frus(item: str, params, section) -> CheckResult:
-    data = section.get(item)
+    data = section.get(item, {})
+    if not data:
+        return
     fru_states = {
         0: ("OK", 0),
         1: ("Degraded", 1),
@@ -52,10 +54,10 @@ def check_dell_powervault_me4_frus(item: str, params, section) -> CheckResult:
         3: ("Unknown", 3),
     }
 
-    state_text, status_num = fru_states.get(data.get("fru-status-numeric", 5),
-                                            ("N/A", 0))
-    message = "%s state is %s" % (data.get("description",
-                                           "Unknown"), state_text)
+    state_text, status_num = fru_states.get(
+        data.get("fru-status-numeric", 5), ("N/A", 0)
+    )
+    message = f"{data.get('description', 'Unknown')} state is {state_text}"
 
     yield Result(state=State(status_num), summary=message)
 
@@ -65,7 +67,7 @@ register.check_plugin(
     service_name="Fru %s",
     sections=["dell_powervault_me4_frus"],
     check_default_parameters={
-        'fru_state': 0,
+        "fru_state": 0,
     },
     discovery_function=discovery_dell_powervault_me4_frus,
     check_function=check_dell_powervault_me4_frus,

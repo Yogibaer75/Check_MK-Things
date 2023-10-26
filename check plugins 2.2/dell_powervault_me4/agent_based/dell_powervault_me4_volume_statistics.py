@@ -32,7 +32,7 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     Metric,
 )
 
-from .dell_powervault_me4 import (parse_dell_powervault_me4)
+from .utils.dell_powervault_me4 import parse_dell_powervault_me4
 
 register.agent_section(
     name="dell_powervault_me4_volume_statistics",
@@ -40,23 +40,24 @@ register.agent_section(
 )
 
 
-def discovery_dell_powervault_me4_volume_statistics(
-        section) -> DiscoveryResult:
+def discovery_dell_powervault_me4_volume_statistics(section) -> DiscoveryResult:
     for item in section:
         yield Service(item=item)
 
 
-def check_dell_powervault_me4_volume_statistics(item: str, params,
-                                                section) -> CheckResult:
-    data = section.get(item)
+def check_dell_powervault_me4_volume_statistics(
+    item: str, params, section
+) -> CheckResult:
+    data = section.get(item, {})
+    if not data:
+        return
     sas_percent = data.get("percent-tier-sas")
     sata_percent = data.get("percent-tier-sata")
     ssd_percent = data.get("percent-tier-ssd")
     iops = data.get("iops")
     bytespersecond = data.get("bytes-per-second-numeric")
-    message = "Usage SSD: %s%%, SAS %s%%, SATA %s%%, IOPS %s/s, Bytes %s/s" % (
-        ssd_percent, sas_percent, sata_percent, iops,
-        render.bytes(bytespersecond))
+    message = f"Usage SSD: {ssd_percent}%, SAS {sas_percent}%, SATA {sata_percent}%, \
+                IOPS {iops}/s, Bytes {render.bytes(bytespersecond)}/s"
 
     yield Metric("ssd_usage", ssd_percent)
     yield Metric("sas_usage", sas_percent)
@@ -71,7 +72,7 @@ register.check_plugin(
     service_name="Volume Stats %s",
     sections=["dell_powervault_me4_volume_statistics"],
     check_default_parameters={
-        'vol_state': 0,
+        "vol_state": 0,
     },
     discovery_function=discovery_dell_powervault_me4_volume_statistics,
     check_function=check_dell_powervault_me4_volume_statistics,

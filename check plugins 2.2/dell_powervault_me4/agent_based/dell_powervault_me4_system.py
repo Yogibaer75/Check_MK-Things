@@ -30,7 +30,7 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     Service,
 )
 
-from .dell_powervault_me4 import (parse_dell_powervault_me4)
+from .utils.dell_powervault_me4 import (parse_dell_powervault_me4)
 
 register.agent_section(
     name="dell_powervault_me4_system",
@@ -45,7 +45,7 @@ def discovery_dell_powervault_me4_system(section) -> DiscoveryResult:
 
 def check_dell_powervault_me4_system(item: str, params,
                                      section) -> CheckResult:
-    data = section.get(item)
+    data = section.get(item, {})
     if not data:
         return
     system_states = {
@@ -57,8 +57,7 @@ def check_dell_powervault_me4_system(item: str, params,
 
     state_text, status_num = system_states.get(data.get("health-numeric", 3),
                                                ("Unknown", 3))
-    message = "with serial %s is %s" % (data.get("midplane-serial-number"),
-                                        state_text)
+    message = f"with serial {data.get('midplane-serial-number')} is {state_text}"
 
     yield Result(state=State(status_num), summary=message)
 

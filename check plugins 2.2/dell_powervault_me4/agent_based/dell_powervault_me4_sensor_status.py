@@ -31,7 +31,7 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     Metric,
 )
 
-from .dell_powervault_me4 import (parse_dell_powervault_me4)
+from .utils.dell_powervault_me4 import (parse_dell_powervault_me4)
 
 register.agent_section(
     name="dell_powervault_me4_sensor_status",
@@ -46,7 +46,9 @@ def discovery_dell_powervault_me4_sensor_status(section) -> DiscoveryResult:
 
 def check_dell_powervault_me4_sensor_status(item: str, params,
                                             section) -> CheckResult:
-    data = section.get(item)
+    data = section.get(item, {})
+    if not data:
+        return
     sensor_states = {
         0: ("Unsupported", 3),
         1: ("OK", 0),
@@ -71,9 +73,9 @@ def check_dell_powervault_me4_sensor_status(item: str, params,
         data.get("sensor-type", "Unknown"), ("", "count"))
     state_text, status_num = sensor_states.get(data.get("status-numeric", 7),
                                                ("Unknown", 3))
-    message = "Sensor state is %s" % (state_text)
+    message = f"Sensor state is {state_text}"
     if value_number != "":
-        message += " with reading %s%s" % (value_number, status_unit)
+        message += f" with reading {value_number}{status_unit}"
     yield Result(state=State(status_num), summary=message)
 
     if status_unit != "":

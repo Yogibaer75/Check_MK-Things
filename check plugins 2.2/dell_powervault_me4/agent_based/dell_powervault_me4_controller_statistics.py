@@ -19,7 +19,7 @@
 #
 from typing import Any, Mapping
 
-from .agent_based_api.v1.type_defs import (
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
 )
@@ -33,7 +33,7 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     Metric,
 )
 
-from .dell_powervault_me4 import (parse_dell_powervault_me4)
+from .utils.dell_powervault_me4 import parse_dell_powervault_me4
 
 register.agent_section(
     name="dell_powervault_me4_controller_statistics",
@@ -41,23 +41,23 @@ register.agent_section(
 )
 
 
-def discovery_dell_powervault_me4_controller_statistics(
-        section) -> DiscoveryResult:
+def discovery_dell_powervault_me4_controller_statistics(section) -> DiscoveryResult:
     for item in section:
         yield Service(item=item)
 
 
-def check_dell_powervault_me4_controller_statistics(item: str,
-                                                    params: Mapping[str, Any],
-                                                    section) -> CheckResult:
-
-    data = section.get(item)
+def check_dell_powervault_me4_controller_statistics(
+    item: str, params: Mapping[str, Any], section
+) -> CheckResult:
+    data = section.get(item, {})
+    if not data:
+        return
     iops = data.get("iops")
     bytespersecond = data.get("bytes-per-second-numeric")
     data_read = data.get("data-read")
     data_write = data.get("data-written")
-    message = "Written data %s and read data %s, IOPS %s/s, Bytes %s/s" % (
-        data_write, data_read, iops, render.bytes(bytespersecond))
+    message = f"Written data {data_write} and read data {data_read}, \
+                IOPS {iops}/s, Bytes {render.bytes(bytespersecond)}/s"
     yield Metric("iops", iops)
     yield Metric("bytes", bytespersecond)
     yield Result(state=State(0), summary=message)

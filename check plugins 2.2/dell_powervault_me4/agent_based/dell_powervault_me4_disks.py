@@ -31,10 +31,12 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     get_value_store,
 )
 
-from .utils.temperature import (
-    check_temperature, TempParamDict)
+from cmk.base.plugins.agent_based.utils.temperature import (
+    check_temperature,
+    TempParamDict,
+)
 
-from .dell_powervault_me4 import (parse_dell_powervault_me4)
+from .utils.dell_powervault_me4 import parse_dell_powervault_me4
 
 register.agent_section(
     name="dell_powervault_me4_disks",
@@ -47,8 +49,12 @@ def discovery_dell_powervault_me4_disks(section) -> DiscoveryResult:
         yield Service(item=item)
 
 
-def check_dell_powervault_me4_disks(item: str, params: TempParamDict, section) -> CheckResult:
-    data = section.get(item)
+def check_dell_powervault_me4_disks(
+    item: str, params: TempParamDict, section
+) -> CheckResult:
+    data = section.get(item, {})
+    if not data:
+        return
     disk_states = {
         0: ("OK", 0),
         1: ("Degraded", 1),
@@ -65,24 +71,26 @@ def check_dell_powervault_me4_disks(item: str, params: TempParamDict, section) -
         9: "VIRTUAL POOL",
     }
 
-    state_text, status_num = disk_states.get(data.get("health-numeric", 3),
-                                             ("Unknown", 3))
-    message = "%s disk with size %s is %s" % (data.get(
-        "description", "Unknown"), data.get("size"), state_text)
+    state_text, status_num = disk_states.get(
+        data.get("health-numeric", 3), ("Unknown", 3)
+    )
+    message = f"{data.get('description', 'Unknown')} disk with \
+                size {data.get('size')} is {state_text}"
     if status_num == 3 and data.get("usage-numeric") == 3:
         state_text, status_num = ("Global SP", 0)
 
-    message += ", disk usage is %s" % usage_numeric.get(data.get("usage-numeric"))
+    disk_usage = usage_numeric.get(data.get("usage-numeric"))
+    message += f", disk usage is {disk_usage}"
 
     yield Result(state=State(status_num), summary=message)
 
     value = data.get("temperature")
-    value_number = ''.join(c for c in value if (c.isdigit() or c == "."))
+    value_number = "".join(c for c in value if (c.isdigit() or c == "."))
 
     yield from check_temperature(
         float(value_number),
         params,
-        unique_name="m4.disk.temp.%s" % item,
+        unique_name=f"m4.disk.temp.{item}",
         value_store=get_value_store(),
     )
 

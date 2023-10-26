@@ -30,7 +30,7 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     Service,
 )
 
-from .dell_powervault_me4 import (parse_dell_powervault_me4)
+from .utils.dell_powervault_me4 import parse_dell_powervault_me4
 
 register.agent_section(
     name="dell_powervault_me4_volumes",
@@ -43,9 +43,10 @@ def discovery_dell_powervault_me4_volumes(section) -> DiscoveryResult:
         yield Service(item=item)
 
 
-def check_dell_powervault_me4_volumes(item: str, params,
-                                      section) -> CheckResult:
-    data = section.get(item)
+def check_dell_powervault_me4_volumes(item: str, params, section) -> CheckResult:
+    data = section.get(item, {})
+    if not data:
+        return
     vol_states = {
         0: ("OK", 0),
         1: ("Degraded", 1),
@@ -53,10 +54,10 @@ def check_dell_powervault_me4_volumes(item: str, params,
         3: ("Unknown", 3),
     }
 
-    state_text, status_num = vol_states.get(data.get("health-numeric", 3),
-                                            ("Unknown", 3))
-    message = "%s with %s total size is %s" % (
-        data.get("volume-name"), data.get("total-size"), state_text)
+    state_text, status_num = vol_states.get(
+        data.get("health-numeric", 3), ("Unknown", 3)
+    )
+    message = f"{data.get('volume-name')} with {data.get('total-size')} total size is {state_text}"
     yield Result(state=State(status_num), summary=message)
 
 
@@ -65,7 +66,7 @@ register.check_plugin(
     service_name="Volume %s",
     sections=["dell_powervault_me4_volumes"],
     check_default_parameters={
-        'vol_state': 0,
+        "vol_state": 0,
     },
     discovery_function=discovery_dell_powervault_me4_volumes,
     check_function=check_dell_powervault_me4_volumes,

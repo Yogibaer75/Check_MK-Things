@@ -30,7 +30,7 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     Service,
 )
 
-from .dell_powervault_me4 import (parse_dell_powervault_me4)
+from .utils.dell_powervault_me4 import (parse_dell_powervault_me4)
 
 register.agent_section(
     name="dell_powervault_me4_power_supplies",
@@ -45,7 +45,9 @@ def discovery_dell_powervault_me4_power_supplies(section) -> DiscoveryResult:
 
 def check_dell_powervault_me4_power_supplies(item: str, params,
                                              section) -> CheckResult:
-    data = section.get(item)
+    data = section.get(item, {})
+    if not data:
+        return
     psu_states = {
         0: ("OK", 0),
         1: ("Degraded", 1),
@@ -55,8 +57,7 @@ def check_dell_powervault_me4_power_supplies(item: str, params,
 
     state_text, status_num = psu_states.get(data.get("health-numeric", 3),
                                             ("Unknown", 3))
-    message = "%s state is %s" % (data.get("description",
-                                           "Unknown"), state_text)
+    message = f"{data.get('description','Unknown')} state is {state_text}"
 
     yield Result(state=State(status_num), summary=message)
 

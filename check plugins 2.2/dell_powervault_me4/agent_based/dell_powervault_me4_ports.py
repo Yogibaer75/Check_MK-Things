@@ -30,7 +30,7 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     Service,
 )
 
-from .dell_powervault_me4 import (parse_dell_powervault_me4)
+from .utils.dell_powervault_me4 import parse_dell_powervault_me4
 
 register.agent_section(
     name="dell_powervault_me4_ports",
@@ -40,13 +40,13 @@ register.agent_section(
 
 def discovery_dell_powervault_me4_ports(section) -> DiscoveryResult:
     for item in section:
-        yield Service(
-            item=item,
-            parameters={"state": section[item]["health-numeric"]})
+        yield Service(item=item, parameters={"state": section[item]["health-numeric"]})
 
 
 def check_dell_powervault_me4_ports(item: str, params, section) -> CheckResult:
-    data = section.get(item)
+    data = section.get(item, {})
+    if not data:
+        return
     port_states = {
         0: ("OK", 0),
         1: ("Degraded", 1),
@@ -61,15 +61,20 @@ def check_dell_powervault_me4_ports(item: str, params, section) -> CheckResult:
         inv_state_num = False
         inv_state_text = ""
 
-    state_text, status_num = port_states.get(data.get("health-numeric", 3), ("Unknown", 3))
+    state_text, status_num = port_states.get(
+        data.get("health-numeric", 3), ("Unknown", 3)
+    )
 
     if data.get("status") == "Disconnected":
         message = "is not connected(!)"
     else:
-        message = "with %s has state %s - health state is %s" % (data.get("actual-speed"), data.get("status"), state_text)
+        message = f"with {data.get('actual-speed')} has state {data.get('status')} \
+                   - health state is {state_text}"
 
     if (int(status_num) != int(inv_state_num)) and params:
-        message += " - state changed since inventory from %s to %s(!)" % (inv_state_text, state_text)
+        message += (
+            f" - state changed since inventory from {inv_state_text} to {state_text}(!)"
+        )
         status_num = max(status_num, 1)
 
     yield Result(state=State(status_num), summary=message)
@@ -80,7 +85,7 @@ register.check_plugin(
     service_name="Port %s",
     sections=["dell_powervault_me4_ports"],
     check_default_parameters={
-        'port_state': 0,
+        "port_state": 0,
     },
     discovery_function=discovery_dell_powervault_me4_ports,
     check_function=check_dell_powervault_me4_ports,

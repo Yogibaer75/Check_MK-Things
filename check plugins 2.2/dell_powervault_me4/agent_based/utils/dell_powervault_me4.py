@@ -33,11 +33,12 @@ def parse_dell_powervault_me4(string_table):
     import ast
     data = ast.literal_eval(string_table[0][0])
 
-    for key in items:
+    for key, dev_id in items.items():
         if data.get(key, False):
             elements = data.get(key)
             for element in elements:
-                item = element.get(items[key])
-                parsed.setdefault(item, element)
+                item = element.get(dev_id)
+                if item:
+                    parsed.setdefault(item, element)
 
     return parsed

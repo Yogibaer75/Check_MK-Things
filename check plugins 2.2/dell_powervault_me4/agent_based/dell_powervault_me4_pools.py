@@ -30,7 +30,7 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     Service,
 )
 
-from .dell_powervault_me4 import (parse_dell_powervault_me4)
+from .utils.dell_powervault_me4 import parse_dell_powervault_me4
 
 register.agent_section(
     name="dell_powervault_me4_pools",
@@ -44,7 +44,9 @@ def discovery_dell_powervault_me4_pools(section) -> DiscoveryResult:
 
 
 def check_dell_powervault_me4_pools(item: str, params, section) -> CheckResult:
-    data = section.get(item)
+    data = section.get(item, {})
+    if not data:
+        return
     pool_states = {
         0: ("OK", 0),
         1: ("Degraded", 1),
@@ -52,11 +54,11 @@ def check_dell_powervault_me4_pools(item: str, params, section) -> CheckResult:
         3: ("Unknown", 3),
     }
 
-    state_text, status_num = pool_states.get(data.get("health-numeric", 3),
-                                             ("Unknown", 3))
-    message = "Pool %s with %s total size is %s, available capacity %s" % (
-        data.get("name"), data.get("total-size"), state_text,
-        data.get("total-avail"))
+    state_text, status_num = pool_states.get(
+        data.get("health-numeric", 3), ("Unknown", 3)
+    )
+    message = f"Pool {data.get('name')} with {data.get('total-size')} \
+                total size is {state_text}, available capacity {data.get('total-avail')}"
 
     yield Result(state=State(status_num), summary=message)
 
@@ -66,7 +68,7 @@ register.check_plugin(
     service_name="Pool %s",
     sections=["dell_powervault_me4_pools"],
     check_default_parameters={
-        'pool_state': 0,
+        "pool_state": 0,
     },
     discovery_function=discovery_dell_powervault_me4_pools,
     check_function=check_dell_powervault_me4_pools,
