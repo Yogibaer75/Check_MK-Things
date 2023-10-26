@@ -46,6 +46,8 @@ def discovery_dell_powervault_me4_system(section) -> DiscoveryResult:
 def check_dell_powervault_me4_system(item: str, params,
                                      section) -> CheckResult:
     data = section.get(item)
+    if not data:
+        return
     system_states = {
         0: ("OK", 0),
         1: ("Degraded", 1),
