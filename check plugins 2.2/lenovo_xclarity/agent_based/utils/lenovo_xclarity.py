@@ -92,7 +92,7 @@ def parse_lenovo_xclarity(string_table) -> Section:
 def discovery_lenovo_xclarity_multiple(section: Section) -> DiscoveryResult:
     for item in section.items():
         key, data = item
-        if data.get("Status", {}).get("State") == "Absent":
+        if data.get("Status", {}).get("State") in ["Absent", "Disabled"]:
             continue
         yield Service(item=key)
 
