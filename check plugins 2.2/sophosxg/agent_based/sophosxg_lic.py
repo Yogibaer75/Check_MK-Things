@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# (c) Matthias Binder 'hds@kpc.de'
-# Rework: Andreas Doehler 'andreas.doehler@bechtle.com'
-# License: GNU General Public License
+# (c) Matthias Binder 'hds@kpc.de' - K&P Computer Service- und Vertriebs-GmbH
+# (c) Andreas Doehler 'andreas.doehler@bechtle.com'
+# License: GNU General Public License v2
 
 from typing import Any, Dict, Optional
 from datetime import datetime
