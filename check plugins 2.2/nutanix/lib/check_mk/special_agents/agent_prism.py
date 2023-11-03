@@ -93,7 +93,7 @@ def output_hosts(requester: Requester) -> None:
         with ConditionalPiggybackSection(element.get("name")):
             with SectionWriter("prism_host") as w:
                 w.append_json(element)
-            networks = requester.get("hosts/%s/host_nics" % element.get("uuid"))
+            networks = requester.get(f"hosts/{element.get('uuid')}/host_nics")
             with SectionWriter("prism_host_networks") as w:
                 w.append_json(networks)
 

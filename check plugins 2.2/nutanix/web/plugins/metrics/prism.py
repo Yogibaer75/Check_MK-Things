@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from cmk.gui.i18n import _
 from cmk.gui.plugins.metrics.utils import check_metrics, metric_info
 from cmk.gui.plugins.metrics.translation import df_translation, if_translation
 

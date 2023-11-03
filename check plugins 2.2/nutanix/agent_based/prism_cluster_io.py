@@ -13,8 +13,15 @@
 # Boston, MA 02110-1301 USA.
 from typing import Any, Dict, Mapping
 
-from cmk.base.plugins.agent_based.agent_based_api.v1 import check_levels, register, Service
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import CheckResult, DiscoveryResult
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
+    check_levels,
+    register,
+    Service
+)
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+    CheckResult,
+    DiscoveryResult
+)
 
 Section = Dict[str, Mapping[str, Any]]
 
@@ -38,7 +45,7 @@ def check_prism_cluster_io(params: Mapping[str, Any], section: Section) -> Check
             levels_upper=params["io"],
             metric_name="prism_cluster_iobw",
             label="I/O Bandwidth",
-            render_func=lambda d: "%.2f MB/s" % d,
+            render_func=lambda d: f"{d:.2f} MB/s",
         )
 
     iops_used = section.get("stats", {}).get("controller_num_iops")
@@ -60,7 +67,7 @@ def check_prism_cluster_io(params: Mapping[str, Any], section: Section) -> Check
             levels_upper=params["iolat"],
             metric_name="prism_cluster_iolatency",
             label="I/O Latency",
-            render_func=lambda d: "%.1f ms" % d,
+            render_func=lambda d: f"{d:.1f} ms",
         )
 
 

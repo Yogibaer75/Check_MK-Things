@@ -11,22 +11,16 @@
 # License along with GNU Make; see the file  COPYING.  If  not,  write
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
-import time
 from typing import Any, Dict, Mapping, Sequence
 
-from cmk.base.plugins.agent_based.agent_based_api.v1 import register, render, Result, Service, State, get_value_store
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import CheckResult, DiscoveryResult, StringTable
-from .utils.prism import load_json
-from cmk.base.plugins.agent_based.utils.interfaces import (
-    Attributes,
-    Counters,
-    Rates,
-    InterfaceWithRates,
-    check_single_interface,
-    mac_address_from_hexstring,
-    InterfaceWithRatesAndAverages
+from cmk.base.plugins.agent_based.agent_based_api.v1 import register
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+    CheckResult,
+    DiscoveryResult,
+    StringTable,
 )
 from cmk.base.plugins.agent_based.utils import interfaces
+from .utils.prism import load_json
 
 
 Section = Dict[str, Mapping[str, Any]]
@@ -46,31 +40,45 @@ register.agent_section(
 )
 
 
-def _create_interface(section: Section) -> interfaces.Section[interfaces.InterfaceWithRates]:
+def _create_interface(
+    section: Section,
+) -> interfaces.Section[interfaces.InterfaceWithRates]:
     return [
-        InterfaceWithRates(
+        interfaces.InterfaceWithRates(
             attributes=interfaces.Attributes(
                 index=str(index),
                 descr=name,
                 alias=name,
                 type=6,
-                speed=(0 if not raw_stats["link_speed_in_kbps"] else float(raw_stats["link_speed_in_kbps"]) * 1000),
+                speed=(
+                    0
+                    if not raw_stats["link_speed_in_kbps"]
+                    else float(raw_stats["link_speed_in_kbps"]) * 1000
+                ),
                 oper_status=("1" if raw_stats["link_speed_in_kbps"] else "2"),
-                phys_address=mac_address_from_hexstring(raw_stats.get("mac_address", "")),
+                phys_address=interfaces.mac_address_from_hexstring(
+                    raw_stats.get("mac_address", "")
+                ),
             ),
             rates=interfaces.Rates(
                 in_octets=float(raw_stats["stats"]["network.received_bytes"]) / 30,
                 in_ucast=float(raw_stats["stats"]["network.received_pkts"]) / 30,
-                in_mcast=float(raw_stats["stats"]["network.multicast_received_pkts"]) / 30,
-                in_bcast=float(raw_stats["stats"]["network.broadcast_received_pkts"]) / 30,
+                in_mcast=(
+                    float(raw_stats["stats"]["network.multicast_received_pkts"]) / 30),
+                in_bcast=(
+                    float(raw_stats["stats"]["network.broadcast_received_pkts"]) / 30),
                 in_disc=float(raw_stats["stats"]["network.dropped_received_pkts"]) / 30,
                 in_err=float(raw_stats["stats"]["network.error_received_pkts"]) / 30,
                 out_octets=float(raw_stats["stats"]["network.transmitted_bytes"]) / 30,
                 out_ucast=float(raw_stats["stats"]["network.transmitted_pkts"]) / 30,
-                out_mcast=float(raw_stats["stats"]["network.multicast_transmitted_pkts"]) / 30,
-                out_bcast=float(raw_stats["stats"]["network.broadcast_transmitted_pkts"]) / 30,
-                out_disc=float(raw_stats["stats"]["network.dropped_transmitted_pkts"]) / 30,
-                out_err=float(raw_stats["stats"]["network.error_transmitted_pkts"]) / 30,
+                out_mcast=(
+                    float(raw_stats["stats"]["network.multicast_transmitted_pkts"]) / 30),
+                out_bcast=(
+                    float(raw_stats["stats"]["network.broadcast_transmitted_pkts"]) / 30),
+                out_disc=(
+                    float(raw_stats["stats"]["network.dropped_transmitted_pkts"]) / 30),
+                out_err=(
+                    float(raw_stats["stats"]["network.error_transmitted_pkts"]) / 30),
             ),
             get_rate_errors=[],
         )
@@ -78,14 +86,18 @@ def _create_interface(section: Section) -> interfaces.Section[interfaces.Interfa
     ]
 
 
-def discovery_prism_host_networks(params: Sequence[Mapping[str, Any]], section: Section) -> DiscoveryResult:
+def discovery_prism_host_networks(
+    params: Sequence[Mapping[str, Any]], section: Section
+) -> DiscoveryResult:
     yield from interfaces.discover_interfaces(
         params,
         _create_interface(section),
     )
 
 
-def check_prism_host_networks(item: str, params: Mapping[str, Any], section: Section) -> CheckResult:
+def check_prism_host_networks(
+    item: str, params: Mapping[str, Any], section: Section
+) -> CheckResult:
     data = section.get(item)
     if not data:
         return
@@ -109,4 +121,3 @@ register.check_plugin(
     check_function=check_prism_host_networks,
     check_ruleset_name="if",
 )
-
