@@ -14,9 +14,11 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
+import json
 from typing import Any, Dict, NamedTuple, Optional, Tuple
 from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     DiscoveryResult,
+    StringTable,
 )
 
 from cmk.base.plugins.agent_based.agent_based_api.v1 import (
@@ -24,11 +26,11 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
 )
 
 Levels = Optional[Tuple[float, float]]
+RedfishAPIData = Dict[str, Any]
 
 
 class Perfdata(NamedTuple):
     """normal monitoring performance data"""
-
     name: str
     value: float
     levels_upper: Levels
@@ -36,27 +38,24 @@ class Perfdata(NamedTuple):
     boundaries: Optional[Tuple[Optional[float], Optional[float]]]
 
 
-def parse_redfish(string_table):
+def parse_redfish(string_table: StringTable) -> RedfishAPIData:
     """parse one line of data to dictionary"""
-    import ast
-
-    parsed = {}
-    parsed = ast.literal_eval(string_table[0][0])
-
-    return parsed
+    try:
+        return json.loads(string_table[0][0])
+    except (IndexError, json.decoder.JSONDecodeError):
+        return {}
 
 
-def parse_redfish_multiple(string_table):
+def parse_redfish_multiple(string_table: StringTable) -> RedfishAPIData:
     """parse list of device dictionaries to one dictionary"""
     hpe_matches = [
         "SmartStorageDiskDrive",
         "SmartStorageLogicalDrive",
     ]
-    import ast
 
     parsed = {}
     for line in string_table:
-        entry = ast.literal_eval(line[0])
+        entry = json.loads(line[0])
         if any(x in entry.get("@odata.type") for x in hpe_matches):
             item = redfish_item_hpe(entry)
         else:
@@ -65,7 +64,7 @@ def parse_redfish_multiple(string_table):
     return parsed
 
 
-def discovery_redfish_multiple(section) -> DiscoveryResult:
+def discovery_redfish_multiple(section: RedfishAPIData) -> DiscoveryResult:
     """Discovery multiple items from one dictionary"""
     for item in section:
         yield Service(item=item)
@@ -80,7 +79,7 @@ def _try_convert_to_float(value: str) -> Optional[float]:
         return None
 
 
-def redfish_item_hpe(section):
+def redfish_item_hpe(section: RedfishAPIData):
     """Item names for HPE devices"""
     # Example
     # "/redfish/v1/Systems/1/SmartStorage/ArrayControllers/0/LogicalDrives/1/"
@@ -164,10 +163,9 @@ def redfish_health_state(state: Dict[str, Any]):
             temp_state, state_msg = state_map.get(
                 state[key], (3, f"Unknown state: {state[key]}")
             )
-        else:
-            continue
         dev_state = max(dev_state, temp_state)
-        dev_msg.append(state_msg)
+        if state_msg:
+            dev_msg.append(state_msg)
 
     if not dev_msg:
         dev_msg.append("No state information found")
@@ -175,7 +173,7 @@ def redfish_health_state(state: Dict[str, Any]):
     return dev_state, ", ".join(dev_msg)
 
 
-def process_redfish_perfdata(entry):
+def process_redfish_perfdata(entry: Dict[str, Any]):
     """Redfish performance data to monitoring performance data"""
     name = entry.get("Name")
     value = None

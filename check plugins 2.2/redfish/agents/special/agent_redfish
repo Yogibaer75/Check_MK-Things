@@ -17,21 +17,20 @@
 import json
 import logging
 import sys
-from dataclasses import dataclass
 from collections.abc import Sequence
 
 import cmk.utils.password_store
 import redfish
 import urllib3
-from cmk.special_agents.utils.agent_common import special_agent_main
+from cmk.special_agents.utils.agent_common import SectionWriter, special_agent_main
 from cmk.special_agents.utils.argument_parsing import (
-    Args, create_default_argument_parser)
+    Args,
+    create_default_argument_parser,
+)
 from cmk.utils import paths, store
 from redfish.rest.v1 import RetriesExhaustedError, ServerDownOrUnreachableError
 
 cmk.utils.password_store.replace_passwords()
-
-LOGGER = logging.getLogger("agent_redfish")
 
 
 def parse_arguments(argv: Sequence[str] | None) -> Args:
@@ -110,7 +109,7 @@ def parse_arguments(argv: Sequence[str] | None) -> Args:
     parser.add_argument(
         "host",
         metavar="HOSTNAME",
-        help="""IP address or hostname of your Netapp E-Series Controller""",
+        help="""IP address or hostname of your Redfish compatible BMC""",
     )
 
     return parser.parse_args(argv)
@@ -244,26 +243,28 @@ def fetch_extra_data(redfishobj, data_model, extra_links, sections, data):
 def process_result(result):
     """process and output a fetched result set"""
     for element in list(result.keys()):
-        sys.stdout.write(f"<<<redfish_{element.lower()}:sep(0)>>>\n")
-        if isinstance(result.get(element), list):
-            for entry in result.get(element):
-                sys.stdout.write(f"{entry}\n")
-        else:
-            sys.stdout.write(f"{result.get(element)}\n")
+        with SectionWriter(f"redfish_{element.lower()}") as w:
+            if isinstance(result.get(element), list):
+                for entry in result.get(element):
+                    w.append_json(entry)
+            else:
+                w.append_json(result.get(element))
 
 
-@dataclass
 class VendorGeneric:
-    """Generic Vendor settings"""
+    """Generic Vendor Definition"""
+
     name = "Generic"
+    version = None
+    firmware_version = None
     view_supported = False
     view_select = None
     expand_string = ""
 
 
-@dataclass
 class VendorHPEData(VendorGeneric):
-    """HPE Settings"""
+    """HPE specific settings"""
+
     name = "HPE"
     version = None
     firmware_version = None
@@ -280,98 +281,92 @@ class VendorHPEData(VendorGeneric):
         "Select": [
             {
                 "From": f"/Systems/1/Memory/{expand_string}",
-                "Properties": ["Members AS Memory"]
+                "Properties": ["Members AS Memory"],
             },
             {
                 "From": f"/Systems/1/Processors/{expand_string}",
-                "Properties": ["Members AS Processors"]
+                "Properties": ["Members AS Processors"],
             },
             {
                 "From": f"/Systems/1/EthernetInterfaces/{expand_string}",
-                "Properties": ["Members AS EthernetInterfaces"]
+                "Properties": ["Members AS EthernetInterfaces"],
             },
             {
                 "From": f"/Systems/1/BaseNetworkAdapters/{expand_string}",
-                "Properties": ["Members AS NetworkAdapters"]
+                "Properties": ["Members AS NetworkAdapters"],
             },
             {
                 "From": f"/Chassis/1/Power/{expand_string}",
-                "Properties": ["PowerSupplies", "Redundancy AS PowerRedundancy"]
+                "Properties": ["PowerSupplies", "Redundancy AS PowerRedundancy"],
             },
-            {
-                "From": "/Chassis/1/Thermal/",
-                "Properties": ["Temperatures", "Fans"]
-            },
-            {
-                "From": f"/Managers/{expand_string}",
-                "Properties": ["Members as ILO"]
-            },
+            {"From": "/Chassis/1/Thermal/", "Properties": ["Temperatures", "Fans"]},
+            {"From": f"/Managers/{expand_string}", "Properties": ["Members as ILO"]},
             {
                 "From": f"/Managers/1/EthernetInterfaces/{expand_string}",
-                "Properties": ["Members as ILOInterfaces"]
-            }
+                "Properties": ["Members as ILOInterfaces"],
+            },
         ]
     }
     view_response = None
 
 
-@dataclass
 class VendorLenovoData(VendorGeneric):
-    """Lenovo Settings"""
+    """Lenovo specific settings"""
+
     name = "Lenovo"
     version = None
     firmware_version = None
     expand_string = "?$expand=*"
 
 
-@dataclass
 class VendorDellData(VendorGeneric):
-    """Dell Settings"""
+    """Dell specific settings"""
+
     name = "Dell"
     version = None
     firmware_version = None
     expand_string = "?$expand=*($levels=1)"
 
 
-@dataclass
 class VendorHuaweiData(VendorGeneric):
-    """Huawei Settings"""
+    """Huawei specific settings"""
+
     name = "Huawei"
     version = None
     firmware_version = None
     expand_string = "?$expand=.%28$levels=1%29"
 
 
-@dataclass
 class VendorFujitsuData(VendorGeneric):
-    """Fujitsu Settings"""
+    """Fujitsu specific settings"""
+
     name = "Fujitsu"
     version = None
     firmware_version = None
     expand_string = "?$expand=Members"
 
 
-@dataclass
 class VendorCiscoData(VendorGeneric):
-    """Cisco Settings"""
+    """Cisco specific settings"""
+
     name = "Cisco"
     version = None
     firmware_version = None
     expand_string = ""
 
 
-@dataclass
 class VendorAmiData(VendorGeneric):
-    """Ami Settings"""
+    """Ami specific settings"""
+
     name = "Ami"
     version = None
     firmware_version = None
     expand_string = ""
 
 
-@dataclass
 class VendorSupermicroData(VendorGeneric):
-    """Supermicro Settings"""
+    """Supermicro specific settings"""
+
     name = "Supermicro"
     version = None
     firmware_version = None
@@ -379,7 +374,7 @@ class VendorSupermicroData(VendorGeneric):
 
 
 def detect_vendor(root_data):
-    """Find Vendor of Redfish Device"""
+    """Extract Vendor information from base data"""
     vendor_string = ""
     if root_data.get("Oem"):
         if len(root_data.get("Oem")) > 0:
@@ -389,31 +384,42 @@ def detect_vendor(root_data):
 
     if vendor_string in ["Hpe", "Hp"]:
         vendor_data = VendorHPEData()
-        manager_data = root_data.get("Oem", {}).get(vendor_string, {}).get("Manager", {})[0]
+        manager_data = (
+            root_data.get("Oem", {}).get(vendor_string, {}).get("Manager", {})[0]
+        )
         if manager_data:
             vendor_data.version = manager_data.get("ManagerType")
             if vendor_data.version is None:
-                vendor_data.version = \
-                    root_data.get("Oem", {}).get(vendor_string, {}).get("Moniker", {}).get("PRODGEN")
+                vendor_data.version = (
+                    root_data.get("Oem", {})
+                    .get(vendor_string, {})
+                    .get("Moniker", {})
+                    .get("PRODGEN")
+                )
             vendor_data.firmware_version = manager_data.get("ManagerFirmwareVersion")
             if vendor_data.firmware_version is None:
-                vendor_data.firmware_version = manager_data.get("Languages", {})[0].get("Version")
+                vendor_data.firmware_version = manager_data.get("Languages", {})[0].get(
+                    "Version"
+                )
             if vendor_data.version.lower() == "ilo 5":
                 vendor_data.view_supported = True
     elif vendor_string in ["Lenovo"]:
         vendor_data = VendorLenovoData()
     elif vendor_string in ["Dell"]:
         vendor_data = VendorDellData()
+        vendor_data.version = "iDRAC"
     elif vendor_string in ["Huawei"]:
         vendor_data = VendorHuaweiData()
     elif vendor_string in ["ts_fujitsu"]:
         vendor_data = VendorFujitsuData()
+        vendor_data.version = "iRMC"
     elif vendor_string in ["Ami"]:
         vendor_data = VendorAmiData()
     elif vendor_string in ["Supermicro"]:
         vendor_data = VendorSupermicroData()
-    elif vendor_string in ["Cisco"]:
+    elif vendor_string in ["Cisco", "Cisco Systems Inc."]:
         vendor_data = VendorCiscoData()
+        vendor_data.version = "CIMC"
     else:
         vendor_data = VendorGeneric()
 
@@ -434,15 +440,16 @@ def get_information(redfishobj, sections):
     # fetch managers
     manager_col = fetch_data(redfishobj, manager_url, "Manager")
     manager_data = fetch_collection(redfishobj, manager_col, "Manager")
-    sys.stdout.write("<<<check_mk>>>\n")
-    sys.stdout.write("Version: 2.0\n")
 
-    manager_os = []
     data_model = ""
     for element in manager_data:
         data_model = list(element.get("Oem", {"Unknown": "Unknown model"}).keys())[0]
-        manager_os.append(element.get("FirmwareVersion"))
-    sys.stdout.write(f"AgentOS: {' '.join(manager_os)}\n")
+        if not vendor_data.firmware_version:
+            vendor_data.firmware_version = element.get("FirmwareVersion", "")
+
+    with SectionWriter("check_mk", " ") as w:
+        w.append("Version: 2.0")
+        w.append(f"AgentOS: {vendor_data.version} - {vendor_data.firmware_version}")
 
     data_model_links = {
         "Hpe": ["SmartStorage", "NetworkAdapters"],
@@ -453,13 +460,12 @@ def get_information(redfishobj, sections):
     # fetch systems
     systems_col = fetch_data(redfishobj, systems_url, "System")
     systems_data = fetch_collection(redfishobj, systems_col, "System")
-    # manufacturer = systems_data[0].get("Manufacturer")
 
-    sys.stdout.write("<<<redfish_manager:sep(0)>>>\n")
-    sys.stdout.write(f"{manager_data}\n")
+    with SectionWriter("redfish_manager") as w:
+        w.append_json(manager_data)
 
-    sys.stdout.write("<<<redfish_system:sep(0)>>>\n")
-    sys.stdout.write(f"{systems_data}\n")
+    with SectionWriter("redfish_system") as w:
+        w.append_json(systems_data)
 
     systems_sections = [
         "EthernetInterfaces",
@@ -500,8 +506,8 @@ def get_information(redfishobj, sections):
     # fetch chassis
     chassis_col = fetch_data(redfishobj, chassis_url, "Chassis")
     chassis_data = fetch_collection(redfishobj, chassis_col, "Chassis")
-    sys.stdout.write("<<<redfish_chassis:sep(0)>>>\n")
-    sys.stdout.write(f"{chassis_data}\n")
+    with SectionWriter("redfish_chassis") as w:
+        w.append_json(chassis_data)
     chassis_sections = [
         "NetworkAdapters",
         "Power",
@@ -539,7 +545,7 @@ def get_session(args: Args):
     try:
         redfish_host = f"{args.proto}://{args.host}:{args.port}"
         # Create a Redfish client object
-        REDFISHOBJ = redfish.redfish_client(
+        redfishobj = redfish.redfish_client(
             base_url=redfish_host,
             username=args.user,
             password=args.password,
@@ -551,20 +557,20 @@ def get_session(args: Args):
         existing_session = load_session_key(args.host)
         # existing session with key found return this session instead of login
         if existing_session:
-            REDFISHOBJ.set_session_location(existing_session.get("location"))
-            REDFISHOBJ.set_session_key(existing_session.get("session"))
-            response_url = REDFISHOBJ.get("/redfish/v1/SessionService/Sessions", None)
+            redfishobj.set_session_location(existing_session.get("location"))
+            redfishobj.set_session_key(existing_session.get("session"))
+            response_url = redfishobj.get("/redfish/v1/SessionService/Sessions", None)
             if response_url.status == 200:
-                return REDFISHOBJ
-            response_url = REDFISHOBJ.get("/redfish/v1/Sessions", None)
+                return redfishobj
+            response_url = redfishobj.get("/redfish/v1/Sessions", None)
             if response_url.status == 200:
-                return REDFISHOBJ
+                return redfishobj
 
         # Login with the Redfish client
         # cleanup old session information
-        REDFISHOBJ.set_session_location(None)
-        REDFISHOBJ.set_session_key(None)
-        REDFISHOBJ.login(auth="session")
+        redfishobj.set_session_location(None)
+        redfishobj.set_session_key(None)
+        redfishobj.login(auth="session")
     except ServerDownOrUnreachableError as excp:
         sys.stderr.write(
             f"ERROR: server not reachable or does not support RedFish. Error Message: {excp}\n"
@@ -573,8 +579,8 @@ def get_session(args: Args):
     except RetriesExhaustedError as excp:
         sys.stderr.write(f"ERROR: too many retries for connection attempt: {excp}\n")
         sys.exit()
-    store_session_key(REDFISHOBJ, args.host)
-    return REDFISHOBJ
+    store_session_key(redfishobj, args.host)
+    return redfishobj
 
 
 def agent_redfish_main(args: Args) -> int:
@@ -583,9 +589,16 @@ def agent_redfish_main(args: Args) -> int:
     if not args.verify_ssl:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+    if args.debug:
+        # Config logger used by Restful library
+        logger_file = "RedfishApi.log"
+        logger_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        logger = redfish.redfish_logger(logger_file, logger_format, logging.INFO)
+        logger.info("Redfish API")
+
     # Start Redfish Session Object
-    REDFISHOBJ = get_session(args)
-    get_information(REDFISHOBJ, args.sections)
+    redfishobj = get_session(args)
+    get_information(redfishobj, args.sections)
     # logout not needed anymore if no problem - session saved to file
     # logout is done if some query fails
     # REDFISHOBJ.logout()
