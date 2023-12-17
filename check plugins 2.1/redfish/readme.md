@@ -25,4 +25,7 @@ To use this agent you need the Redfish Python module installed.
 - 2.1.11 - small formatting problems
 - 2.1.12 - CPU discovery modified, storage controller check modified
 - 2.1.13 - memory check respects HPE special states
-- 2.1.17 - backported all changes from 2.2 plugin
+- 2.1.16 - bugfixes for PSU & Temp discovery
+- 2.1.17 - small bug fix to not discover ethernetinterfaces not connected
+- 2.1.18 - rework special agent to use CMK included functions
+- 2.1.19 - agent can handle a device without manager
