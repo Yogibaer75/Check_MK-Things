@@ -18,7 +18,6 @@
 # Example Output:
 #
 #
-import ast
 from typing import Any, Dict, Mapping
 from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     CheckResult,
@@ -31,20 +30,14 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     Service,
 )
 
-from .utils.redfish import redfish_health_state
+from .utils.redfish import parse_redfish, redfish_health_state
 
 Section = Dict[str, Mapping[str, Any]]
 
 
-def parse_redfish_system(string_table) -> Section:
-    parsed = {}
-    parsed = ast.literal_eval(string_table[0][0])
-    return parsed
-
-
 register.agent_section(
     name="redfish_system",
-    parse_function=parse_redfish_system,
+    parse_function=parse_redfish,
 )
 
 
@@ -60,12 +53,9 @@ def check_redfish_system(section) -> CheckResult:
     for entry in section:
         state = entry.get("Status", {"Health": "Unknown"})
         result_state, state_text = redfish_health_state(state)
-        message = "System with SerialNr: %s, has State: %s" % (
-            entry.get("SerialNumber"),
-            state_text,
-        )
+        message = f"System with SerialNr: {entry.get('SerialNumber')}, has State: {state_text}"
 
-    yield Result(state=State(result_state), summary=message)
+        yield Result(state=State(result_state), summary=message)
 
 
 register.check_plugin(

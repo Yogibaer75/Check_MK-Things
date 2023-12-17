@@ -14,9 +14,11 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
+import json
 from typing import Any, Dict, NamedTuple, Optional, Tuple
 from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     DiscoveryResult,
+    StringTable,
 )
 
 from cmk.base.plugins.agent_based.agent_based_api.v1 import (
@@ -24,6 +26,7 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import (
 )
 
 Levels = Optional[Tuple[float, float]]
+RedfishAPIData = Dict[str, Any]
 
 
 class Perfdata(NamedTuple):
@@ -36,27 +39,24 @@ class Perfdata(NamedTuple):
     boundaries: Optional[Tuple[Optional[float], Optional[float]]]
 
 
-def parse_redfish(string_table):
+def parse_redfish(string_table: StringTable) -> RedfishAPIData:
     """parse one line of data to dictionary"""
-    import ast
-
-    parsed = {}
-    parsed = ast.literal_eval(string_table[0][0])
-
-    return parsed
+    try:
+        return json.loads(string_table[0][0])
+    except (IndexError, json.decoder.JSONDecodeError):
+        return {}
 
 
-def parse_redfish_multiple(string_table):
+def parse_redfish_multiple(string_table: StringTable) -> RedfishAPIData:
     """parse list of device dictionaries to one dictionary"""
     hpe_matches = [
         "SmartStorageDiskDrive",
         "SmartStorageLogicalDrive",
     ]
-    import ast
 
     parsed = {}
     for line in string_table:
-        entry = ast.literal_eval(line[0])
+        entry = json.loads(line[0])
         if any(x in entry.get("@odata.type") for x in hpe_matches):
             item = redfish_item_hpe(entry)
         else:

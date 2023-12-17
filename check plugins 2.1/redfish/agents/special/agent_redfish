@@ -26,7 +26,7 @@ import cmk.utils.paths
 import redfish
 import urllib3
 
-from cmk.special_agents.utils.agent_common import special_agent_main
+from cmk.special_agents.utils.agent_common import SectionWriter, special_agent_main
 from cmk.special_agents.utils.argument_parsing import Args, create_default_argument_parser
 
 from redfish.rest.v1 import ServerDownOrUnreachableError, RetriesExhaustedError
@@ -204,14 +204,8 @@ def fetch_hpe_smartstorage(redfishobj, link_list, sections):
     if storage_link:
         result = fetch_data(redfishobj, storage_link.get("@odata.id"), "SmartStorage")
         storage_links = result.get("Links")
-        storage_sections = [
-                "ArrayControllers",
-                "HostBusAdapters",
-                ]
-        controller_sections = [
-                "LogicalDrives",
-                "PhysicalDrives",
-                ]
+        storage_sections = ["ArrayControllers", "HostBusAdapters"]
+        controller_sections = ["LogicalDrives", "PhysicalDrives"]
         resulting_sections = list(set(storage_sections).intersection(sections))
         cntrl_result = fetch_sections(redfishobj, resulting_sections, sections, storage_links)
         process_result(cntrl_result)
@@ -240,12 +234,187 @@ def fetch_extra_data(redfishobj, data_model, extra_links, sections, data):
 def process_result(result):
     """process and output a fetched result set"""
     for element in list(result.keys()):
-        sys.stdout.write(f"<<<redfish_{element.lower()}:sep(0)>>>\n")
-        if isinstance(result.get(element), list):
-            for entry in result.get(element):
-                sys.stdout.write(f"{entry}\n")
-        else:
-            sys.stdout.write(f"{result.get(element)}\n")
+        with SectionWriter(f"redfish_{element.lower()}") as w:
+            if isinstance(result.get(element), list):
+                for entry in result.get(element):
+                    w.append_json(entry)
+            else:
+                w.append_json(result.get(element))
+
+
+class VendorGeneric:
+    """Generic Vendor Definition"""
+
+    name = "Generic"
+    version = None
+    firmware_version = None
+    view_supported = False
+    view_select = None
+    expand_string = ""
+
+
+class VendorHPEData(VendorGeneric):
+    """HPE specific settings"""
+
+    name = "HPE"
+    version = None
+    firmware_version = None
+    expand_string = "?$expand=."
+
+    """
+        Select and store view (supported from ILO 5)
+        ATTENTION: This will only work as long as we are querying servers
+        with "1" System, "1" Chassi and "1" Manager
+        OK for now but will be changed once we have to query blade centers
+    """
+    view_supported = False
+    view_select = {
+        "Select": [
+            {
+                "From": f"/Systems/1/Memory/{expand_string}",
+                "Properties": ["Members AS Memory"],
+            },
+            {
+                "From": f"/Systems/1/Processors/{expand_string}",
+                "Properties": ["Members AS Processors"],
+            },
+            {
+                "From": f"/Systems/1/EthernetInterfaces/{expand_string}",
+                "Properties": ["Members AS EthernetInterfaces"],
+            },
+            {
+                "From": f"/Systems/1/BaseNetworkAdapters/{expand_string}",
+                "Properties": ["Members AS NetworkAdapters"],
+            },
+            {
+                "From": f"/Chassis/1/Power/{expand_string}",
+                "Properties": ["PowerSupplies", "Redundancy AS PowerRedundancy"],
+            },
+            {"From": "/Chassis/1/Thermal/", "Properties": ["Temperatures", "Fans"]},
+            {"From": f"/Managers/{expand_string}", "Properties": ["Members as ILO"]},
+            {
+                "From": f"/Managers/1/EthernetInterfaces/{expand_string}",
+                "Properties": ["Members as ILOInterfaces"],
+            },
+        ]
+    }
+    view_response = None
+
+
+class VendorLenovoData(VendorGeneric):
+    """Lenovo specific settings"""
+
+    name = "Lenovo"
+    version = None
+    firmware_version = None
+    expand_string = "?$expand=*"
+
+
+class VendorDellData(VendorGeneric):
+    """Dell specific settings"""
+
+    name = "Dell"
+    version = None
+    firmware_version = None
+    expand_string = "?$expand=*($levels=1)"
+
+
+class VendorHuaweiData(VendorGeneric):
+    """Huawei specific settings"""
+
+    name = "Huawei"
+    version = None
+    firmware_version = None
+    expand_string = "?$expand=.%28$levels=1%29"
+
+
+class VendorFujitsuData(VendorGeneric):
+    """Fujitsu specific settings"""
+
+    name = "Fujitsu"
+    version = None
+    firmware_version = None
+    expand_string = "?$expand=Members"
+
+
+class VendorCiscoData(VendorGeneric):
+    """Cisco specific settings"""
+
+    name = "Cisco"
+    version = None
+    firmware_version = None
+    expand_string = ""
+
+
+class VendorAmiData(VendorGeneric):
+    """Ami specific settings"""
+
+    name = "Ami"
+    version = None
+    firmware_version = None
+    expand_string = ""
+
+
+class VendorSupermicroData(VendorGeneric):
+    """Supermicro specific settings"""
+
+    name = "Supermicro"
+    version = None
+    firmware_version = None
+    expand_string = ""
+
+
+def detect_vendor(root_data):
+    """Extract Vendor information from base data"""
+    vendor_string = ""
+    if root_data.get("Oem"):
+        if len(root_data.get("Oem")) > 0:
+            vendor_string = list(root_data.get("Oem"))[0]
+    if vendor_string == "" and root_data.get("Vendor") is not None:
+        vendor_string = root_data.get("Vendor")
+
+    if vendor_string in ["Hpe", "Hp"]:
+        vendor_data = VendorHPEData()
+        manager_data = (
+            root_data.get("Oem", {}).get(vendor_string, {}).get("Manager", {})[0]
+        )
+        if manager_data:
+            vendor_data.version = manager_data.get("ManagerType")
+            if vendor_data.version is None:
+                vendor_data.version = (
+                    root_data.get("Oem", {})
+                    .get(vendor_string, {})
+                    .get("Moniker", {})
+                    .get("PRODGEN")
+                )
+            vendor_data.firmware_version = manager_data.get("ManagerFirmwareVersion")
+            if vendor_data.firmware_version is None:
+                vendor_data.firmware_version = manager_data.get("Languages", {})[0].get(
+                    "Version"
+                )
+            if vendor_data.version.lower() == "ilo 5":
+                vendor_data.view_supported = True
+    elif vendor_string in ["Lenovo"]:
+        vendor_data = VendorLenovoData()
+    elif vendor_string in ["Dell"]:
+        vendor_data = VendorDellData()
+        vendor_data.version = "iDRAC"
+    elif vendor_string in ["Huawei"]:
+        vendor_data = VendorHuaweiData()
+    elif vendor_string in ["ts_fujitsu"]:
+        vendor_data = VendorFujitsuData()
+        vendor_data.version = "iRMC"
+    elif vendor_string in ["Ami"]:
+        vendor_data = VendorAmiData()
+    elif vendor_string in ["Supermicro"]:
+        vendor_data = VendorSupermicroData()
+    elif vendor_string in ["Cisco", "Cisco Systems Inc."]:
+        vendor_data = VendorCiscoData()
+        vendor_data.version = "CIMC"
+    else:
+        vendor_data = VendorGeneric()
+
+    return vendor_data
 
 
 def get_information(redfishobj, sections):
@@ -253,40 +422,45 @@ def get_information(redfishobj, sections):
     sections = sections.split(',')
     base_data = fetch_data(redfishobj, "/redfish/v1", "Base")
 
-    manager_url = base_data.get("Managers").get("@odata.id")
-    chassis_url = base_data.get("Chassis").get("@odata.id")
-    systems_url = base_data.get("Systems").get("@odata.id")
+    vendor_data = detect_vendor(base_data)
+
+    manager_url = base_data.get("Managers", {}).get("@odata.id")
+    chassis_url = base_data.get("Chassis", {}).get("@odata.id")
+    systems_url = base_data.get("Systems", {}).get("@odata.id")
+
+    data_model = ""
+    manager_data = False
 
     # fetch managers
-    manager_col = fetch_data(redfishobj, manager_url, "Manager")
-    manager_data = fetch_collection(redfishobj, manager_col, "Manager")
-    sys.stdout.write("<<<check_mk>>>\n")
-    sys.stdout.write("Version: 2.0\n")
+    if manager_url:
+        manager_col = fetch_data(redfishobj, manager_url, "Manager")
+        manager_data = fetch_collection(redfishobj, manager_col, "Manager")
 
-    manager_os = []
-    data_model = ""
-    for element in manager_data:
-        data_model = list(element.get("Oem", {"Unknown": "Unknown model"}).keys())[0]
-        manager_os.append(element.get("FirmwareVersion"))
-    sys.stdout.write(f"AgentOS: {' '.join(manager_os)}\n")
+        for element in manager_data:
+            data_model = list(element.get("Oem", {"Unknown": "Unknown model"}).keys())[0]
+            if not vendor_data.firmware_version:
+                vendor_data.firmware_version = element.get("FirmwareVersion", "")
+
+    with SectionWriter("check_mk", " ") as w:
+        w.append("Version: 2.0")
+        w.append(f"AgentOS: {vendor_data.version} - {vendor_data.firmware_version}")
 
     data_model_links = {
-        "Hpe": ["SmartStorage",
-                "NetworkAdapters"],
-        "Hp": ["Memory",
-               "NetworkAdapters",
-               "SmartStorage",
-               "FirmwareInventory"],
+        "Hpe": ["SmartStorage", "NetworkAdapters"],
+        "Hp": ["Memory", "NetworkAdapters", "SmartStorage", "FirmwareInventory"],
     }
 
     extra_links = list(set(data_model_links.get(data_model, [])).intersection(sections))
     # fetch systems
     systems_col = fetch_data(redfishobj, systems_url, "System")
     systems_data = fetch_collection(redfishobj, systems_col, "System")
-    manufacturer = systems_data[0].get("Manufacturer")
 
-    sys.stdout.write("<<<redfish_system:sep(0)>>>\n")
-    sys.stdout.write(f"{systems_data}\n")
+    if manager_data:
+        with SectionWriter("redfish_manager") as w:
+            w.append_json(manager_data)
+
+    with SectionWriter("redfish_system") as w:
+        w.append_json(systems_data)
 
     systems_sections = [
         "EthernetInterfaces",
@@ -323,8 +497,8 @@ def get_information(redfishobj, sections):
     # fetch chassis
     chassis_col = fetch_data(redfishobj, chassis_url, "Chassis")
     chassis_data = fetch_collection(redfishobj, chassis_col, "Chassis")
-    sys.stdout.write("<<<redfish_chassis:sep(0)>>>\n")
-    sys.stdout.write(f"{chassis_data}\n")
+    with SectionWriter("redfish_chassis") as w:
+        w.append_json(chassis_data)
     chassis_sections = [
         "NetworkAdapters",
         "Power",
@@ -335,6 +509,8 @@ def get_information(redfishobj, sections):
     for chassis in chassis_data:
         result = fetch_sections(redfishobj, resulting_sections, sections, chassis)
         process_result(result)
+
+    return 0
 
 
 def store_session_key(redfishobj, host):
