@@ -433,19 +433,22 @@ def get_information(redfishobj, sections):
 
     vendor_data = detect_vendor(base_data)
 
-    manager_url = base_data.get("Managers").get("@odata.id")
-    chassis_url = base_data.get("Chassis").get("@odata.id")
-    systems_url = base_data.get("Systems").get("@odata.id")
-
-    # fetch managers
-    manager_col = fetch_data(redfishobj, manager_url, "Manager")
-    manager_data = fetch_collection(redfishobj, manager_col, "Manager")
+    manager_url = base_data.get("Managers", {}).get("@odata.id")
+    chassis_url = base_data.get("Chassis", {}).get("@odata.id")
+    systems_url = base_data.get("Systems", {}).get("@odata.id")
 
     data_model = ""
-    for element in manager_data:
-        data_model = list(element.get("Oem", {"Unknown": "Unknown model"}).keys())[0]
-        if not vendor_data.firmware_version:
-            vendor_data.firmware_version = element.get("FirmwareVersion", "")
+    manager_data = False
+
+    # fetch managers
+    if manager_url:
+        manager_col = fetch_data(redfishobj, manager_url, "Manager")
+        manager_data = fetch_collection(redfishobj, manager_col, "Manager")
+
+        for element in manager_data:
+            data_model = list(element.get("Oem", {"Unknown": "Unknown model"}).keys())[0]
+            if not vendor_data.firmware_version:
+                vendor_data.firmware_version = element.get("FirmwareVersion", "")
 
     with SectionWriter("check_mk", " ") as w:
         w.append("Version: 2.0")
@@ -461,8 +464,9 @@ def get_information(redfishobj, sections):
     systems_col = fetch_data(redfishobj, systems_url, "System")
     systems_data = fetch_collection(redfishobj, systems_col, "System")
 
-    with SectionWriter("redfish_manager") as w:
-        w.append_json(manager_data)
+    if manager_data:
+        with SectionWriter("redfish_manager") as w:
+            w.append_json(manager_data)
 
     with SectionWriter("redfish_system") as w:
         w.append_json(systems_data)
