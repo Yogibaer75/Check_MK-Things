@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# License: GNU General Public License v2
+
+from cmk.agent_based.v2 import CheckPlugin, Result, Service, State, get_value_store
+from cmk.agent_based.v2.type_defs import CheckResult, DiscoveryResult
+from cmk.plugins.redfish.lib import (
+    RedfishAPIData,
+    process_redfish_perfdata,
+    redfish_health_state,
+)
+from cmk.plugins.lib.temperature import (
+    check_temperature,
+    TempParamDict,
+)
+
+
+def discovery_redfish_temperatures(section: RedfishAPIData) -> DiscoveryResult:
+    """Discover temperature sensors"""
+    temps = section.get("Temperatures", None)
+    for temp in temps:
+        if temp.get("Status").get("State") in ["Absent", "Disabled"]:
+            continue
+        if temp.get("Name"):
+            yield Service(item=temp.get("Name"))
+
+
+def check_redfish_temperatures(
+    item: str, params: TempParamDict, section: RedfishAPIData
+) -> CheckResult:
+    """Check single temperature sensor state"""
+    temps = section.get("Temperatures", None)
+    if temps is None:
+        return
+
+    for temp in temps:
+        if temp.get("Name") == item:
+            perfdata = process_redfish_perfdata(temp)
+            if perfdata:
+                yield from check_temperature(
+                    perfdata.value,
+                    params,
+                    unique_name=f"redfish.temp.{item}",
+                    value_store=get_value_store(),
+                    dev_levels=perfdata.levels_upper,
+                    dev_levels_lower=perfdata.levels_lower,
+                )
+            else:
+                yield Result(state=State(0), summary="No temperature data found")
+
+            dev_state, dev_msg = redfish_health_state(temp["Status"])
+            yield Result(state=State(dev_state), notice=dev_msg)
+
+
+check_plugin_redfish_temperatures = CheckPlugin(
+    name="redfish_temperatures",
+    service_name="Temperature %s",
+    sections=["redfish_thermal"],
+    discovery_function=discovery_redfish_temperatures,
+    check_function=check_redfish_temperatures,
+    check_default_parameters={},
+    check_ruleset_name="temperature",
+)
