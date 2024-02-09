@@ -29,3 +29,6 @@ To use this agent you need the Redfish Python module installed.
 - 2.2.17 - small bug fix to not discover ethernetinterfaces not connected
 - 2.2.18 - rework special agent to use CMK included functions
 - 2.2.19 - agent can handle a device without manager
+- 2.2.20 - output connection error message as agent version string
+- 2.2.28 - changes in sync with 2.3 version - HDD/raid controller discovery improved - 
+    multi system is now possible (blade chassis)
