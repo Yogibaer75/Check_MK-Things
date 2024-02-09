@@ -5,7 +5,7 @@
 
 # License: GNU General Public License v2
 
-from cmk.agent_based.v2 import check_levels_fixed, CheckPlugin, Result, Service, State
+from cmk.agent_based.v2 import check_levels, CheckPlugin, Result, Service, State
 from cmk.agent_based.v2.type_defs import CheckResult, DiscoveryResult
 from cmk.plugins.redfish.lib import (
     RedfishAPIData,
@@ -49,33 +49,33 @@ def check_redfish_fans(item: str, section: RedfishAPIData) -> CheckResult:
             if not perfdata:
                 yield Result(state=State(0), summary="No performance data found")
             elif units == "Percent":
-                yield from check_levels_fixed(
-                    perfdata.value,
+                yield from check_levels(
+                    value=perfdata.value,
                     levels_upper=perfdata.levels_upper,
                     levels_lower=perfdata.levels_lower,
                     metric_name="perc",
                     label="Speed",
-                    render_func=lambda v: f"{v:.1f}%",
+                    render_function=lambda v: f"{v:.1f}%",
                     boundaries=(0, 100),
                 )
             elif units == "RPM":
-                yield from check_levels_fixed(
-                    perfdata.value,
+                yield from check_levels(
+                    value=perfdata.value,
                     levels_upper=perfdata.levels_upper,
                     levels_lower=perfdata.levels_lower,
                     metric_name="fan",
                     label="Speed",
-                    render_func=lambda v: f"{v:.1f} rpm",
+                    render_function=lambda v: f"{v:.1f} rpm",
                     boundaries=perfdata.boundaries,
                 )
             else:
-                yield from check_levels_fixed(
-                    perfdata.value,
+                yield from check_levels(
+                    value=perfdata.value,
                     levels_upper=perfdata.levels_upper,
                     levels_lower=perfdata.levels_lower,
                     metric_name="fan",
                     label="Speed",
-                    render_func=lambda v: f"{v:.1f} rpm",
+                    render_function=lambda v: f"{v:.1f} rpm",
                     boundaries=perfdata.boundaries,
                 )
                 yield Result(state=State(0), summary="No unit found assume RPM!")

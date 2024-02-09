@@ -40,6 +40,8 @@ register.agent_section(
 def discovery_redfish_storage(section) -> DiscoveryResult:
     """Discover single controllers"""
     for key in section.keys():
+        if section[key].get("Status", {}).get("State") == "UnavailableOffline":
+            continue
         yield Service(item=section[key]["Id"])
 
 
@@ -52,18 +54,22 @@ def check_redfish_storage(item: str, section) -> CheckResult:
     controller_list = data.get("StorageControllers", [])
     if len(controller_list) == 1:
         for ctrl_data in controller_list:
-            storage_msg = f"Type: {ctrl_data.get('Model')}, \
-                RaidLevels: {','.join(ctrl_data.get('SupportedRAIDTypes', []))}, \
-                DeviceProtocols: {','.join(ctrl_data.get('SupportedDeviceProtocols', []))}"
+            storage_msg = (
+                f"Type: {ctrl_data.get('Model')}, "
+                f"RaidLevels: {','.join(ctrl_data.get('SupportedRAIDTypes', []))}, "
+                f"DeviceProtocols: {','.join(ctrl_data.get('SupportedDeviceProtocols', []))}"
+            )
             dev_state, dev_msg = redfish_health_state(ctrl_data.get("Status", {}))
             yield Result(state=State(dev_state), summary=storage_msg, details=dev_msg)
     elif len(controller_list) > 1:
         global_state = 0
         global_msg = ""
         for ctrl_data in controller_list:
-            storage_msg = f"Type: {ctrl_data.get('Model')}, \
-                RaidLevels: {','.join(ctrl_data.get('SupportedRAIDTypes', []))}, \
-                DeviceProtocols: {','.join(ctrl_data.get('SupportedDeviceProtocols', []))}\n"
+            storage_msg = (
+                f"Type: {ctrl_data.get('Model')}, "
+                f"RaidLevels: {','.join(ctrl_data.get('SupportedRAIDTypes', []))}, "
+                f"DeviceProtocols: {','.join(ctrl_data.get('SupportedDeviceProtocols', []))}"
+            )
             dev_state, dev_msg = redfish_health_state(ctrl_data.get("Status", {}))
             global_state = max(global_state, dev_state)
             yield Result(state=State(dev_state), details=storage_msg, notice=dev_msg)

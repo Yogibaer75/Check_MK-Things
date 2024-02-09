@@ -9,11 +9,13 @@ from cmk.rulesets.v1 import Localizable, validators
 from cmk.rulesets.v1.form_specs import (
     Dictionary,
     DictElement,
-    List,
-    TextInput,
+    Text,
+    Password,
     Integer,
-    DropdownChoice,
-    DropdownChoiceElement,
+    MultipleChoice,
+    MultipleChoiceElement,
+    SingleChoice,
+    SingleChoiceElement,
 )
 from cmk.rulesets.v1.rule_specs import EvalType, Topic, SpecialAgent
 
@@ -22,74 +24,71 @@ def _valuespec_special_agents_redfish():
     return Dictionary(
         elements={
             "user": DictElement(
-                parameter_form=TextInput(
+                parameter_form=Text(
                     title=Localizable("Username"),
                 ),
                 required=True,
             ),
             "password": DictElement(
-                parameter_form=TextInput(
+                parameter_form=Password(
                     title=Localizable("Password"),
                 ),
                 required=True,
             ),
             "sections": DictElement(
-                parameter_form=List(
-                    parameter_form=DropdownChoice(
-                        title=Localizable("Select subsystem"),
-                        elements=[
-                            DropdownChoiceElement(
-                                name="Memory", title=Localizable("Memory Modules")
-                            ),
-                            DropdownChoiceElement(
-                                name="Power", title=Localizable("Powers Supply")
-                            ),
-                            DropdownChoiceElement(
-                                name="Processors", title=Localizable("CPUs")
-                            ),
-                            DropdownChoiceElement(
-                                name="Thermal", title=Localizable("Fan and Temperatures")
-                            ),
-                            DropdownChoiceElement(
-                                name="FirmwareInventory",
-                                title=Localizable("Firmware Versions"),
-                            ),
-                            DropdownChoiceElement(
-                                name="NetworkAdapters", title=Localizable("Network Cards")
-                            ),
-                            DropdownChoiceElement(
-                                name="NetworkInterfaces",
-                                title=Localizable("Network Interfaces 1"),
-                            ),
-                            DropdownChoiceElement(
-                                name="EthernetInterfaces",
-                                title=Localizable("Network Interfaces 2"),
-                            ),
-                            DropdownChoiceElement(
-                                name="Storage", title=Localizable("Storage")
-                            ),
-                            DropdownChoiceElement(
-                                name="ArrayControllers",
-                                title=Localizable("Array Controllers"),
-                            ),
-                            DropdownChoiceElement(
-                                name="SmartStorage",
-                                title=Localizable("HPE Storagesubsystem"),
-                            ),
-                            DropdownChoiceElement(
-                                name="HostBusAdapters",
-                                title=Localizable("Hostbustadapters"),
-                            ),
-                            DropdownChoiceElement(
-                                name="PhysicalDrives", title=Localizable("Physical Drives")
-                            ),
-                            DropdownChoiceElement(
-                                name="LogicalDrives", title=Localizable("Logical Drives")
-                            ),
-                        ],
-                    ),
+                parameter_form=MultipleChoice(
                     title=Localizable("Retrieve information about..."),
-                    prefill_value=[
+                    elements=[
+                        MultipleChoiceElement(
+                            name="Memory", title=Localizable("Memory Modules")
+                        ),
+                        MultipleChoiceElement(
+                            name="Power", title=Localizable("Powers Supply")
+                        ),
+                        MultipleChoiceElement(
+                            name="Processors", title=Localizable("CPUs")
+                        ),
+                        MultipleChoiceElement(
+                            name="Thermal", title=Localizable("Fan and Temperatures")
+                        ),
+                        MultipleChoiceElement(
+                            name="FirmwareInventory",
+                            title=Localizable("Firmware Versions"),
+                        ),
+                        MultipleChoiceElement(
+                            name="NetworkAdapters", title=Localizable("Network Cards")
+                        ),
+                        MultipleChoiceElement(
+                            name="NetworkInterfaces",
+                            title=Localizable("Network Interfaces 1"),
+                        ),
+                        MultipleChoiceElement(
+                            name="EthernetInterfaces",
+                            title=Localizable("Network Interfaces 2"),
+                        ),
+                        MultipleChoiceElement(
+                            name="Storage", title=Localizable("Storage")
+                        ),
+                        MultipleChoiceElement(
+                            name="ArrayControllers",
+                            title=Localizable("Array Controllers"),
+                        ),
+                        MultipleChoiceElement(
+                            name="SmartStorage",
+                            title=Localizable("HPE Storagesubsystem"),
+                        ),
+                        MultipleChoiceElement(
+                            name="HostBusAdapters",
+                            title=Localizable("Hostbustadapters"),
+                        ),
+                        MultipleChoiceElement(
+                            name="PhysicalDrives", title=Localizable("Physical Drives")
+                        ),
+                        MultipleChoiceElement(
+                            name="LogicalDrives", title=Localizable("Logical Drives")
+                        ),
+                    ],
+                    prefill_selections=[
                         "Memory",
                         "Power",
                         "Processors",
@@ -105,6 +104,7 @@ def _valuespec_special_agents_redfish():
                         "PhysicalDrives",
                         "LogicalDrives",
                     ],
+                    show_toggle_all=True,
                 ),
             ),
             "port": DictElement(
@@ -118,7 +118,7 @@ def _valuespec_special_agents_redfish():
                 ),
             ),
             "proto": DictElement(
-                parameter_form=DropdownChoice(
+                parameter_form=SingleChoice(
                     title=Localizable("Advanced - Protocol"),
                     prefill_selection="https",
                     help_text=Localizable(
@@ -126,8 +126,8 @@ def _valuespec_special_agents_redfish():
                         "https is highly recommended!!!"
                     ),
                     elements=[
-                        DropdownChoiceElement("http", Localizable("http")),
-                        DropdownChoiceElement("https", Localizable("https")),
+                        SingleChoiceElement("http", Localizable("http")),
+                        SingleChoiceElement("https", Localizable("https")),
                     ],
                 ),
             ),

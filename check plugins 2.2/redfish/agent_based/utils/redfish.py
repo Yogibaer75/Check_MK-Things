@@ -58,6 +58,8 @@ def parse_redfish_multiple(string_table: StringTable) -> RedfishAPIData:
         entry = json.loads(line[0])
         if any(x in entry.get("@odata.type") for x in hpe_matches):
             item = redfish_item_hpe(entry)
+        elif "Drive" in entry.get("@odata.type"):
+            item = entry.get("@odata.id")
         else:
             item = entry.get("Id")
         parsed.setdefault(item, entry)

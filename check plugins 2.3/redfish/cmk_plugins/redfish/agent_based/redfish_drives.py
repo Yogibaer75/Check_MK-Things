@@ -22,15 +22,18 @@ agent_section_redfish_drives = AgentSection(
 
 def discovery_redfish_drives(section: RedfishAPIData) -> DiscoveryResult:
     for key in section.keys():
-        item = section[key]["Name"]
+        if section[key].get("Status", {}).get("State") == "Absent":
+            continue
+        item = section[key].get("Id", "0") + "-" + section[key]["Name"]
         yield Service(item=item)
 
 
 def check_redfish_drives(item: str, section: RedfishAPIData) -> CheckResult:
     data = None
     for key in section.keys():
-        if item == section[key]["Name"]:
+        if item == section[key].get("Id", "0") + "-" + section[key]["Name"]:
             data = section.get(key, None)
+            break
     if data is None:
         return
 

@@ -5,7 +5,7 @@
 
 # License: GNU General Public License v2
 
-from cmk.agent_based.v2 import CheckPlugin, Result, Service, State, check_levels_fixed
+from cmk.agent_based.v2 import CheckPlugin, Result, Service, State, check_levels
 from cmk.agent_based.v2.type_defs import CheckResult, DiscoveryResult
 from cmk.plugins.redfish.lib import (
     RedfishAPIData,
@@ -38,13 +38,13 @@ def check_redfish_voltage(item: str, section: RedfishAPIData) -> CheckResult:
             yield Result(state=State(0), summary=volt_msg)
 
             if perfdata.value is not None:
-                yield from check_levels_fixed(
-                    perfdata.value,
+                yield from check_levels(
+                    value=perfdata.value,
                     levels_upper=perfdata.levels_upper,
                     levels_lower=perfdata.levels_lower,
                     metric_name="voltage",
                     label="Value",
-                    render_func=lambda v: f"{v:.1f} V",
+                    render_function=lambda v: f"{v:.1f} V",
                     boundaries=perfdata.boundaries,
                 )
 

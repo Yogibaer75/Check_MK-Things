@@ -1,18 +1,10 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 """Special Agent to fetch Redfish data from management interfaces"""
+
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 
-# This is free software;  you can redistribute it and/or modify it
-# under the  terms of the  GNU General Public License  as published by
-# the Free Software Foundation in version 2.  check_mk is  distributed
-# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
-# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
-# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
-# ails.  You should have  received  a copy of the  GNU  General Public
-# License along with GNU Make; see the file  COPYING.  If  not,  write
-# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
-# Boston, MA 02110-1301 USA.
+# License: GNU General Public License v2
 
 import json
 import logging
@@ -169,6 +161,8 @@ def fetch_list_of_elements(redfishobj, fetch_elements, sections, data):
             result = fetch_data(redfishobj, entry.get("@odata.id"), element)
             # debug output of fetching element
             # sys.stdout.write(f'Fetching {entry.get("@odata.id")}')
+            if 'error' in result.keys():
+                continue
             if "Collection" in result.get("@odata.type"):
                 result_list.extend(fetch_collection(redfishobj, result, element))
             else:
@@ -454,15 +448,24 @@ def get_information(redfishobj, sections):
         w.append("Version: 2.0")
         w.append(f"AgentOS: {vendor_data.version} - {vendor_data.firmware_version}")
 
-    data_model_links = {
-        "Hpe": ["SmartStorage", "NetworkAdapters"],
-        "Hp": ["Memory", "NetworkAdapters", "SmartStorage", "FirmwareInventory"],
-    }
+    #data_model_links = {
+    #    "Hpe": ["SmartStorage", "NetworkAdapters"],
+    #    "Hp": ["Memory", "NetworkAdapters", "SmartStorage", "FirmwareInventory"],
+    #}
 
-    extra_links = list(set(data_model_links.get(data_model, [])).intersection(sections))
+    #extra_links = list(set(data_model_links.get(data_model, [])).intersection(sections))
     # fetch systems
     systems_col = fetch_data(redfishobj, systems_url, "System")
     systems_data = fetch_collection(redfishobj, systems_col, "System")
+
+    if data_model in ["Hpe", "Hp"]:
+        data_model_links = []
+        for system in systems_data:
+            system_oem_links = list(system.get("Oem", {"Unknown": "Unknown model"}).get(data_model, {"Unknown": "Unknown model"}).get("Links", {}).keys())
+            data_model_links.extend(system_oem_links)
+        extra_links = list(set(data_model_links).intersection(sections))
+    else:
+        extra_links = []
 
     if manager_data:
         with SectionWriter("redfish_manager") as w:
@@ -471,29 +474,30 @@ def get_information(redfishobj, sections):
     with SectionWriter("redfish_system") as w:
         w.append_json(systems_data)
 
-    systems_sections = [
+    systems_sections = list(set([
         "EthernetInterfaces",
         "NetworkInterfaces",
         "Processors",
         "Storage",
         "Memory",
-    ]
+    ]).union(extra_links))
     systems_sub_sections = [
         "Drives",
         "Volumes",
     ]
-    if data_model in ["Hpe", "Hp"]:
-        systems_sections.remove("Storage")
 
     resulting_sections = list(set(systems_sections).intersection(sections))
     for system in systems_data:
+        if data_model in ["Hpe", "Hp"] and "SmartStorage" in resulting_sections:
+            if "Storage" in resulting_sections:
+                resulting_sections.remove("Storage")
         result = fetch_sections(redfishobj, resulting_sections, sections, system)
         process_result(result)
         if "Storage" in result:
             storage_data = result.get("Storage")
             if isinstance(storage_data, list):
                 for entry in storage_data:
-                    if entry.get("Drives@odata.count", 0) != 0:
+                    if (entry.get("Drives@odata.count", 0) != 0 or len(entry.get("Drives", [])) >= 1):
                         result = fetch_list_of_elements(
                             redfishobj, systems_sub_sections, sections, entry
                         )
@@ -576,12 +580,19 @@ def get_session(args: Args):
         redfishobj.set_session_key(None)
         redfishobj.login(auth="session")
     except ServerDownOrUnreachableError as excp:
-        sys.stderr.write(
-            f"ERROR: server not reachable or does not support RedFish. Error Message: {excp}\n"
+        sys.stdout.write("<<<check_mk>>>\n")
+        sys.stdout.write(
+            f"Version: server not reachable or does not support RedFish. Error Message: {excp}\n"
         )
         sys.exit()
     except RetriesExhaustedError as excp:
-        sys.stderr.write(f"ERROR: too many retries for connection attempt: {excp}\n")
+        sys.stdout.write("<<<check_mk>>>\n")
+        sys.stdout.write(f"Version: too many retries for connection attempt to: {args.host} {excp}\n")
+        sys.exit()
+    except Exception as excp:
+        sys.stdout.write("<<<check_mk>>>\n")
+        excp_text = str(excp).replace('\n', ' ').replace('\r', '')
+        sys.stdout.write(f"Version: {excp_text}\n")
         sys.exit()
     store_session_key(redfishobj, args.host)
     return redfishobj

@@ -40,13 +40,18 @@ def check_redfish_temperatures(
         if temp.get("Name") == item:
             perfdata = process_redfish_perfdata(temp)
             if perfdata:
+                print(perfdata)
                 yield from check_temperature(
                     perfdata.value,
                     params,
                     unique_name=f"redfish.temp.{item}",
                     value_store=get_value_store(),
-                    dev_levels=perfdata.levels_upper,
-                    dev_levels_lower=perfdata.levels_lower,
+                    dev_levels=perfdata.levels_upper[1]
+                    if perfdata.levels_upper and len(perfdata.levels_upper) > 1
+                    else None,
+                    dev_levels_lower=perfdata.levels_lower[1]
+                    if perfdata.levels_lower and len(perfdata.levels_lower) > 1
+                    else None,
                 )
             else:
                 yield Result(state=State(0), summary="No temperature data found")

@@ -22,25 +22,41 @@ agent_section_apt = AgentSection(
 
 
 def discover_redfish_system(section: RedfishAPIData) -> DiscoveryResult:
-    if section:
-        yield Service()
-
-
-def check_redfish_system(section: RedfishAPIData) -> CheckResult:
     if not section:
         return
+    if len(section) == 1:
+        yield Service(item="state")
+    else:
+        for element in section:
+            item = f"state {element.get('Id', '0')}"
+            yield Service(item=item)
 
-    for entry in section:
-        state = entry.get("Status", {"Health": "Unknown"})
-        result_state, state_text = redfish_health_state(state)
-        message = f"System with SerialNr: {entry.get('SerialNumber')}, has State: {state_text}"
 
-        yield Result(state=State(result_state), summary=message)
+def check_redfish_system(item: str, section: RedfishAPIData) -> CheckResult:
+    if not section:
+        return
+    data = None
+    if len(section) == 1:
+        data = section[0]
+    else:
+        for element in section:
+            if f"state {element.get('Id')}" == item:
+                data = element
+                break
+
+    if not data:
+        return
+
+    state = data.get("Status", {"Health": "Unknown"})
+    result_state, state_text = redfish_health_state(state)
+    message = f"System with SerialNr: {data.get('SerialNumber')}, has State: {state_text}"
+
+    yield Result(state=State(result_state), summary=message)
 
 
 check_plugin_redfish_system = CheckPlugin(
     name="redfish_system",
-    service_name="System state",
+    service_name="System %s",
     sections=["redfish_system"],
     discovery_function=discover_redfish_system,
     check_function=check_redfish_system,

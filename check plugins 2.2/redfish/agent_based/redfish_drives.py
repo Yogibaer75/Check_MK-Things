@@ -39,27 +39,31 @@ register.agent_section(
 
 def discovery_redfish_drives(section) -> DiscoveryResult:
     for key in section.keys():
-        item = section[key]["Name"]
+        if section[key].get("Status", {}).get("State") == "Absent":
+            continue
+        item = section[key].get("Id", "0") + "-" + section[key]["Name"]
         yield Service(item=item)
 
 
 def check_redfish_drives(item: str, section) -> CheckResult:
     data = None
     for key in section.keys():
-        if item == section[key]["Name"]:
+        if item == section[key].get("Id", "0") + "-" + section[key]["Name"]:
             data = section.get(key, None)
+            break
     if data is None:
         return
 
-    disc_msg = "Size: %0.0fGB, Speed %s Gbs" % (
-        data.get("CapacityBytes", 0) / 1024 / 1024 / 1024,
-        data.get("CapableSpeedGbs", 0),
+    disc_msg = (
+        f"Size: {data.get('CapacityBytes', 0) / 1024 / 1024 / 1024:0.0f}GB, "
+        f"Speed {data.get('CapableSpeedGbs', 0)} Gbs"
     )
 
     if data.get("MediaType") == "SSD":
         if data.get("PredictedMediaLifeLeftPercent"):
-            disc_msg = disc_msg + ", Media Life Left: %d%%" % (
-                int(data.get("PredictedMediaLifeLeftPercent", 0))
+            disc_msg = (
+                f"{disc_msg}, Media Life Left: "
+                f"{int(data.get('PredictedMediaLifeLeftPercent', 0))}%"
             )
         else:
             disc_msg = disc_msg + ", no SSD Media information available"

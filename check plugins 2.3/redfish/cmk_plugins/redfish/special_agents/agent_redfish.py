@@ -161,7 +161,9 @@ def fetch_list_of_elements(redfishobj, fetch_elements, sections, data):
             result = fetch_data(redfishobj, entry.get("@odata.id"), element)
             # debug output of fetching element
             # sys.stdout.write(f'Fetching {entry.get("@odata.id")}')
-            if "Collection" in result.get("@odata.type"):
+            if 'error' in result.keys():
+                continue
+            if "Collection" in result.get("@odata.type", "No Data"):
                 result_list.extend(fetch_collection(redfishobj, result, element))
             else:
                 result_list.append(result)
@@ -425,63 +427,77 @@ def get_information(redfishobj, sections):
 
     vendor_data = detect_vendor(base_data)
 
-    manager_url = base_data.get("Managers").get("@odata.id")
-    chassis_url = base_data.get("Chassis").get("@odata.id")
-    systems_url = base_data.get("Systems").get("@odata.id")
-
-    # fetch managers
-    manager_col = fetch_data(redfishobj, manager_url, "Manager")
-    manager_data = fetch_collection(redfishobj, manager_col, "Manager")
+    manager_url = base_data.get("Managers", {}).get("@odata.id")
+    chassis_url = base_data.get("Chassis", {}).get("@odata.id")
+    systems_url = base_data.get("Systems", {}).get("@odata.id")
 
     data_model = ""
-    for element in manager_data:
-        data_model = list(element.get("Oem", {"Unknown": "Unknown model"}).keys())[0]
-        if not vendor_data.firmware_version:
-            vendor_data.firmware_version = element.get("FirmwareVersion", "")
+    manager_data = False
+
+    # fetch managers
+    if manager_url:
+        manager_col = fetch_data(redfishobj, manager_url, "Manager")
+        manager_data = fetch_collection(redfishobj, manager_col, "Manager")
+
+        for element in manager_data:
+            data_model = list(element.get("Oem", {"Unknown": "Unknown model"}).keys())[0]
+            if not vendor_data.firmware_version:
+                vendor_data.firmware_version = element.get("FirmwareVersion", "")
 
     with SectionWriter("check_mk", " ") as w:
         w.append("Version: 2.0")
         w.append(f"AgentOS: {vendor_data.version} - {vendor_data.firmware_version}")
 
-    data_model_links = {
-        "Hpe": ["SmartStorage", "NetworkAdapters"],
-        "Hp": ["Memory", "NetworkAdapters", "SmartStorage", "FirmwareInventory"],
-    }
+    #data_model_links = {
+    #    "Hpe": ["SmartStorage", "NetworkAdapters"],
+    #    "Hp": ["Memory", "NetworkAdapters", "SmartStorage", "FirmwareInventory"],
+    #}
 
-    extra_links = list(set(data_model_links.get(data_model, [])).intersection(sections))
+    #extra_links = list(set(data_model_links.get(data_model, [])).intersection(sections))
     # fetch systems
     systems_col = fetch_data(redfishobj, systems_url, "System")
     systems_data = fetch_collection(redfishobj, systems_col, "System")
 
-    with SectionWriter("redfish_manager") as w:
-        w.append_json(manager_data)
+    if data_model in ["Hpe", "Hp"]:
+        data_model_links = []
+        for system in systems_data:
+            system_oem_links = list(system.get("Oem", {"Unknown": "Unknown model"}).get(data_model, {"Unknown": "Unknown model"}).get("Links", {}).keys())
+            data_model_links.extend(system_oem_links)
+        extra_links = list(set(data_model_links).intersection(sections))
+    else:
+        extra_links = []
+
+    if manager_data:
+        with SectionWriter("redfish_manager") as w:
+            w.append_json(manager_data)
 
     with SectionWriter("redfish_system") as w:
         w.append_json(systems_data)
 
-    systems_sections = [
+    systems_sections = list(set([
         "EthernetInterfaces",
         "NetworkInterfaces",
         "Processors",
         "Storage",
         "Memory",
-    ]
+    ]).union(extra_links))
     systems_sub_sections = [
         "Drives",
         "Volumes",
     ]
-    if data_model in ["Hpe", "Hp"]:
-        systems_sections.remove("Storage")
 
     resulting_sections = list(set(systems_sections).intersection(sections))
     for system in systems_data:
+        if data_model in ["Hpe", "Hp"] and "SmartStorage" in resulting_sections:
+            if "Storage" in resulting_sections:
+                resulting_sections.remove("Storage")
         result = fetch_sections(redfishobj, resulting_sections, sections, system)
         process_result(result)
         if "Storage" in result:
             storage_data = result.get("Storage")
             if isinstance(storage_data, list):
                 for entry in storage_data:
-                    if entry.get("Drives@odata.count", 0) != 0:
+                    if (entry.get("Drives@odata.count", 0) != 0 or len(entry.get("Drives", [])) >= 1):
                         result = fetch_list_of_elements(
                             redfishobj, systems_sub_sections, sections, entry
                         )

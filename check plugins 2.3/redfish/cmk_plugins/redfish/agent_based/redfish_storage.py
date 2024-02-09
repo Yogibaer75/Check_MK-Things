@@ -24,6 +24,8 @@ agent_section_redfish_storage = AgentSection(
 def discovery_redfish_storage(section: RedfishAPIData) -> DiscoveryResult:
     """Discover single controllers"""
     for key in section.keys():
+        if section[key].get("Status", {}).get("State") == "UnavailableOffline":
+            continue
         yield Service(item=section[key]["Id"])
 
 
