@@ -19,9 +19,9 @@
 #
 from cmk.base.plugins.agent_based.agent_based_api.v1 import register
 
-from .utils.redfish import parse_redfish
+from .utils.redfish import parse_redfish_multiple
 
 register.agent_section(
     name="redfish_power",
-    parse_function=parse_redfish,
+    parse_function=parse_redfish_multiple,
 )

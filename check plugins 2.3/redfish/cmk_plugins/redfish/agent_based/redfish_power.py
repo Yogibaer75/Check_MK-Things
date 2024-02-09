@@ -7,11 +7,11 @@
 
 from cmk.agent_based.v2 import AgentSection
 from cmk.plugins.redfish.lib import (
-    parse_redfish,
+    parse_redfish_multiple,
 )
 
 agent_section_redfish_power = AgentSection(
     name="redfish_power",
-    parse_function=parse_redfish,
+    parse_function=parse_redfish_multiple,
     parsed_section_name="redfish_power",
 )

@@ -3,20 +3,8 @@
 
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 
-# This is free software;  you can redistribute it and/or modify it
-# under the  terms of the  GNU General Public License  as published by
-# the Free Software Foundation in version 2.  check_mk is  distributed
-# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
-# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
-# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
-# ails.  You should have  received  a copy of the  GNU  General Public
-# License along with GNU Make; see the file  COPYING.  If  not,  write
-# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
-# Boston, MA 02110-1301 USA.
+# License: GNU General Public License v2
 
-# Example Output:
-#
-#
 from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
@@ -44,64 +32,75 @@ def _fan_item_name(data):
 
 def discovery_redfish_fans(section) -> DiscoveryResult:
     """Discover single fans"""
-    fans = section.get("Fans", None)
-    for fan in fans:
-        if fan.get("Status", {}).get("State") == "Absent":
-            continue
-        fan_name = _fan_item_name(fan)
-        if fan_name:
-            yield Service(item=fan_name)
+    for key in section.keys():
+        fans = section[key].get("Fans", None)
+        for fan in fans:
+            if fan.get("Status", {}).get("State") == "Absent":
+                continue
+            fan_name = _fan_item_name(fan)
+            if fan_name:
+                yield Service(item=fan_name)
 
 
 def check_redfish_fans(item: str, section) -> CheckResult:
     """Check single fan state"""
-    fans = section.get("Fans", None)
-    if fans is None:
+    fan = None
+    for key in section.keys():
+        fans = section[key].get("Fans", None)
+        if fans is None:
+            return
+
+        for fan_data in fans:
+            fan_name = _fan_item_name(fan_data)
+            if fan_name == item:
+                fan = fan_data
+                break
+        if fan:
+            break
+
+    if not fan:
         return
 
-    for fan in fans:
-        fan_name = _fan_item_name(fan)
-        if fan_name == item:
-            perfdata = process_redfish_perfdata(fan)
-            units = fan.get("ReadingUnits", None)
+    perfdata = process_redfish_perfdata(fan)
+    units = fan.get("ReadingUnits", None)
 
-            if not perfdata:
-                yield Result(state=State(0), summary="No performance data found")
-            elif units == "Percent":
-                yield from check_levels(
-                    perfdata.value,
-                    levels_upper=perfdata.levels_upper,
-                    levels_lower=perfdata.levels_lower,
-                    metric_name="perc",
-                    label="Speed",
-                    render_func=lambda v: "%.1f%%" % v,
-                    boundaries=(0, 100),
-                )
-            elif units == "RPM":
-                yield from check_levels(
-                    perfdata.value,
-                    levels_upper=perfdata.levels_upper,
-                    levels_lower=perfdata.levels_lower,
-                    metric_name="fan",
-                    label="Speed",
-                    render_func=lambda v: "%.1f rpm" % v,
-                    boundaries=perfdata.boundaries,
-                )
-            else:
-                yield from check_levels(
-                    perfdata.value,
-                    levels_upper=perfdata.levels_upper,
-                    levels_lower=perfdata.levels_lower,
-                    metric_name="fan",
-                    label="Speed",
-                    render_func=lambda v: "%.1f rpm" % v,
-                    boundaries=perfdata.boundaries,
-                )
-                yield Result(state=State(0), summary="No unit found assume RPM!")
+    if not perfdata:
+        yield Result(state=State(0), summary="No performance data found")
+    elif units == "Percent":
+        yield from check_levels(
+            perfdata.value,
+            levels_upper=perfdata.levels_upper,
+            levels_lower=perfdata.levels_lower,
+            metric_name="perc",
+            label="Speed",
+            render_func=lambda v: "%.1f%%" % v,
+            boundaries=(0, 100),
+        )
+    elif units == "RPM":
+        yield from check_levels(
+            perfdata.value,
+            levels_upper=perfdata.levels_upper,
+            levels_lower=perfdata.levels_lower,
+            metric_name="fan",
+            label="Speed",
+            render_func=lambda v: "%.1f rpm" % v,
+            boundaries=perfdata.boundaries,
+        )
+    else:
+        yield from check_levels(
+            perfdata.value,
+            levels_upper=perfdata.levels_upper,
+            levels_lower=perfdata.levels_lower,
+            metric_name="fan",
+            label="Speed",
+            render_func=lambda v: "%.1f rpm" % v,
+            boundaries=perfdata.boundaries,
+        )
+        yield Result(state=State(0), summary="No unit found assume RPM!")
 
-            dev_state, dev_msg = redfish_health_state(fan["Status"])
+    dev_state, dev_msg = redfish_health_state(fan["Status"])
 
-            yield Result(state=State(dev_state), notice=dev_msg)
+    yield Result(state=State(dev_state), notice=dev_msg)
 
 
 register.check_plugin(

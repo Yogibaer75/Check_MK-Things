@@ -15,41 +15,52 @@ from cmk.plugins.redfish.lib import (
 
 
 def discovery_redfish_voltage(section: RedfishAPIData) -> DiscoveryResult:
-    data = section.get("Voltages", None)
-    if not data:
-        return
-    for entry in data:
-        if not entry.get("ReadingVolts"):
-            continue
-        yield Service(item=entry["Name"])
+    for key in section.keys():
+        data = section[key].get("Voltages", None)
+        if not data:
+            return
+        for entry in data:
+            if not entry.get("ReadingVolts"):
+                continue
+            yield Service(item=entry["Name"])
 
 
 def check_redfish_voltage(item: str, section: RedfishAPIData) -> CheckResult:
-    voltages = section.get("Voltages", None)
-    if voltages is None:
+    voltage = None
+    for key in section.keys():
+        voltages = section[key].get("Voltages", None)
+        if voltages is None:
+            return
+
+        for voltage_data in voltages:
+            if voltage_data.get("Name") == item:
+                voltage = voltage_data
+                break
+        if voltage:
+            break
+
+    if not voltage:
         return
 
-    for voltage in voltages:
-        if voltage.get("Name") == item:
-            perfdata = process_redfish_perfdata(voltage)
+    perfdata = process_redfish_perfdata(voltage)
 
-            volt_msg = (f"Location: {voltage.get('PhysicalContext')}, "
-                        f"SensorNr: {voltage.get('SensorNumber')}")
-            yield Result(state=State(0), summary=volt_msg)
+    volt_msg = (f"Location: {voltage.get('PhysicalContext')}, "
+                f"SensorNr: {voltage.get('SensorNumber')}")
+    yield Result(state=State(0), summary=volt_msg)
 
-            if perfdata.value is not None:
-                yield from check_levels(
-                    value=perfdata.value,
-                    levels_upper=perfdata.levels_upper,
-                    levels_lower=perfdata.levels_lower,
-                    metric_name="voltage",
-                    label="Value",
-                    render_function=lambda v: f"{v:.1f} V",
-                    boundaries=perfdata.boundaries,
-                )
+    if perfdata.value is not None:
+        yield from check_levels(
+            value=perfdata.value,
+            levels_upper=perfdata.levels_upper,
+            levels_lower=perfdata.levels_lower,
+            metric_name="voltage",
+            label="Value",
+            render_function=lambda v: f"{v:.1f} V",
+            boundaries=perfdata.boundaries,
+        )
 
-            dev_state, dev_msg = redfish_health_state(voltage["Status"])
-            yield Result(state=State(dev_state), notice=dev_msg)
+    dev_state, dev_msg = redfish_health_state(voltage["Status"])
+    yield Result(state=State(dev_state), notice=dev_msg)
 
 
 check_plugin_redfish_voltage = CheckPlugin(
