@@ -14,7 +14,10 @@ from collections.abc import Sequence
 import cmk.utils.password_store
 import redfish
 import urllib3
-from cmk.special_agents.v0_unstable.agent_common import SectionWriter, special_agent_main
+from cmk.special_agents.v0_unstable.agent_common import (
+    SectionWriter,
+    special_agent_main,
+)
 from cmk.special_agents.v0_unstable.argument_parsing import (
     Args,
     create_default_argument_parser,
@@ -161,7 +164,7 @@ def fetch_list_of_elements(redfishobj, fetch_elements, sections, data):
             result = fetch_data(redfishobj, entry.get("@odata.id"), element)
             # debug output of fetching element
             # sys.stdout.write(f'Fetching {entry.get("@odata.id")}')
-            if 'error' in result.keys():
+            if "error" in result.keys():
                 continue
             if "Collection" in result.get("@odata.type", "No Data"):
                 result_list.extend(fetch_collection(redfishobj, result, element))
@@ -440,7 +443,9 @@ def get_information(redfishobj, sections):
         manager_data = fetch_collection(redfishobj, manager_col, "Manager")
 
         for element in manager_data:
-            data_model = list(element.get("Oem", {"Unknown": "Unknown model"}).keys())[0]
+            data_model = list(element.get("Oem", {"Unknown": "Unknown model"}).keys())[
+                0
+            ]
             if not vendor_data.firmware_version:
                 vendor_data.firmware_version = element.get("FirmwareVersion", "")
 
@@ -448,12 +453,6 @@ def get_information(redfishobj, sections):
         w.append("Version: 2.0")
         w.append(f"AgentOS: {vendor_data.version} - {vendor_data.firmware_version}")
 
-    #data_model_links = {
-    #    "Hpe": ["SmartStorage", "NetworkAdapters"],
-    #    "Hp": ["Memory", "NetworkAdapters", "SmartStorage", "FirmwareInventory"],
-    #}
-
-    #extra_links = list(set(data_model_links.get(data_model, [])).intersection(sections))
     # fetch systems
     systems_col = fetch_data(redfishobj, systems_url, "System")
     systems_data = fetch_collection(redfishobj, systems_col, "System")
@@ -461,7 +460,12 @@ def get_information(redfishobj, sections):
     if data_model in ["Hpe", "Hp"]:
         data_model_links = []
         for system in systems_data:
-            system_oem_links = list(system.get("Oem", {"Unknown": "Unknown model"}).get(data_model, {"Unknown": "Unknown model"}).get("Links", {}).keys())
+            system_oem_links = list(
+                system.get("Oem", {"Unknown": "Unknown model"})
+                .get(data_model, {"Unknown": "Unknown model"})
+                .get("Links", {})
+                .keys()
+            )
             data_model_links.extend(system_oem_links)
         extra_links = list(set(data_model_links).intersection(sections))
     else:
@@ -474,13 +478,17 @@ def get_information(redfishobj, sections):
     with SectionWriter("redfish_system") as w:
         w.append_json(systems_data)
 
-    systems_sections = list(set([
-        "EthernetInterfaces",
-        "NetworkInterfaces",
-        "Processors",
-        "Storage",
-        "Memory",
-    ]).union(extra_links))
+    systems_sections = list(
+        set(
+            [
+                "EthernetInterfaces",
+                "NetworkInterfaces",
+                "Processors",
+                "Storage",
+                "Memory",
+            ]
+        ).union(extra_links)
+    )
     systems_sub_sections = [
         "Drives",
         "Volumes",
@@ -497,7 +505,10 @@ def get_information(redfishobj, sections):
             storage_data = result.get("Storage")
             if isinstance(storage_data, list):
                 for entry in storage_data:
-                    if (entry.get("Drives@odata.count", 0) != 0 or len(entry.get("Drives", [])) >= 1):
+                    if (
+                        entry.get("Drives@odata.count", 0) != 0
+                        or len(entry.get("Drives", [])) >= 1
+                    ):
                         result = fetch_list_of_elements(
                             redfishobj, systems_sub_sections, sections, entry
                         )

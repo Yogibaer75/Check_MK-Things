@@ -1,27 +1,32 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
-'''rule for assinging the special agent to host objects'''
+"""rule for assinging the special agent to host objects"""
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 
 # License: GNU General Public License v2
 
 from cmk.rulesets.v1 import Localizable, validators
-from cmk.rulesets.v1.form_specs import (
+from cmk.rulesets.v1.form_specs import DefaultValue
+from cmk.rulesets.v1.form_specs.basic import (
+    FixedValue,
+    Integer,
+    Text,
+)
+from cmk.rulesets.v1.form_specs.composed import (
     Dictionary,
     DictElement,
-    Text,
-    Password,
-    Integer,
     MultipleChoice,
     MultipleChoiceElement,
-    SingleChoice,
-    SingleChoiceElement,
+    CascadingSingleChoice,
+    CascadingSingleChoiceElement,
 )
+from cmk.rulesets.v1.form_specs.preconfigured import Password
 from cmk.rulesets.v1.rule_specs import EvalType, Topic, SpecialAgent
 
 
-def _valuespec_special_agents_redfish():
+def _valuespec_special_agents_redfish() -> Dictionary:
     return Dictionary(
+        title=Localizable("Redfish Compatible Management Controller"),
         elements={
             "user": DictElement(
                 parameter_form=Text(
@@ -88,7 +93,7 @@ def _valuespec_special_agents_redfish():
                             name="LogicalDrives", title=Localizable("Logical Drives")
                         ),
                     ],
-                    prefill_selections=[
+                    prefill=DefaultValue([
                         "Memory",
                         "Power",
                         "Processors",
@@ -103,7 +108,7 @@ def _valuespec_special_agents_redfish():
                         "HostBusAdapters",
                         "PhysicalDrives",
                         "LogicalDrives",
-                    ],
+                    ]),
                     show_toggle_all=True,
                 ),
             ),
@@ -113,21 +118,29 @@ def _valuespec_special_agents_redfish():
                     help_text=Localizable(
                         "Port number for connection to the Rest API. Usually 8443 (TLS)"
                     ),
-                    prefill_value=443,
+                    prefill=DefaultValue(443),
                     custom_validate=validators.InRange(min_value=1, max_value=65535),
                 ),
             ),
             "proto": DictElement(
-                parameter_form=SingleChoice(
+                parameter_form=CascadingSingleChoice(
                     title=Localizable("Advanced - Protocol"),
-                    prefill_selection="https",
+                    prefill=DefaultValue("https"),
                     help_text=Localizable(
                         "Protocol for the connection to the Rest API."
                         "https is highly recommended!!!"
                     ),
                     elements=[
-                        SingleChoiceElement("http", Localizable("http")),
-                        SingleChoiceElement("https", Localizable("https")),
+                        CascadingSingleChoiceElement(
+                            name="http",
+                            title=Localizable("http"),
+                            parameter_form=FixedValue(value=None),
+                        ),
+                        CascadingSingleChoiceElement(
+                            name="https",
+                            title=Localizable("https"),
+                            parameter_form=FixedValue(value=None),
+                        ),
                     ],
                 ),
             ),
@@ -137,7 +150,7 @@ def _valuespec_special_agents_redfish():
                     help_text=Localizable(
                         "Number of retry attempts made by the special agent."
                     ),
-                    prefill_value=10,
+                    prefill=DefaultValue(10),
                     custom_validate=validators.InRange(min_value=1, max_value=20),
                 ),
             ),
@@ -147,7 +160,7 @@ def _valuespec_special_agents_redfish():
                     help_text=Localizable(
                         "Number of seconds for a single connection attempt before timeout occurs."
                     ),
-                    prefill_value=10,
+                    prefill=DefaultValue(10),
                     custom_validate=validators.InRange(min_value=1, max_value=20),
                 ),
             ),

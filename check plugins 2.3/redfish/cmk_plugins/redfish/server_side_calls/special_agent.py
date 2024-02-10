@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
-'''server side component to create the special agent call'''
+"""server side component to create the special agent call"""
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 
 # License: GNU General Public License v2
@@ -20,20 +20,18 @@ from cmk.server_side_calls.v1 import (
 
 
 class Params(BaseModel):
-    '''as a missing password form_spec is missing i need to transfer the password as clear text at the moment'''
+    """params validator"""
     user: str | None = None
     password: tuple[Literal["password", "store"], str] | None = None
     port: int | None = None
-    proto: str | None = None
+    proto: tuple[str, str | None] = ("https", None)
     sections: list | None = None
     timeout: int | None = None
     retries: int | None = None
 
 
 def _agent_redfish_arguments(
-    params: Params,
-    host_config: HostConfig,
-    _proxy_config: Mapping[str, HTTPProxy]
+    params: Params, host_config: HostConfig, _proxy_config: Mapping[str, HTTPProxy]
 ) -> Iterator[SpecialAgentCommand]:
     command_arguments: list[str | Secret] = []
     if params.user is not None:
@@ -43,9 +41,9 @@ def _agent_redfish_arguments(
     if params.port is not None:
         command_arguments += ["-p", str(params.port)]
     if params.proto is not None:
-        command_arguments += ["-P", str(params.proto)]
+        command_arguments += ["-P", str(params.proto[0])]
     if params.sections is not None:
-        command_arguments += ["-m", ','.join(params.sections)]
+        command_arguments += ["-m", ",".join(params.sections)]
     if params.timeout is not None:
         command_arguments += ["--timeout", params.timeout]
     if params.retries is not None:
