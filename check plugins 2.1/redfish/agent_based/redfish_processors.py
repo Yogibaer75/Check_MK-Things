@@ -3,33 +3,23 @@
 
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 
-# This is free software;  you can redistribute it and/or modify it
-# under the  terms of the  GNU General Public License  as published by
-# the Free Software Foundation in version 2.  check_mk is  distributed
-# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
-# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
-# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
-# ails.  You should have  received  a copy of the  GNU  General Public
-# License along with GNU Make; see the file  COPYING.  If  not,  write
-# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
-# Boston, MA 02110-1301 USA.
+# License: GNU General Public License v2
 
-# Example Output:
-#
-#
 from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
 )
-
 from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     register,
     Result,
     State,
     Service,
 )
-
-from .utils.redfish import parse_redfish_multiple, redfish_health_state
+from .utils.redfish import (
+    RedfishAPIData,
+    parse_redfish_multiple,
+    redfish_health_state,
+)
 
 register.agent_section(
     name="redfish_processors",
@@ -37,7 +27,7 @@ register.agent_section(
 )
 
 
-def discovery_redfish_processors(section) -> DiscoveryResult:
+def discovery_redfish_processors(section: RedfishAPIData) -> DiscoveryResult:
     """Discover single present CPUs"""
     for key in section.keys():
         if section[key].get("Status", {}).get("State") == "Absent":
@@ -45,7 +35,7 @@ def discovery_redfish_processors(section) -> DiscoveryResult:
         yield Service(item=section[key]["Id"])
 
 
-def check_redfish_processors(item: str, section) -> CheckResult:
+def check_redfish_processors(item: str, section: RedfishAPIData) -> CheckResult:
     """Check state of CPU"""
     data = section.get(item, None)
     if data is None:
@@ -62,9 +52,10 @@ def check_redfish_processors(item: str, section) -> CheckResult:
             cpu_speed = data.get('OperatingSpeedMHz')
         else:
             cpu_speed = "maximum " + str(data.get('MaxSpeedMHz'))
-        cpu_msg = cpu_msg + f", Cores: {data.get('TotalCores')}, \
-            Threads: {data.get('TotalThreads')}, \
-            Speed {cpu_speed} MHz"
+        cpu_msg = (
+            f"{cpu_msg}, Cores: {data.get('TotalCores')}, "
+            f"Threads: {data.get('TotalThreads')}, Speed {cpu_speed} MHz"
+        )
     yield Result(state=State(0), summary=cpu_msg)
 
     dev_state, dev_msg = redfish_health_state(data["Status"])
