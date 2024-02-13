@@ -40,7 +40,7 @@ register.agent_section(
 
 def discovery_redfish_networkadapters(section) -> DiscoveryResult:
     for key in section.keys():
-        if section[key].get("Status", {}).get("State") in ["Absent", "Disabled"]:
+        if section[key].get("Status", {}).get("State") in ["Absent", "Disabled", "Offline"]:
             continue
         yield Service(item=section[key]["Id"])
 
