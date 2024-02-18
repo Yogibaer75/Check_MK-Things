@@ -5,17 +5,16 @@
 
 # License: GNU General Public License v2
 
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
+    Result,
+    Service,
+    State,
+    check_levels,
+    register,
+)
 from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
-)
-
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    register,
-    Result,
-    State,
-    Service,
-    check_levels,
 )
 
 from .utils.redfish import process_redfish_perfdata, redfish_health_state
