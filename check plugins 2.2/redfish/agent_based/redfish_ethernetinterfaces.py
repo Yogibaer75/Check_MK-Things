@@ -42,7 +42,12 @@ def discovery_redfish_ethernetinterfaces(section) -> DiscoveryResult:
     for key in section.keys():
         if not section[key].get("Status"):
             continue
-        if section[key].get("Status", {}).get("State") in ["Absent", "Disabled", "Offline"]:
+        if section[key].get("Status", {}).get("State") in [
+            "Absent",
+            "Disabled",
+            "Offline",
+            "UnavailableOffline",
+        ]:
             continue
         yield Service(item=section[key]["Id"])
 
