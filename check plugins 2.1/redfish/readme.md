@@ -32,5 +32,6 @@ To use this agent you need the Redfish Python module installed.
 - 2.1.28 - HDD/raid controller discovery improved
 	multi system is now possible (blade chassis)
 - 2.1.29 - Temp, PSU and Fan also multi system aware
+- 2.1.30 - ignore offline interfaces
 
 plugin in sync with 2.2 and 2.3 version
