@@ -5,117 +5,126 @@
 
 # License: GNU General Public License v2
 
-from cmk.rulesets.v1 import Localizable, validators
-from cmk.rulesets.v1.form_specs import DefaultValue
-from cmk.rulesets.v1.form_specs.basic import (
-    FixedValue,
-    Integer,
-    Text,
-)
-from cmk.rulesets.v1.form_specs.composed import (
-    Dictionary,
-    DictElement,
-    MultipleChoice,
-    MultipleChoiceElement,
+from cmk.rulesets.v1 import Title, Help
+from cmk.rulesets.v1.form_specs import (
     CascadingSingleChoice,
     CascadingSingleChoiceElement,
+    DefaultValue,
+    DictElement,
+    Dictionary,
+    FixedValue,
+    Integer,
+    MultipleChoice,
+    MultipleChoiceElement,
+    Password,
+    String,
+    validators,
 )
-from cmk.rulesets.v1.form_specs.preconfigured import Password
-from cmk.rulesets.v1.rule_specs import EvalType, Topic, SpecialAgent
+from cmk.rulesets.v1.rule_specs import Topic, SpecialAgent
 
 
 def _valuespec_special_agents_redfish() -> Dictionary:
     return Dictionary(
-        title=Localizable("Redfish Compatible Management Controller"),
+        title=Title("Redfish Compatible Management Controller"),
         elements={
             "user": DictElement(
-                parameter_form=Text(
-                    title=Localizable("Username"),
+                parameter_form=String(
+                    title=Title("Username"),
                 ),
                 required=True,
             ),
             "password": DictElement(
                 parameter_form=Password(
-                    title=Localizable("Password"),
+                    title=Title("Password"),
                 ),
                 required=True,
             ),
             "sections": DictElement(
                 parameter_form=MultipleChoice(
-                    title=Localizable("Retrieve information about..."),
+                    title=Title("Retrieve information about..."),
                     elements=[
                         MultipleChoiceElement(
-                            name="Memory", title=Localizable("Memory Modules")
+                            name="Memory", title=Title("Memory Modules")
                         ),
                         MultipleChoiceElement(
-                            name="Power", title=Localizable("Powers Supply")
+                            name="Power", title=Title("Powers Supply")
                         ),
+                        MultipleChoiceElement(name="Processors", title=Title("CPUs")),
                         MultipleChoiceElement(
-                            name="Processors", title=Localizable("CPUs")
-                        ),
-                        MultipleChoiceElement(
-                            name="Thermal", title=Localizable("Fan and Temperatures")
+                            name="Thermal", title=Title("Fan and Temperatures")
                         ),
                         MultipleChoiceElement(
                             name="FirmwareInventory",
-                            title=Localizable("Firmware Versions"),
+                            title=Title("Firmware Versions"),
                         ),
                         MultipleChoiceElement(
-                            name="NetworkAdapters", title=Localizable("Network Cards")
+                            name="NetworkAdapters", title=Title("Network Cards")
                         ),
                         MultipleChoiceElement(
                             name="NetworkInterfaces",
-                            title=Localizable("Network Interfaces 1"),
+                            title=Title("Network Interfaces 1"),
                         ),
                         MultipleChoiceElement(
                             name="EthernetInterfaces",
-                            title=Localizable("Network Interfaces 2"),
+                            title=Title("Network Interfaces 2"),
                         ),
-                        MultipleChoiceElement(
-                            name="Storage", title=Localizable("Storage")
-                        ),
+                        MultipleChoiceElement(name="Storage", title=Title("Storage")),
                         MultipleChoiceElement(
                             name="ArrayControllers",
-                            title=Localizable("Array Controllers"),
+                            title=Title("Array Controllers"),
                         ),
                         MultipleChoiceElement(
                             name="SmartStorage",
-                            title=Localizable("HPE Storagesubsystem"),
+                            title=Title("HPE - Storagesubsystem"),
                         ),
                         MultipleChoiceElement(
                             name="HostBusAdapters",
-                            title=Localizable("Hostbustadapters"),
+                            title=Title("Hostbustadapters"),
                         ),
                         MultipleChoiceElement(
-                            name="PhysicalDrives", title=Localizable("Physical Drives")
+                            name="PhysicalDrives", title=Title("iLO5 - Physical Drives")
                         ),
                         MultipleChoiceElement(
-                            name="LogicalDrives", title=Localizable("Logical Drives")
+                            name="LogicalDrives", title=Title("iLO5 - Logical Drives")
+                        ),
+                        MultipleChoiceElement(
+                            name="Drives", title=Title("Drives")
+                        ),
+                        MultipleChoiceElement(
+                            name="Volumes", title=Title("Volumes")
+                        ),
+                        MultipleChoiceElement(
+                            name="SimpleStorage", title=Title("Simple Storage Collection (tbd)")
                         ),
                     ],
-                    prefill=DefaultValue([
-                        "Memory",
-                        "Power",
-                        "Processors",
-                        "Thermal",
-                        "FirmwareInventory",
-                        "NetworkAdapters",
-                        "NetworkInterfaces",
-                        "EthernetInterfaces",
-                        "Storage",
-                        "ArrayControllers",
-                        "SmartStorage",
-                        "HostBusAdapters",
-                        "PhysicalDrives",
-                        "LogicalDrives",
-                    ]),
+                    prefill=DefaultValue(
+                        [
+                            "Memory",
+                            "Power",
+                            "Processors",
+                            "Thermal",
+                            "FirmwareInventory",
+                            "NetworkAdapters",
+                            "NetworkInterfaces",
+                            "EthernetInterfaces",
+                            "Storage",
+                            "ArrayControllers",
+                            "SmartStorage",
+                            "HostBusAdapters",
+                            "PhysicalDrives",
+                            "LogicalDrives",
+                            "Drives",
+                            "Volumes",
+                            "SimpleStorage",
+                        ]
+                    ),
                     show_toggle_all=True,
                 ),
             ),
             "port": DictElement(
                 parameter_form=Integer(
-                    title=Localizable("Advanced - TCP Port number"),
-                    help_text=Localizable(
+                    title=Title("Advanced - TCP Port number"),
+                    help_text=Help(
                         "Port number for connection to the Rest API. Usually 8443 (TLS)"
                     ),
                     prefill=DefaultValue(443),
@@ -124,21 +133,21 @@ def _valuespec_special_agents_redfish() -> Dictionary:
             ),
             "proto": DictElement(
                 parameter_form=CascadingSingleChoice(
-                    title=Localizable("Advanced - Protocol"),
+                    title=Title("Advanced - Protocol"),
                     prefill=DefaultValue("https"),
-                    help_text=Localizable(
+                    help_text=Help(
                         "Protocol for the connection to the Rest API."
                         "https is highly recommended!!!"
                     ),
                     elements=[
                         CascadingSingleChoiceElement(
                             name="http",
-                            title=Localizable("http"),
+                            title=Title("http"),
                             parameter_form=FixedValue(value=None),
                         ),
                         CascadingSingleChoiceElement(
                             name="https",
-                            title=Localizable("https"),
+                            title=Title("https"),
                             parameter_form=FixedValue(value=None),
                         ),
                     ],
@@ -146,8 +155,8 @@ def _valuespec_special_agents_redfish() -> Dictionary:
             ),
             "retries": DictElement(
                 parameter_form=Integer(
-                    title=Localizable("Advanced - Number of retries"),
-                    help_text=Localizable(
+                    title=Title("Advanced - Number of retries"),
+                    help_text=Help(
                         "Number of retry attempts made by the special agent."
                     ),
                     prefill=DefaultValue(10),
@@ -156,8 +165,8 @@ def _valuespec_special_agents_redfish() -> Dictionary:
             ),
             "timeout": DictElement(
                 parameter_form=Integer(
-                    title=Localizable("Advanced - Timeout for connection"),
-                    help_text=Localizable(
+                    title=Title("Advanced - Timeout for connection"),
+                    help_text=Help(
                         "Number of seconds for a single connection attempt before timeout occurs."
                     ),
                     prefill=DefaultValue(10),
@@ -170,11 +179,10 @@ def _valuespec_special_agents_redfish() -> Dictionary:
 
 rule_spec_redfish_datasource_programs = SpecialAgent(
     name="redfish",
-    title=Localizable("Redfish Compatible Management Controller"),
+    title=Title("Redfish Compatible Management Controller"),
     topic=Topic.SERVER_HARDWARE,
     parameter_form=_valuespec_special_agents_redfish,
-    eval_type=EvalType.ALL,
-    help_text=(
+    help_text=Help(
         "This rule selects the Agent Redfish instead of the normal Check_MK Agent "
         "which collects the data through the Redfish REST API"
     ),
