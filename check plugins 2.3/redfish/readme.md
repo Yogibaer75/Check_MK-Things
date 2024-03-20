@@ -18,3 +18,5 @@ To use this agent you need the Redfish Python module installed.
 - 2.3.29 - Temp, PSU and Fan also multi system aware
 - 2.3.30 - ignore offline interfaces
   without number - modifications for 2.3alpha
+- 2.3.31 - 2.3b1 ready and discovery fix for drives and volumes
+- 2.3.32 - ruleset changes for 2.3.0b4, typo

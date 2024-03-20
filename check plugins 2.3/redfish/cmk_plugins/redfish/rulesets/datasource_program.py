@@ -79,7 +79,7 @@ def _valuespec_special_agents_redfish() -> Dictionary:
                         ),
                         MultipleChoiceElement(
                             name="HostBusAdapters",
-                            title=Title("Hostbustadapters"),
+                            title=Title("Host Bus Adapters (HBA)"),
                         ),
                         MultipleChoiceElement(
                             name="PhysicalDrives", title=Title("iLO5 - Physical Drives")
