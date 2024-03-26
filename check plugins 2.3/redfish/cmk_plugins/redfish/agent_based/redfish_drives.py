@@ -5,8 +5,15 @@
 
 # License: GNU General Public License v2
 
-from cmk.agent_based.v2 import AgentSection, CheckPlugin, Result, Service, State
-from cmk.agent_based.v2.type_defs import CheckResult, DiscoveryResult
+from cmk.agent_based.v2 import (
+    AgentSection,
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
+    Result,
+    Service,
+    State,
+)
 from cmk.plugins.redfish.lib import (
     RedfishAPIData,
     parse_redfish_multiple,

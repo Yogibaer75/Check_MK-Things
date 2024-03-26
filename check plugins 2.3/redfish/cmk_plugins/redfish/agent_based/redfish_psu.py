@@ -5,8 +5,15 @@
 
 # License: GNU General Public License v2
 
-from cmk.agent_based.v2 import CheckPlugin, Result, Service, State, Metric
-from cmk.agent_based.v2.type_defs import CheckResult, DiscoveryResult
+from cmk.agent_based.v2 import (
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
+    Result,
+    Service,
+    State,
+    Metric,
+)
 from cmk.plugins.redfish.lib import (
     RedfishAPIData,
     redfish_health_state,
@@ -49,23 +56,21 @@ def check_redfish_psu(item: str, section: RedfishAPIData) -> CheckResult:
         0 if psu.get("PowerInputWatts") is None else psu.get("PowerInputWatts")
     )
     input_voltage = float(
-        0
-        if psu.get("LineInputVoltage") is None
-        else psu.get("LineInputVoltage")
+        0 if psu.get("LineInputVoltage") is None else psu.get("LineInputVoltage")
     )
     dev_model = psu.get("Model")
     capacity = float(
-        0
-        if psu.get("PowerCapacityWatts") is None
-        else psu.get("PowerCapacityWatts")
+        0 if psu.get("PowerCapacityWatts") is None else psu.get("PowerCapacityWatts")
     )
 
     yield Metric("input_power", input_power)
     yield Metric("output_power", output_power)
     yield Metric("input_voltage", input_voltage)
 
-    model_msg = (f"{input_power} Watts input, {output_power} Watts output, "
-                 f"{input_voltage} V input, Capacity {capacity} Watts, Typ {dev_model}")
+    model_msg = (
+        f"{input_power} Watts input, {output_power} Watts output, "
+        f"{input_voltage} V input, Capacity {capacity} Watts, Typ {dev_model}"
+    )
     yield Result(state=State(0), summary=model_msg)
     dev_state, dev_msg = redfish_health_state(psu["Status"])
     yield Result(state=State(dev_state), notice=dev_msg)

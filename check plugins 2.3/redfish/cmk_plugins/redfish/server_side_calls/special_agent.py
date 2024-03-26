@@ -48,7 +48,7 @@ def _agent_redfish_arguments(
         command_arguments += ["--timeout", params.timeout]
     if params.retries is not None:
         command_arguments += ["--retries", params.retries]
-    command_arguments.append(host_config.resolved_address or host_config.name)
+    command_arguments.append(host_config.primary_ip_config.address or host_config.name)
     yield SpecialAgentCommand(command_arguments=command_arguments)
 
 

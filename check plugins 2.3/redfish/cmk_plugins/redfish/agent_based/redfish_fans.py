@@ -5,8 +5,15 @@
 
 # License: GNU General Public License v2
 
-from cmk.agent_based.v2 import check_levels, CheckPlugin, Result, Service, State
-from cmk.agent_based.v2.type_defs import CheckResult, DiscoveryResult
+from cmk.agent_based.v2 import (
+    check_levels,
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
+    Result,
+    Service,
+    State,
+)
 from cmk.plugins.redfish.lib import (
     RedfishAPIData,
     process_redfish_perfdata,
@@ -66,7 +73,7 @@ def check_redfish_fans(item: str, section: RedfishAPIData) -> CheckResult:
             levels_lower=perfdata.levels_lower,
             metric_name="perc",
             label="Speed",
-            render_function=lambda v: f"{v:.1f}%",
+            render_func=lambda v: f"{v:.1f}%",
             boundaries=(0, 100),
         )
     elif units == "RPM":
@@ -76,7 +83,7 @@ def check_redfish_fans(item: str, section: RedfishAPIData) -> CheckResult:
             levels_lower=perfdata.levels_lower,
             metric_name="fan",
             label="Speed",
-            render_function=lambda v: f"{v:.1f} rpm",
+            render_func=lambda v: f"{v:.1f} rpm",
             boundaries=perfdata.boundaries,
         )
     else:
@@ -86,7 +93,7 @@ def check_redfish_fans(item: str, section: RedfishAPIData) -> CheckResult:
             levels_lower=perfdata.levels_lower,
             metric_name="fan",
             label="Speed",
-            render_function=lambda v: f"{v:.1f} rpm",
+            render_func=lambda v: f"{v:.1f} rpm",
             boundaries=perfdata.boundaries,
         )
         yield Result(state=State(0), summary="No unit found assume RPM!")

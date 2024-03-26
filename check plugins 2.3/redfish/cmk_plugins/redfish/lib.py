@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
-'''functions for all redfish components'''
+"""functions for all redfish components"""
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 
 # License: GNU General Public License v2
 
 import json
 from typing import Any, Dict, NamedTuple, Optional, Tuple
-from cmk.agent_based.v2.type_defs import DiscoveryResult, StringTable
-from cmk.agent_based.v2 import Service
+from cmk.agent_based.v2 import DiscoveryResult, Service, StringTable
 
 
 Levels = Optional[Tuple[float, float]]

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
-
+'''Perf-o-meter definition for PSUs'''
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 
 # License: GNU General Public License v2

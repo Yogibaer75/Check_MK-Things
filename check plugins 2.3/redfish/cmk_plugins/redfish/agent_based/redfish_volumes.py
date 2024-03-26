@@ -5,8 +5,15 @@
 
 # License: GNU General Public License v2
 
-from cmk.agent_based.v2 import AgentSection, CheckPlugin, Result, Service, State
-from cmk.agent_based.v2.type_defs import CheckResult, DiscoveryResult
+from cmk.agent_based.v2 import (
+    AgentSection,
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
+    Result,
+    Service,
+    State,
+)
 from cmk.plugins.redfish.lib import (
     RedfishAPIData,
     parse_redfish_multiple,
@@ -29,8 +36,10 @@ def check_redfish_volumes(item: str, section: RedfishAPIData) -> CheckResult:
     data = section.get(item, None)
     if data is None:
         return
-    volume_msg = (f"Raid Type: {data.get('RAIDType', None)}, "
-                  f"Size: {int(data.get('CapacityBytes', 0.0)) / 1024 / 1024 / 1024:0.1f}GB")
+    volume_msg = (
+        f"Raid Type: {data.get('RAIDType', None)}, "
+        f"Size: {int(data.get('CapacityBytes', 0.0)) / 1024 / 1024 / 1024:0.1f}GB"
+    )
     yield Result(state=State(0), summary=volume_msg)
 
     dev_state, dev_msg = redfish_health_state(data["Status"])

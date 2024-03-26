@@ -7,8 +7,15 @@
 # License: GNU General Public License v2
 
 from typing import Any, Dict, Mapping
-from cmk.agent_based.v2 import AgentSection, CheckPlugin, Result, Service, State
-from cmk.agent_based.v2.type_defs import CheckResult, DiscoveryResult
+from cmk.agent_based.v2 import (
+    AgentSection,
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
+    Result,
+    Service,
+    State,
+)
 from cmk.plugins.redfish.lib import RedfishAPIData, parse_redfish, redfish_health_state
 
 Section = Dict[str, Mapping[str, Any]]
@@ -49,7 +56,9 @@ def check_redfish_system(item: str, section: RedfishAPIData) -> CheckResult:
 
     state = data.get("Status", {"Health": "Unknown"})
     result_state, state_text = redfish_health_state(state)
-    message = f"System with SerialNr: {data.get('SerialNumber')}, has State: {state_text}"
+    message = (
+        f"System with SerialNr: {data.get('SerialNumber')}, has State: {state_text}"
+    )
 
     yield Result(state=State(result_state), summary=message)
 

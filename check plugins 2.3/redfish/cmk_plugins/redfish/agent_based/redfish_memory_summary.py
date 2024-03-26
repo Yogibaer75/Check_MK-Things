@@ -5,8 +5,14 @@
 
 # License: GNU General Public License v2
 
-from cmk.agent_based.v2 import CheckPlugin, Result, Service, State
-from cmk.agent_based.v2.type_defs import CheckResult, DiscoveryResult
+from cmk.agent_based.v2 import (
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
+    Result,
+    Service,
+    State,
+)
 from cmk.plugins.redfish.lib import (
     RedfishAPIData,
     redfish_health_state,
@@ -41,7 +47,9 @@ def check_redfish_memory_summary(item: str, section: RedfishAPIData) -> CheckRes
 
     state = result.get("Status", {"Health": "Unknown"})
     result_state, state_text = redfish_health_state(state)
-    message = f"Capacity: {result.get('TotalSystemMemoryGiB')}GB, with State: {state_text}"
+    message = (
+        f"Capacity: {result.get('TotalSystemMemoryGiB')}GB, with State: {state_text}"
+    )
 
     yield Result(state=State(result_state), summary=message)
 

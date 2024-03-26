@@ -5,8 +5,14 @@
 
 # License: GNU General Public License v2
 
-from cmk.agent_based.v2 import CheckPlugin, Result, Service, State
-from cmk.agent_based.v2.type_defs import CheckResult, DiscoveryResult
+from cmk.agent_based.v2 import (
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
+    Result,
+    Service,
+    State,
+)
 from cmk.plugins.redfish.lib import (
     RedfishAPIData,
     redfish_health_state,
@@ -19,7 +25,9 @@ def discovery_redfish_arraycontrollers_hpe(section: RedfishAPIData) -> Discovery
             yield Service(item=section[key]["Id"])
 
 
-def check_redfish_arraycontrollers_hpe(item: str, section: RedfishAPIData) -> CheckResult:
+def check_redfish_arraycontrollers_hpe(
+    item: str, section: RedfishAPIData
+) -> CheckResult:
     data = section.get(item, None)
     if data is None:
         return

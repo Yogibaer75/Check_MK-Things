@@ -5,8 +5,15 @@
 
 # License: GNU General Public License v2
 
-from cmk.agent_based.v2 import CheckPlugin, Result, Service, State, get_value_store
-from cmk.agent_based.v2.type_defs import CheckResult, DiscoveryResult
+from cmk.agent_based.v2 import (
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
+    Result,
+    Service,
+    State,
+    get_value_store,
+)
 from cmk.plugins.redfish.lib import (
     RedfishAPIData,
     process_redfish_perfdata,
@@ -57,12 +64,16 @@ def check_redfish_temperatures(
             params,
             unique_name=f"redfish.temp.{item}",
             value_store=get_value_store(),
-            dev_levels=perfdata.levels_upper[1]
-            if perfdata.levels_upper and len(perfdata.levels_upper) > 1
-            else None,
-            dev_levels_lower=perfdata.levels_lower[1]
-            if perfdata.levels_lower and len(perfdata.levels_lower) > 1
-            else None,
+            dev_levels=(
+                perfdata.levels_upper[1]
+                if perfdata.levels_upper and len(perfdata.levels_upper) > 1
+                else None
+            ),
+            dev_levels_lower=(
+                perfdata.levels_lower[1]
+                if perfdata.levels_lower and len(perfdata.levels_lower) > 1
+                else None
+            ),
         )
     else:
         yield Result(state=State(0), summary="No temperature data found")

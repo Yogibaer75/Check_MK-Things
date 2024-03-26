@@ -5,8 +5,15 @@
 
 # License: GNU General Public License v2
 
-from cmk.agent_based.v2 import CheckPlugin, Result, Service, State, check_levels
-from cmk.agent_based.v2.type_defs import CheckResult, DiscoveryResult
+from cmk.agent_based.v2 import (
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
+    Result,
+    Service,
+    State,
+    check_levels,
+)
 from cmk.plugins.redfish.lib import (
     RedfishAPIData,
     process_redfish_perfdata,
@@ -44,8 +51,10 @@ def check_redfish_voltage(item: str, section: RedfishAPIData) -> CheckResult:
 
     perfdata = process_redfish_perfdata(voltage)
 
-    volt_msg = (f"Location: {voltage.get('PhysicalContext')}, "
-                f"SensorNr: {voltage.get('SensorNumber')}")
+    volt_msg = (
+        f"Location: {voltage.get('PhysicalContext')}, "
+        f"SensorNr: {voltage.get('SensorNumber')}"
+    )
     yield Result(state=State(0), summary=volt_msg)
 
     if perfdata.value is not None:
@@ -55,7 +64,7 @@ def check_redfish_voltage(item: str, section: RedfishAPIData) -> CheckResult:
             levels_lower=perfdata.levels_lower,
             metric_name="voltage",
             label="Value",
-            render_function=lambda v: f"{v:.1f} V",
+            render_func=lambda v: f"{v:.1f} V",
             boundaries=perfdata.boundaries,
         )
 
