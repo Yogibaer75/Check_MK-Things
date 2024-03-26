@@ -20,3 +20,4 @@ To use this agent you need the Redfish Python module installed.
   without number - modifications for 2.3alpha
 - 2.3.31 - 2.3b1 ready and discovery fix for drives and volumes
 - 2.3.32 - ruleset changes for 2.3.0b4, typo
+- 2.3.33 - fixed bug for iLO5 firmware 3.0 and newer to detect disk, controller and volumes - typo fix
