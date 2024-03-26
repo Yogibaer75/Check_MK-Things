@@ -500,7 +500,9 @@ def get_information(redfishobj, sections):
     resulting_sections = list(set(systems_sections).intersection(sections))
     for system in systems_data:
         if data_model in ["Hpe", "Hp"] and "SmartStorage" in resulting_sections:
-            if "Storage" in resulting_sections:
+            if vendor_data.firmware_version.startswith("3."):
+                resulting_sections.remove("SmartStorage")
+            elif "Storage" in resulting_sections:
                 resulting_sections.remove("Storage")
         result = fetch_sections(redfishobj, resulting_sections, sections, system)
         process_result(result)
