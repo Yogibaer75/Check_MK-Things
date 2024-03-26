@@ -34,3 +34,6 @@ To use this agent you need the Redfish Python module installed.
     multi system is now possible (blade chassis)
 - 2.2.29 - Temp, PSU, Voltage and Fan also multi system aware
 - 2.2.30 - ignore offline interfaces & code formatting
+- 2.2.31 - discovery fix for drives and volumes
+- 2.2.33 - fixed bug for iLO5 firmware 3.0 and newer to detect
+           disk, controller and volumes + typo fix
