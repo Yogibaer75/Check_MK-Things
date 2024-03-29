@@ -87,14 +87,11 @@ def _valuespec_special_agents_redfish() -> Dictionary:
                         MultipleChoiceElement(
                             name="LogicalDrives", title=Title("iLO5 - Logical Drives")
                         ),
+                        MultipleChoiceElement(name="Drives", title=Title("Drives")),
+                        MultipleChoiceElement(name="Volumes", title=Title("Volumes")),
                         MultipleChoiceElement(
-                            name="Drives", title=Title("Drives")
-                        ),
-                        MultipleChoiceElement(
-                            name="Volumes", title=Title("Volumes")
-                        ),
-                        MultipleChoiceElement(
-                            name="SimpleStorage", title=Title("Simple Storage Collection (tbd)")
+                            name="SimpleStorage",
+                            title=Title("Simple Storage Collection (tbd)"),
                         ),
                     ],
                     prefill=DefaultValue(
@@ -128,7 +125,9 @@ def _valuespec_special_agents_redfish() -> Dictionary:
                         "Port number for connection to the Rest API. Usually 8443 (TLS)"
                     ),
                     prefill=DefaultValue(443),
-                    custom_validate=validators.InRange(min_value=1, max_value=65535),
+                    custom_validate=(
+                        validators.NumberInRange(min_value=1, max_value=65535)
+                    ),
                 ),
             ),
             "proto": DictElement(
@@ -160,7 +159,9 @@ def _valuespec_special_agents_redfish() -> Dictionary:
                         "Number of retry attempts made by the special agent."
                     ),
                     prefill=DefaultValue(10),
-                    custom_validate=validators.InRange(min_value=1, max_value=20),
+                    custom_validate=(
+                        validators.NumberInRange(min_value=1, max_value=20)
+                    ),
                 ),
             ),
             "timeout": DictElement(
@@ -170,7 +171,9 @@ def _valuespec_special_agents_redfish() -> Dictionary:
                         "Number of seconds for a single connection attempt before timeout occurs."
                     ),
                     prefill=DefaultValue(10),
-                    custom_validate=validators.InRange(min_value=1, max_value=20),
+                    custom_validate=(
+                        validators.NumberInRange(min_value=1, max_value=20)
+                    ),
                 ),
             ),
         },
