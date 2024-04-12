@@ -5,14 +5,11 @@
 
 # License: GNU General Public License v2
 
-from collections.abc import Iterator, Mapping
-from typing import Literal
+from collections.abc import Iterator
 from pydantic import BaseModel
 
 from cmk.server_side_calls.v1 import (
-    parse_secret,
     HostConfig,
-    HTTPProxy,
     Secret,
     SpecialAgentCommand,
     SpecialAgentConfig,
@@ -22,7 +19,7 @@ from cmk.server_side_calls.v1 import (
 class Params(BaseModel):
     """params validator"""
     user: str | None = None
-    password: tuple[Literal["password", "store"], str] | None = None
+    password: Secret | None = None
     port: int | None = None
     proto: tuple[str, str | None] = ("https", None)
     sections: list | None = None
@@ -31,13 +28,13 @@ class Params(BaseModel):
 
 
 def _agent_redfish_arguments(
-    params: Params, host_config: HostConfig, _proxy_config: Mapping[str, HTTPProxy]
+    params: Params, host_config: HostConfig
 ) -> Iterator[SpecialAgentCommand]:
     command_arguments: list[str | Secret] = []
     if params.user is not None:
         command_arguments += ["-u", params.user]
     if params.password is not None:
-        command_arguments += ["-s", parse_secret(params.password)]
+        command_arguments += ["-s", params.password.unsafe()]
     if params.port is not None:
         command_arguments += ["-p", str(params.port)]
     if params.proto is not None:
