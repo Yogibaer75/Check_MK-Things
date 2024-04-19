@@ -11,7 +11,6 @@ import logging
 import sys
 from collections.abc import Sequence
 
-import cmk.utils.password_store
 import redfish
 import urllib3
 from cmk.special_agents.v0_unstable.agent_common import (
@@ -22,10 +21,8 @@ from cmk.special_agents.v0_unstable.argument_parsing import (
     Args,
     create_default_argument_parser,
 )
-from cmk.utils import paths, store
+from cmk.utils import paths, store, password_store
 from redfish.rest.v1 import RetriesExhaustedError, ServerDownOrUnreachableError
-
-cmk.utils.password_store.replace_passwords()
 
 
 def parse_arguments(argv: Sequence[str] | None) -> Args:
@@ -55,12 +52,17 @@ def parse_arguments(argv: Sequence[str] | None) -> Args:
     parser.add_argument(
         "-u", "--user", default=None, help="Username for Redfish Login", required=True
     )
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         "-s",
         "--password",
         default=None,
-        help="""Password for Redfish Login""",
-        required=True,
+        help="""Password for Redfish Login. Preferred over --password-id""",
+    )
+    group.add_argument(
+        "--password-id",
+        default=None,
+        help="""Password store reference to the password for Redfish login""",
     )
     # optional
     parser.add_argument(
@@ -569,7 +571,11 @@ def get_session(args: Args):
         redfishobj = redfish.redfish_client(
             base_url=redfish_host,
             username=args.user,
-            password=args.password,
+            password=(
+                args.password
+                if args.password is not None
+                else password_store.lookup(args.password_id)
+            ),
             cafile="",
             default_prefix="/redfish/v1",
             timeout=args.timeout,

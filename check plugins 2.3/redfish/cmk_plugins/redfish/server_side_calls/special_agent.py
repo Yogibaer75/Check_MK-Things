@@ -34,7 +34,7 @@ def _agent_redfish_arguments(
     if params.user is not None:
         command_arguments += ["-u", params.user]
     if params.password is not None:
-        command_arguments += ["-s", params.password.unsafe()]
+        command_arguments += ["--password-id", params.password]
     if params.port is not None:
         command_arguments += ["-p", str(params.port)]
     if params.proto is not None:
