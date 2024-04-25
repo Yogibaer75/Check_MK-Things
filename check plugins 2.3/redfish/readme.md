@@ -22,3 +22,4 @@ To use this agent you need the Redfish Python module installed.
 - 2.3.32 - ruleset changes for 2.3.0b4, typo
 - 2.3.33 - fixed bug for iLO5 firmware 3.0 and newer to detect disk, controller and volumes - typo fix
 - 2.3.34-36 - 2.3 beta fixes for some API changes and passwords
+- 2.3.37 - moved last file to new plugin folder structure
