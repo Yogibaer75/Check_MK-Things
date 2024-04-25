@@ -13,6 +13,7 @@ from collections.abc import Sequence
 
 import redfish
 import urllib3
+from pathlib import Path
 from cmk.special_agents.v0_unstable.agent_common import (
     SectionWriter,
     special_agent_main,
@@ -567,6 +568,7 @@ def get_session(args: Args):
     """create a Redfish session with given arguments"""
     try:
         redfish_host = f"{args.proto}://{args.host}:{args.port}"
+        pw_id, pw_path = args.password_id.split(":")
         # Create a Redfish client object
         redfishobj = redfish.redfish_client(
             base_url=redfish_host,
@@ -574,7 +576,7 @@ def get_session(args: Args):
             password=(
                 args.password
                 if args.password is not None
-                else password_store.lookup(args.password_id)
+                else password_store.lookup(Path(pw_path), pw_id)
             ),
             cafile="",
             default_prefix="/redfish/v1",
