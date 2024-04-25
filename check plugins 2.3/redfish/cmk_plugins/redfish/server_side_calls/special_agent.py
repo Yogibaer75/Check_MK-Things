@@ -38,13 +38,13 @@ def _agent_redfish_arguments(
     if params.port is not None:
         command_arguments += ["-p", str(params.port)]
     if params.proto is not None:
-        command_arguments += ["-P", str(params.proto[0])]
+        command_arguments += ["-P", params.proto[0]]
     if params.sections is not None:
         command_arguments += ["-m", ",".join(params.sections)]
     if params.timeout is not None:
-        command_arguments += ["--timeout", params.timeout]
+        command_arguments += ["--timeout", str(params.timeout)]
     if params.retries is not None:
-        command_arguments += ["--retries", params.retries]
+        command_arguments += ["--retries", str(params.retries)]
     command_arguments.append(host_config.primary_ip_config.address or host_config.name)
     yield SpecialAgentCommand(command_arguments=command_arguments)
 
