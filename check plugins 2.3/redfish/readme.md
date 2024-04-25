@@ -1,9 +1,6 @@
 This is the frist version of an universal Redfish agent.
-To use this agent you need the Redfish Python module installed.
-
-**Attention: after the release of urllib3 v2 now please do**
-
-**pip3 install 'urllib3<2' redfish**
+With CMK 2.3 the extra installation of Python module is not needed anymore.
+The Redfish library is already existing inside CMK.
 
 - 2.3.20 - fast alles nach 2.3 migriert
 - 2.3.21 - small API changes
