@@ -604,10 +604,10 @@ def get_session(args: Args):
         sys.stderr.write(
             f"ERROR: server not reachable or does not support RedFish. Error Message: {excp}\n"
         )
-        sys.exit()
+        sys.exit(1)
     except RetriesExhaustedError as excp:
         sys.stderr.write(f"ERROR: too many retries for connection attempt: {excp}\n")
-        sys.exit()
+        sys.exit(1)
     store_session_key(redfishobj, args.host)
     return redfishobj
 
