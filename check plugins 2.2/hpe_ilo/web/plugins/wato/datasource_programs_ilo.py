@@ -23,6 +23,8 @@ from cmk.gui.plugins.wato.utils import (
 from cmk.gui.plugins.wato.special_agents.common import RulespecGroupDatasourceProgramsHardware
 from cmk.gui.valuespec import (
     Dictionary,
+    DropdownChoice,
+    Integer,
     TextAscii,
     Transform,
 )
@@ -42,6 +44,22 @@ def _valuespec_special_agents_ilo():
                      title=_("Password"),
                      allow_empty=False,
                  )),
+                ("proto", DropdownChoice(
+                    title = _("Advanced - Protocol"),
+                    default_value = 'https',
+                    help = _("Protocol for the connection to the Rest API. https is highly recommended!!!"),
+                    choices = [
+                        ('http', _("http")),
+                        ('https', _("https")),
+                    ],
+                )),
+                ("port", Integer(
+                    title = _("Advanced - TCP Port number"),
+                    help = _("Port number for connection to the Rest API. Usually 8443 (TLS)"),
+                    default_value = 443,
+                    minvalue = 1,
+                    maxvalue = 65535,
+                )),
             ],
         ), )
 

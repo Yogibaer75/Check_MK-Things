@@ -19,7 +19,9 @@ def agent_lenovo_xclarity_arguments(
         "-p",
         passwordstore_get_cmdline("%s", params["password"]),
         "-i",
-        ipaddress,
+        ipaddress or hostname,
+        *(["-p", f"{params['port']}"] if "port" in params else []),
+        *(["-P", f"{params['proto']}"] if "proto" in params else []),
     ]
 
 

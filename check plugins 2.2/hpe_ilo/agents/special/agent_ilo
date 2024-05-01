@@ -81,7 +81,7 @@ def get_gen(redfishobj):
         elif response_data.get(comp).get("Moniker").get("PRODTAG"):
             ilogen = str(response_data.get(comp).get("Moniker").get("PRODTAG"))
 
-        if ilogen.split(" ")[-1] == "CM":
+        if ilogen.rsplit(" ", maxsplit=1)[-1] == "CM":
             # Assume iLO 4 types in Moonshot
             ilogen = "4"
         else:
@@ -374,6 +374,19 @@ def parse_arguments(argv: Sequence[str] | None) -> Args:
         help="host to connect to",
     )
     parser.add_argument(
+        "-P",
+        "--proto",
+        default="https",
+        help="""Use 'http' or 'https' (default=https)""",
+    )
+    parser.add_argument(
+        "-p",
+        "--port",
+        default=443,
+        type=int,
+        help="Use alternative port (default: 443)",
+    )
+    parser.add_argument(
         "--user", type=str, required=True, metavar="USER", help="user account on ilo"
     )
     parser.add_argument(
@@ -390,12 +403,12 @@ def parse_arguments(argv: Sequence[str] | None) -> Args:
 def agent_ilo_main(args: Args) -> int:
     """Establish a connection to a HPE iLO Interface"""
     LOGGING.info("setup HTTPS connection..")
-    iLO_host = "https://%s" % args.server
+    ilo_host = f"{args.proto}://{args.server}:{args.port}"
 
     try:
         # Create a Redfish client object
-        REDFISHOBJ = redfish.redfish_client(
-            base_url=iLO_host,
+        redfishobj = redfish.redfish_client(
+            base_url=ilo_host,
             username=args.user,
             password=args.password,
             cafile="",
@@ -403,16 +416,15 @@ def agent_ilo_main(args: Args) -> int:
             timeout=args.timeout,
         )
         # Login with the Redfish client
-        REDFISHOBJ.login(auth="session")
+        redfishobj.login(auth="session")
     except ServerDownOrUnreachableError as excp:
         sys.stderr.write(
-            "ERROR: server not reachable or does not support RedFish. Error Message: %s\n"
-            % excp
+            f"ERROR: server not reachable or does not support RedFish. Error Message: {excp}\n"
         )
         return 1
 
-    get_information(REDFISHOBJ)
-    REDFISHOBJ.logout()
+    get_information(redfishobj)
+    redfishobj.logout()
     return 0
 
 

@@ -229,7 +229,7 @@ def get_session(args):
     try:
         redfish_host = f"{args.proto}://{args.host}:{args.port}"
         # Create a Redfish client object
-        REDFISHOBJ = redfish.redfish_client(
+        redfishobj = redfish.redfish_client(
             base_url=redfish_host,
             username=args.user,
             password=args.password,
@@ -239,7 +239,7 @@ def get_session(args):
             max_retry=args.retries,
         )
         # Login with the Redfish client
-        REDFISHOBJ.login(auth="session")
+        redfishobj.login(auth="session")
     except ServerDownOrUnreachableError as excp:
         sys.stderr.write(
             f"ERROR: server not reachable or does not support RedFish. Error Message: {excp}\n"
@@ -250,7 +250,7 @@ def get_session(args):
             f"ERROR: too many retries for connection attempt: {excp}\n"
         )
         sys.exit()
-    return REDFISHOBJ
+    return redfishobj
 
 
 def agent_dell_idrac_main(args: Args) -> int:
@@ -260,9 +260,9 @@ def agent_dell_idrac_main(args: Args) -> int:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     # Start Redfish Session Object
-    REDFISHOBJ = get_session(args)
-    get_information(REDFISHOBJ)
-    REDFISHOBJ.logout()
+    redfishobj = get_session(args)
+    get_information(redfishobj)
+    redfishobj.logout()
 
     return 0
 
