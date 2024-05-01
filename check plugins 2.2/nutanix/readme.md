@@ -2,7 +2,7 @@
 
 This package is an improved version of the included Nutanix special agent.
 
-Attention with CMK 2.3 this package is not needed anymore as it is already included in CMK.
+***Attention with CMK 2.3 this package is not needed anymore as it is already included in CMK.***
 
  - 3.1 - wrong api version for containers
  - 3.2 - camelCase vs. snake_case problem for different API versions
