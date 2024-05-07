@@ -20,3 +20,6 @@ The Redfish library is already existing inside CMK.
 - 2.3.33 - fixed bug for iLO5 firmware 3.0 and newer to detect disk, controller and volumes - typo fix
 - 2.3.34-36 - 2.3 beta fixes for some API changes and passwords
 - 2.3.37 - moved last file to new plugin folder structure
+- 2.3.38 - fix SSC plugin if retries and timeout are selected
+- 2.3.39 - exit code of special agent now reflects errors
+- 2.3.40 - removed print statement

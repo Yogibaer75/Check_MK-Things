@@ -58,7 +58,6 @@ def check_redfish_temperatures(
 
     perfdata = process_redfish_perfdata(temp)
     if perfdata:
-        print(perfdata)
         yield from check_temperature(
             perfdata.value,
             params,
