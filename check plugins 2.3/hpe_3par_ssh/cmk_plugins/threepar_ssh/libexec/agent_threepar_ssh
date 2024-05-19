@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# License: GNU General Public License v2
+
+import sys
+from cmk.plugins.threepar_ssh.special_agents.agent_threepar_ssh import main
+
+
+if __name__ == "__main__":
+    sys.exit(main())
