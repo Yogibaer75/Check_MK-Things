@@ -75,7 +75,7 @@ def main(argv=None):
     for element in commands:
         response = s.get(url + "/api/show/" + element, timeout=5)
         with SectionWriter(f"dell_powervault_me4_{element.replace('-', '_')}") as w:
-            w.append_json(response)
+            w.append_json(response.json())
 
     return 0
 
