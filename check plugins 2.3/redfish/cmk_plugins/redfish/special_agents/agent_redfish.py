@@ -188,6 +188,8 @@ def fetch_sections(redfishobj, fetching_sections, sections, data):
         section_data = fetch_data(
             redfishobj, data.get(section).get("@odata.id"), section
         )
+        if section_data.get("Members@odata.count") == 0:
+            continue
         if "Collection" in section_data.get("@odata.type"):
             if section_data.get("Members@odata.count", 0) != 0:
                 result = fetch_collection(redfishobj, section_data, section)

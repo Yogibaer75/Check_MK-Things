@@ -182,6 +182,8 @@ def fetch_sections(redfishobj, fetching_sections, sections, data):
         section_data = fetch_data(
             redfishobj, data.get(section).get("@odata.id"), section
         )
+        if section_data.get("Members@odata.count") == 0:
+            continue
         if "Collection" in section_data.get("@odata.type"):
             if section_data.get("Members@odata.count", 0) != 0:
                 result = fetch_collection(redfishobj, section_data, section)
@@ -600,18 +602,18 @@ def get_session(args: Args):
         sys.stdout.write(
             f"Version: server not reachable or does not support RedFish. Error Message: {excp}\n"
         )
-        sys.exit()
+        sys.exit(1)
     except RetriesExhaustedError as excp:
         sys.stdout.write("<<<check_mk>>>\n")
         sys.stdout.write(
             f"Version: too many retries for connection attempt to: {args.host} {excp}\n"
         )
-        sys.exit()
+        sys.exit(1)
     except Exception as excp:
         sys.stdout.write("<<<check_mk>>>\n")
         excp_text = str(excp).replace("\n", " ").replace("\r", "")
         sys.stdout.write(f"Version: {excp_text}\n")
-        sys.exit()
+        sys.exit(1)
     store_session_key(redfishobj, args.host)
     return redfishobj
 

@@ -23,3 +23,4 @@ The Redfish library is already existing inside CMK.
 - 2.3.38 - fix SSC plugin if retries and timeout are selected
 - 2.3.39 - exit code of special agent now reflects errors
 - 2.3.40 - removed print statement
+- 2.3.41 - explicitly don't try to fetch collections without members

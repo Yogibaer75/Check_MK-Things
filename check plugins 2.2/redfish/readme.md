@@ -37,3 +37,4 @@ To use this agent you need the Redfish Python module installed.
 - 2.2.31 - discovery fix for drives and volumes
 - 2.2.33 - fixed bug for iLO5 firmware 3.0 and newer to detect
            disk, controller and volumes + typo fix
+- 2.2.41 - explicitly don't try to fetch collections without members + changes from upstream
