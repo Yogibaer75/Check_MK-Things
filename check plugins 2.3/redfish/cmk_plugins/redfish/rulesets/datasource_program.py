@@ -177,11 +177,94 @@ def _valuespec_special_agents_redfish() -> Dictionary:
     )
 
 
+def _valuespec_special_agents_redfish_power() -> Dictionary:
+    return Dictionary(
+        title=Title("Redfish Compatible Management Controller"),
+        elements={
+            "user": DictElement(
+                parameter_form=String(
+                    title=Title("Username"),
+                ),
+                required=True,
+            ),
+            "password": DictElement(
+                parameter_form=Password(
+                    title=Title("Password"),
+                ),
+                required=True,
+            ),
+            "port": DictElement(
+                parameter_form=Integer(
+                    title=Title("Advanced - TCP Port number"),
+                    help_text=Help(
+                        "Port number for connection to the Rest API. Usually 8443 (TLS)"
+                    ),
+                    prefill=DefaultValue(443),
+                    custom_validate=(validators.NumberInRange(min_value=1, max_value=65535),),
+                ),
+            ),
+            "proto": DictElement(
+                parameter_form=CascadingSingleChoice(
+                    title=Title("Advanced - Protocol"),
+                    prefill=DefaultValue("https"),
+                    help_text=Help(
+                        "Protocol for the connection to the Rest API."
+                        "https is highly recommended!!!"
+                    ),
+                    elements=[
+                        CascadingSingleChoiceElement(
+                            name="http",
+                            title=Title("http"),
+                            parameter_form=FixedValue(value=None),
+                        ),
+                        CascadingSingleChoiceElement(
+                            name="https",
+                            title=Title("https"),
+                            parameter_form=FixedValue(value=None),
+                        ),
+                    ],
+                ),
+            ),
+            "retries": DictElement(
+                parameter_form=Integer(
+                    title=Title("Advanced - Number of retries"),
+                    help_text=Help(
+                        "Number of retry attempts made by the special agent."
+                    ),
+                    prefill=DefaultValue(10),
+                    custom_validate=(validators.NumberInRange(min_value=1, max_value=20),),
+                ),
+            ),
+            "timeout": DictElement(
+                parameter_form=Integer(
+                    title=Title("Advanced - Timeout for connection"),
+                    help_text=Help(
+                        "Number of seconds for a single connection attempt before timeout occurs."
+                    ),
+                    prefill=DefaultValue(10),
+                    custom_validate=(validators.NumberInRange(min_value=1, max_value=20),),
+                ),
+            ),
+        },
+    )
+
+
 rule_spec_redfish_datasource_programs = SpecialAgent(
     name="redfish",
     title=Title("Redfish Compatible Management Controller"),
     topic=Topic.SERVER_HARDWARE,
     parameter_form=_valuespec_special_agents_redfish,
+    help_text=(
+        "This rule selects the Agent Redfish instead of the normal Check_MK Agent "
+        "which collects the data through the Redfish REST API"
+    ),
+)
+
+rule_spec_redfish_power_datasource_programs = SpecialAgent(
+    name="redfish_power",
+    title=Title("Redfish Compatible Power Equipment (PDU)"),
+    topic=Topic.SERVER_HARDWARE,
+    parameter_form=_valuespec_special_agents_redfish_power,
     help_text=(
         "This rule selects the Agent Redfish instead of the normal Check_MK Agent "
         "which collects the data through the Redfish REST API"

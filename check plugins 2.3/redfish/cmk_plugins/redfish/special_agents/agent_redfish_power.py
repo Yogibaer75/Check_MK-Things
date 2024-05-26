@@ -3,10 +3,8 @@
 """Special Agent to fetch Redfish data from management interfaces"""
 
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
-
 # License: GNU General Public License v2
 
-import json
 import logging
 import sys
 from collections.abc import Sequence
@@ -18,31 +16,12 @@ from cmk.special_agents.v0_unstable.agent_common import (SectionWriter,
                                                          special_agent_main)
 from cmk.special_agents.v0_unstable.argument_parsing import (
     Args, create_default_argument_parser)
-from cmk.utils import password_store, paths, store
+from cmk.utils import password_store
 from redfish.rest.v1 import RetriesExhaustedError, ServerDownOrUnreachableError
 
 
 def parse_arguments(argv: Sequence[str] | None) -> Args:
     """Parse arguments needed to construct an URL and for connection conditions"""
-    sections = [
-        "Power",
-        "Thermal",
-        "Memory",
-        "NetworkAdapters",
-        "NetworkInterfaces",
-        "Processors",
-        "Storage",
-        "EthernetInterfaces",
-        "FirmwareInventory",
-        "SmartStorage",
-        "ArrayControllers",
-        "HostBusAdapters",
-        "LogicalDrives",
-        "PhysicalDrives",
-        "SimpleStorage",
-        "Drives",
-        "Volumes",
-    ]
 
     parser = create_default_argument_parser(description=__doc__)
     # required
@@ -74,13 +53,6 @@ def parse_arguments(argv: Sequence[str] | None) -> Args:
         default=443,
         type=int,
         help="Use alternative port (default: 443)",
-    )
-    parser.add_argument(
-        "-m",
-        "--sections",
-        default=",".join(sections),
-        help=f"Comma separated list of data to query. \
-               Possible values: {','.join(sections)} (default: all)",
     )
     parser.add_argument(
         "--verify_ssl",
@@ -193,49 +165,6 @@ def fetch_sections(redfishobj, fetching_sections, sections, data):
         else:
             result_set[section] = section_data
     return result_set
-
-
-def fetch_hpe_smartstorage(redfishobj, link_list, sections):
-    """fetch hpe smartstorage sections"""
-    storage_link = link_list.get("SmartStorage", None)
-    if storage_link:
-        result = fetch_data(redfishobj, storage_link.get("@odata.id"), "SmartStorage")
-        storage_links = result.get("Links")
-        storage_sections = [
-            "ArrayControllers",
-            "HostBusAdapters",
-        ]
-        controller_sections = [
-            "LogicalDrives",
-            "PhysicalDrives",
-        ]
-        resulting_sections = list(set(storage_sections).intersection(sections))
-        cntrl_result = fetch_sections(
-            redfishobj, resulting_sections, sections, storage_links
-        )
-        process_result(cntrl_result)
-        for element in cntrl_result.get("ArrayControllers", []):
-            contrl_links = element.get("Links", {})
-            resulting_sections = list(set(controller_sections).intersection(sections))
-            result = fetch_sections(
-                redfishobj, resulting_sections, sections, contrl_links
-            )
-            process_result(result)
-
-
-def fetch_extra_data(redfishobj, data_model, extra_links, sections, data):
-    """fetch manufacturer specific data"""
-    link_list = {}
-    link_data = data.get("Oem", {}).get(data_model, {}).get("Links", {})
-    if link_data:
-        for entry in link_data:
-            if entry in extra_links:
-                link_list.setdefault(entry, link_data.get(entry))
-        if "SmartStorage" in link_list:
-            fetch_hpe_smartstorage(redfishobj, link_list, sections)
-            link_list.pop("SmartStorage")
-        result = fetch_sections(redfishobj, extra_links, sections, link_list)
-        process_result(result)
 
 
 def process_result(result):
@@ -371,6 +300,15 @@ class VendorSupermicroData(VendorGeneric):
     expand_string = ""
 
 
+class VendorRaritanData(VendorGeneric):
+    """Raritan specific settings"""
+
+    name = "Raritan"
+    version = None
+    firmware_version = None
+    expand_string = ""
+
+
 def detect_vendor(root_data):
     """Extract Vendor information from base data"""
     vendor_string = ""
@@ -418,24 +356,25 @@ def detect_vendor(root_data):
     elif vendor_string in ["Cisco", "Cisco Systems Inc."]:
         vendor_data = VendorCiscoData()
         vendor_data.version = "CIMC"
+    elif vendor_string in ["Raritan"]:
+        vendor_data = VendorRaritanData()
+        vendor_data.version = "BMC"
     else:
         vendor_data = VendorGeneric()
 
     return vendor_data
 
 
-def get_information(redfishobj, sections):
+def get_information(redfishobj):
     """get a the information from the Redfish management interface"""
-    sections = sections.split(",")
+    sections = ['PowerEquipment', 'RackPDUs']
     base_data = fetch_data(redfishobj, "/redfish/v1", "Base")
 
     vendor_data = detect_vendor(base_data)
 
     manager_url = base_data.get("Managers", {}).get("@odata.id")
-    chassis_url = base_data.get("Chassis", {}).get("@odata.id")
-    systems_url = base_data.get("Systems", {}).get("@odata.id")
+    systems_url = base_data.get("PowerEquipment", {}).get("@odata.id")
 
-    data_model = ""
     manager_data = False
 
     # fetch managers
@@ -444,9 +383,6 @@ def get_information(redfishobj, sections):
         manager_data = fetch_collection(redfishobj, manager_col, "Manager")
 
         for element in manager_data:
-            data_model = list(element.get("Oem", {"Unknown": "Unknown model"}).keys())[
-                0
-            ]
             if not vendor_data.firmware_version:
                 vendor_data.firmware_version = element.get("FirmwareVersion", "")
 
@@ -455,22 +391,7 @@ def get_information(redfishobj, sections):
         w.append(f"AgentOS: {vendor_data.version} - {vendor_data.firmware_version}")
 
     # fetch systems
-    systems_col = fetch_data(redfishobj, systems_url, "System")
-    systems_data = fetch_collection(redfishobj, systems_col, "System")
-
-    if data_model in ["Hpe", "Hp"]:
-        data_model_links = []
-        for system in systems_data:
-            system_oem_links = list(
-                system.get("Oem", {"Unknown": "Unknown model"})
-                .get(data_model, {"Unknown": "Unknown model"})
-                .get("Links", {})
-                .keys()
-            )
-            data_model_links.extend(system_oem_links)
-        extra_links = list(set(data_model_links).intersection(sections))
-    else:
-        extra_links = []
+    systems_data = list([fetch_data(redfishobj, systems_url, "PowerEquipment")])
 
     if manager_data:
         with SectionWriter("redfish_manager") as w:
@@ -479,87 +400,27 @@ def get_information(redfishobj, sections):
     with SectionWriter("redfish_system") as w:
         w.append_json(systems_data)
 
-    systems_sections = list(
-        set(
-            [
-                "EthernetInterfaces",
-                "NetworkInterfaces",
-                "Processors",
-                "Storage",
-                "Memory",
-            ]
-        ).union(extra_links)
-    )
-    systems_sub_sections = [
-        "Drives",
-        "Volumes",
-    ]
+    systems_sections = ["RackPDUs"]
 
     resulting_sections = list(set(systems_sections).intersection(sections))
     for system in systems_data:
-        if data_model in ["Hpe", "Hp"] and "SmartStorage" in resulting_sections:
-            if vendor_data.firmware_version.startswith("3."):
-                resulting_sections.remove("SmartStorage")
-            elif "Storage" in resulting_sections:
-                resulting_sections.remove("Storage")
         result = fetch_sections(redfishobj, resulting_sections, sections, system)
         process_result(result)
-        if "Storage" in result:
-            storage_data = result.get("Storage")
-            if isinstance(storage_data, list):
-                for entry in storage_data:
-                    if (
-                        entry.get("Drives@odata.count", 0) != 0
-                        or len(entry.get("Drives", [])) >= 1
-                    ):
-                        result = fetch_list_of_elements(
-                            redfishobj, systems_sub_sections, sections, entry
-                        )
-                        process_result(result)
-            else:
-                result = fetch_list_of_elements(
-                    redfishobj, systems_sub_sections, sections, storage_data
+        sub_sections = ['Mains', 'Outlets', 'Sensors']
+        pdu_data = result.get("RackPDUs")
+        if isinstance(pdu_data, list):
+            for entry in pdu_data:
+                result = fetch_sections(
+                    redfishobj, sub_sections, sub_sections, entry
                 )
                 process_result(result)
-
-        if extra_links:
-            fetch_extra_data(redfishobj, data_model, extra_links, sections, system)
-
-    # fetch chassis
-    chassis_col = fetch_data(redfishobj, chassis_url, "Chassis")
-    chassis_data = fetch_collection(redfishobj, chassis_col, "Chassis")
-    with SectionWriter("redfish_chassis") as w:
-        w.append_json(chassis_data)
-    chassis_sections = [
-        "NetworkAdapters",
-        "Power",
-        "Thermal",
-        "Sensors",
-    ]
-    resulting_sections = list(set(chassis_sections).intersection(sections))
-    for chassis in chassis_data:
-        result = fetch_sections(redfishobj, resulting_sections, sections, chassis)
-        process_result(result)
+        else:
+            result = fetch_sections(
+                redfishobj, sub_sections, sub_sections, pdu_data
+            )
+            process_result(result)
 
     return 0
-
-
-def store_session_key(redfishobj, host):
-    """save session data to file"""
-    store_data = {}
-    store_path = paths.tmp_dir / "agents" / "agent_redfish" / f"{host}.json"
-    store_data.setdefault("location", redfishobj.get_session_location())
-    store_data.setdefault("session", redfishobj.get_session_key())
-    store.save_text_to_file(store_path, json.dumps(store_data))
-
-
-def load_session_key(host):
-    """load existing redfish session data"""
-    store_path = paths.tmp_dir / "agents" / "agent_redfish" / f"{host}.json"
-    data = json.loads(store.load_text_from_file(store_path, default="{}"))
-    if data.get("session") and data.get("location"):
-        return data
-    return None
 
 
 def get_session(args: Args):
@@ -581,23 +442,7 @@ def get_session(args: Args):
             timeout=args.timeout,
             max_retry=args.retries,
         )
-        existing_session = load_session_key(args.host)
-        # existing session with key found return this session instead of login
-        if existing_session:
-            redfishobj.set_session_location(existing_session.get("location"))
-            redfishobj.set_session_key(existing_session.get("session"))
-            response_url = redfishobj.get("/redfish/v1/SessionService/Sessions", None)
-            if response_url.status == 200:
-                return redfishobj
-            response_url = redfishobj.get("/redfish/v1/Sessions", None)
-            if response_url.status == 200:
-                return redfishobj
-
-        # Login with the Redfish client
-        # cleanup old session information
-        redfishobj.set_session_location(None)
-        redfishobj.set_session_key(None)
-        redfishobj.login(auth="session")
+        redfishobj.login(auth="basic")
     except ServerDownOrUnreachableError as excp:
         sys.stderr.write(
             f"ERROR: server not reachable or does not support RedFish. Error Message: {excp}\n"
@@ -606,7 +451,6 @@ def get_session(args: Args):
     except RetriesExhaustedError as excp:
         sys.stderr.write(f"ERROR: too many retries for connection attempt: {excp}\n")
         sys.exit(1)
-    store_session_key(redfishobj, args.host)
     return redfishobj
 
 
@@ -625,10 +469,8 @@ def agent_redfish_main(args: Args) -> int:
 
     # Start Redfish Session Object
     redfishobj = get_session(args)
-    get_information(redfishobj, args.sections)
-    # logout not needed anymore if no problem - session saved to file
-    # logout is done if some query fails
-    # REDFISHOBJ.logout()
+    get_information(redfishobj)
+    redfishobj.logout()
 
     return 0
 

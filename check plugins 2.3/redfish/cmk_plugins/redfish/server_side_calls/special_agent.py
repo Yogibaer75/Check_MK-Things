@@ -54,3 +54,9 @@ special_agent_redfish = SpecialAgentConfig(
     parameter_parser=Params.model_validate,
     commands_function=_agent_redfish_arguments,
 )
+
+special_agent_redfish_power = SpecialAgentConfig(
+    name="redfish_power",
+    parameter_parser=Params.model_validate,
+    commands_function=_agent_redfish_arguments,
+)

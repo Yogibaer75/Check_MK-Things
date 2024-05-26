@@ -24,3 +24,4 @@ The Redfish library is already existing inside CMK.
 - 2.3.39 - exit code of special agent now reflects errors
 - 2.3.40 - removed print statement
 - 2.3.41 - explicitly don't try to fetch collections without members
+- 2.3.42 - added extra special agent for power equipment with Redfish support
