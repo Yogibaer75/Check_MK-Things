@@ -38,7 +38,7 @@ def check_redfish_arraycontrollers_hpe(
     storage_msg = f"Type: {dev_type}, Serial: {dev_ser}"
     yield Result(state=State(0), summary=storage_msg)
 
-    dev_state, dev_msg = redfish_health_state(data["Status"])
+    dev_state, dev_msg = redfish_health_state(data.get("Status", {}))
     status = dev_state
     message = dev_msg
 

@@ -68,7 +68,7 @@ def check_redfish_voltage(item: str, section: RedfishAPIData) -> CheckResult:
             boundaries=perfdata.boundaries,
         )
 
-    dev_state, dev_msg = redfish_health_state(voltage["Status"])
+    dev_state, dev_msg = redfish_health_state(voltage.get("Status", {}))
     yield Result(state=State(dev_state), notice=dev_msg)
 
 

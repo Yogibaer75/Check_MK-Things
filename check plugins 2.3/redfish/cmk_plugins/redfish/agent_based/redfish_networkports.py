@@ -47,7 +47,7 @@ def check_redfish_networkports(item: str, section: RedfishAPIData) -> CheckResul
     )
     yield Result(state=State(0), summary=int_msg)
 
-    dev_state, dev_msg = redfish_health_state(data["Status"])
+    dev_state, dev_msg = redfish_health_state(data.get("Status", {}))
     status = dev_state
     message = dev_msg
 

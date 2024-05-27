@@ -45,7 +45,7 @@ def check_redfish_arraycontrollers_generic(
         )
         yield Result(state=State(0), summary=storage_msg)
 
-    dev_state, dev_msg = redfish_health_state(data["Status"])
+    dev_state, dev_msg = redfish_health_state(data.get("Status", {}))
     status = dev_state
     message = dev_msg
 

@@ -58,7 +58,7 @@ def check_redfish_processors(item: str, section: RedfishAPIData) -> CheckResult:
         )
     yield Result(state=State(0), summary=cpu_msg)
 
-    dev_state, dev_msg = redfish_health_state(data["Status"])
+    dev_state, dev_msg = redfish_health_state(data.get("Status", {}))
 
     yield Result(state=State(dev_state), notice=dev_msg)
 

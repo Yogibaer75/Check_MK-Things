@@ -77,7 +77,7 @@ def check_redfish_temperatures(
     else:
         yield Result(state=State(0), summary="No temperature data found")
 
-    dev_state, dev_msg = redfish_health_state(temp["Status"])
+    dev_state, dev_msg = redfish_health_state(temp.get("Status", {}))
     yield Result(state=State(dev_state), notice=dev_msg)
 
 

@@ -64,7 +64,7 @@ def check_redfish_outlets(
         socket_data
     )
 
-    dev_state, dev_msg = redfish_health_state(data["Status"])
+    dev_state, dev_msg = redfish_health_state(data.get("Status", {}))
     yield Result(state=State(dev_state), notice=dev_msg)
 
 

@@ -70,7 +70,7 @@ def check_redfish_ethernetinterfaces(item: str, section: RedfishAPIData) -> Chec
     yield Result(state=State(0), summary=int_msg)
 
     if data.get("Status"):
-        dev_state, dev_msg = redfish_health_state(data["Status"])
+        dev_state, dev_msg = redfish_health_state(data.get("Status", {}))
         status = dev_state
         message = dev_msg
     else:

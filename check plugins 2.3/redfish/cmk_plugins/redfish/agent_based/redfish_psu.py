@@ -72,7 +72,7 @@ def check_redfish_psu(item: str, section: RedfishAPIData) -> CheckResult:
         f"{input_voltage} V input, Capacity {capacity} Watts, Typ {dev_model}"
     )
     yield Result(state=State(0), summary=model_msg)
-    dev_state, dev_msg = redfish_health_state(psu["Status"])
+    dev_state, dev_msg = redfish_health_state(psu.get("Status", {}))
     yield Result(state=State(dev_state), notice=dev_msg)
 
 

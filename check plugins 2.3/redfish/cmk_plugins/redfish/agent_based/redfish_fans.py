@@ -98,7 +98,7 @@ def check_redfish_fans(item: str, section: RedfishAPIData) -> CheckResult:
         )
         yield Result(state=State(0), summary="No unit found assume RPM!")
 
-    dev_state, dev_msg = redfish_health_state(fan["Status"])
+    dev_state, dev_msg = redfish_health_state(fan.get("Status", {}))
 
     yield Result(state=State(dev_state), notice=dev_msg)
 

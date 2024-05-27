@@ -55,7 +55,7 @@ def check_redfish_logicaldrives(item: str, section: RedfishAPIData) -> CheckResu
     volume_msg = f"Raid Type: {raid_type}, Size: {size:0.0f}GB"
     yield Result(state=State(0), summary=volume_msg)
 
-    dev_state, dev_msg = redfish_health_state(data["Status"])
+    dev_state, dev_msg = redfish_health_state(data.get("Status", {}))
     status = dev_state
     message = dev_msg
 

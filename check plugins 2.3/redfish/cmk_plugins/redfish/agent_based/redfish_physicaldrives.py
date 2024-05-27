@@ -77,7 +77,7 @@ def check_redfish_physicaldrives(item: str, section: RedfishAPIData) -> CheckRes
             )
     yield Result(state=State(0), summary=disc_msg)
 
-    dev_state, dev_msg = redfish_health_state(data["Status"])
+    dev_state, dev_msg = redfish_health_state(data.get("Status", {}))
     status = dev_state
     message = dev_msg
     yield Result(state=State(status), notice=message)

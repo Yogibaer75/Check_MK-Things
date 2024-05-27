@@ -80,7 +80,7 @@ def check_redfish_memory(item: str, section: RedfishAPIData) -> CheckResult:
     yield Result(state=State(0), summary=mem_msg)
 
     if data.get("Status"):
-        status, message = redfish_health_state(data["Status"])
+        status, message = redfish_health_state(data.get("Status", {}))
     elif state := find_key_recursive(data, "DIMMStatus"):
         message, status = HPE_DIMM_STATE.get(state, ("Unknown state", 3))
     else:
