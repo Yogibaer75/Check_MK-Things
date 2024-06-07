@@ -1,1 +1,1 @@
-mkp not needed anymore after update to 2.3.0p5
+mkp not needed anymore after update to 2.3.0p6
