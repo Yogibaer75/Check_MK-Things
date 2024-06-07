@@ -2,17 +2,19 @@
 # Copyright (C) 2019 Checkmk GmbH - License: GNU General Public License v2
 # This file is part of Checkmk (https://checkmk.com). It is subject to the terms and
 # conditions defined in the file COPYING, which is part of this source code package.
-
 import base64
 import logging
 import sys
 from collections.abc import Sequence
 
 import requests
+
 from cmk.special_agents.v0_unstable.agent_common import (
-    ConditionalPiggybackSection, SectionWriter, special_agent_main)
-from cmk.special_agents.v0_unstable.argument_parsing import (
-    Args, create_default_argument_parser)
+    ConditionalPiggybackSection,
+    SectionWriter,
+    special_agent_main,
+)
+from cmk.special_agents.v0_unstable.argument_parsing import Args, create_default_argument_parser
 
 LOGGING = logging.getLogger("agent_prism")
 
@@ -35,122 +37,135 @@ def parse_arguments(argv: Sequence[str] | None) -> Args:
     parser.add_argument(
         "--password", type=str, required=True, metavar="PASSWORD", help="password for that account"
     )
+    parser.add_argument(
+        "--no-cert-check", action="store_true", help="Do not verify TLS certificate"
+    )
 
     return parser.parse_args(argv)
 
 
-def output_containers(session, url) -> None:
-    obj = session.get(url + "/containers", verify=False, timeout=5)
+def output_containers(session: requests.Session, url: str, timeout: int) -> None:
+    LOGGING.debug("do request..")
+    obj = session.get(url + "/containers", timeout=timeout).json()
+    LOGGING.debug("got %d containers", len(obj["entities"]))
     with SectionWriter("prism_containers") as w:
-        w.append_json(obj.json())
+        w.append_json(obj)
 
 
-def output_alerts(session, url) -> None:
+def output_alerts(session: requests.Session, url: str, timeout: int) -> None:
+    LOGGING.debug("do request..")
     obj = session.get(
         url + "/alerts",
         params={"resolved": "false", "acknowledged": "false"},
-        verify=False, timeout=5
-    )
+        timeout=timeout,
+    ).json()
+    LOGGING.debug("got %d alerts", len(obj["entities"]))
     with SectionWriter("prism_alerts") as w:
-        w.append_json(obj.json())
+        w.append_json(obj)
 
 
-def output_cluster(session, url) -> None:
-    obj = session.get(url + "/cluster", verify=False, timeout=5)
+def output_cluster(session: requests.Session, url: str, timeout: int) -> None:
+    LOGGING.debug("do request..")
+    obj = session.get(url + "/cluster", timeout=timeout).json()
+    LOGGING.debug("got %d keys", len(obj.keys()))
     with SectionWriter("prism_info") as w:
-        w.append_json(obj.json())
+        w.append_json(obj)
 
 
-def output_storage_pools(session, url) -> None:
-    obj = session.get(url + "/storage_pools", verify=False, timeout=5)
+def output_storage_pools(session: requests.Session, url: str, timeout: int) -> None:
+    LOGGING.debug("do request..")
+    obj = session.get(url + "/storage_pools", timeout=timeout).json()
+    LOGGING.debug("got %d entities", len(obj["entities"]))
     with SectionWriter("prism_storage_pools") as w:
-        w.append_json(obj.json())
+        w.append_json(obj)
 
 
-def output_vms(session, url) -> None:
-    obj = session.get(url + "/vms", verify=False, timeout=5)
+def output_vms(session: requests.Session, url: str, timeout: int) -> None:
+    obj = session.get(url + "/vms", timeout=timeout).json()
     with SectionWriter("prism_vms") as w:
-        w.append_json(obj.json())
-    for element in obj.json().get("entities"):
+        w.append_json(obj)
+    for element in obj.get("entities"):
         with ConditionalPiggybackSection(element.get("vmName")):
             with SectionWriter("prism_vm") as w:
                 w.append_json(element)
 
 
-def output_hosts(session, url) -> None:
-    obj = session.get(url + "/hosts", verify=False, timeout=5)
+def output_hosts(session: requests.Session, url: str, timeout: int) -> None:
+    obj = session.get(url + "/hosts", timeout=timeout).json()
     with SectionWriter("prism_hosts") as w:
-        w.append_json(obj.json())
-    for element in obj.json().get("entities"):
+        w.append_json(obj)
+    for element in obj.get("entities"):
         with ConditionalPiggybackSection(element.get("name")):
             with SectionWriter("prism_host") as w:
                 w.append_json(element)
-            networks = session.get(url + f"/hosts/{element.get("uuid")}/host_nics",
-                                   verify=False, timeout=5)
+            networks = session.get(
+                f"{url}/hosts/{element.get('uuid')}/host_nics", timeout=timeout
+            ).json()
             with SectionWriter("prism_host_networks") as w:
-                w.append_json(networks.json())
+                w.append_json(networks)
 
 
-def output_protection(session, url) -> None:
-    obj = session.get(url + "/protection_domains", verify=False, timeout=5)
+def output_protection(session: requests.Session, url: str, timeout: int) -> None:
+    obj = session.get(url + "/protection_domains", timeout=timeout).json()
     with SectionWriter("prism_protection_domains") as w:
-        w.append_json(obj.json())
+        w.append_json(obj)
 
 
-def output_support(session, url) -> None:
-    obj = session.get(url + "/cluster/remote_support", verify=False, timeout=5)
+def output_support(session: requests.Session, url: str, timeout: int) -> None:
+    obj = session.get(url + "/cluster/remote_support", timeout=timeout).json()
     with SectionWriter("prism_remote_support") as w:
-        w.append_json(obj.json())
+        w.append_json(obj)
 
 
-def output_ha(session, url) -> None:
-    obj = session.get(url + "/ha", verify=False, timeout=5)
+def output_ha(session: requests.Session, url: str, timeout: int) -> None:
+    obj = session.get(url + "/ha", timeout=timeout).json()
     with SectionWriter("prism_ha") as w:
-        w.append_json(obj.json())
+        w.append_json(obj)
 
 
 def agent_prism_main(args: Args) -> int:
     """Establish a connection to a Prism server and process containers, alerts, clusters and
     storage_pools"""
     LOGGING.info("setup HTTPS connection..")
-    headers = {
-            "Authorization": "Basic "
-            + base64.encodebytes((f"{args.username}:{args.password}").encode())
-            .strip()
-            .decode()
-            .replace("\n", "")
-    }
     base_url_v1 = f"https://{args.server}:{args.port}/PrismGateway/services/rest/v1"
     base_url_v2 = f"https://{args.server}:{args.port}/PrismGateway/services/rest/v2.0"
-    s = requests.session()
-    s.headers.update(headers)
+    session = requests.session()
+    session.headers.update(
+        {
+            "Authorization":
+            f'Basic {base64.b64encode(f"{args.username}:{args.password}".encode()).decode()}'
+        }
+    )
+    session.verify = (
+        False if args.no_cert_check else True  # pylint: disable=simplifiable-if-expression
+    )
 
     LOGGING.info("fetch and write container info..")
-    output_containers(s, base_url_v1)
+    output_containers(session, base_url_v1, timeout=args.timeout)
 
     LOGGING.info("fetch and write alerts..")
-    output_alerts(s, base_url_v2)
+    output_alerts(session, base_url_v2, timeout=args.timeout)
 
     LOGGING.info("fetch and write cluster info..")
-    output_cluster(s, base_url_v2)
+    output_cluster(session, base_url_v2, timeout=args.timeout)
 
     LOGGING.info("fetch and write storage_pools..")
-    output_storage_pools(s, base_url_v1)
+    output_storage_pools(session, base_url_v1, timeout=args.timeout)
 
     LOGGING.info("fetch and write vm info..")
-    output_vms(s, base_url_v1)
+    output_vms(session, base_url_v1, timeout=args.timeout)
 
     LOGGING.info("fetch and write hosts info..")
-    output_hosts(s, base_url_v2)
+    output_hosts(session, base_url_v2, timeout=args.timeout)
 
     LOGGING.info("fetch and write protection domain info..")
-    output_protection(s, base_url_v2)
+    output_protection(session, base_url_v2, timeout=args.timeout)
 
     LOGGING.info("fetch and write support info..")
-    output_support(s, base_url_v2)
+    output_support(session, base_url_v2, timeout=args.timeout)
 
     LOGGING.info("fetch and write ha state..")
-    output_ha(s, base_url_v2)
+    output_ha(session, base_url_v2, timeout=args.timeout)
 
     LOGGING.info("all done. bye.")
 
