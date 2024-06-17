@@ -1,3 +1,5 @@
+# Redfish Special Agent
+
 This is the frist version of an universal Redfish agent.
 With CMK 2.3 the extra installation of Python module is not needed anymore.
 The Redfish library is already existing inside CMK.
@@ -25,3 +27,6 @@ The Redfish library is already existing inside CMK.
 - 2.3.40 - removed print statement
 - 2.3.41 - explicitly don't try to fetch collections without members
 - 2.3.42 - added extra special agent for power equipment with Redfish support
+- 2.3.43 - fixed crash for components without state information
+- 2.3.44 - moved all files to addon folder
+- 2.3.45 - forgotten paths from last patch fixed and outlets without measurements working
