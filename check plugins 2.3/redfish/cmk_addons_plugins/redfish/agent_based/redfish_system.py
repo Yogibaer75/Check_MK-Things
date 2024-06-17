@@ -16,7 +16,7 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
-from cmk.plugins.redfish.lib import RedfishAPIData, parse_redfish, redfish_health_state
+from cmk_addons.plugins.redfish.lib import RedfishAPIData, parse_redfish, redfish_health_state
 
 Section = Dict[str, Mapping[str, Any]]
 

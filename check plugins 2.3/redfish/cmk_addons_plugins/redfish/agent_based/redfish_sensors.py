@@ -6,7 +6,7 @@
 # License: GNU General Public License v2
 
 from cmk.agent_based.v2 import AgentSection
-from cmk.plugins.redfish.lib import (
+from cmk_addons.plugins.redfish.lib import (
     parse_redfish_multiple,
 )
 from cmk.agent_based.v2 import (
@@ -18,7 +18,7 @@ from cmk.agent_based.v2 import (
     State,
     get_value_store,
 )
-from cmk.plugins.redfish.lib import (
+from cmk_addons.plugins.redfish.lib import (
     RedfishAPIData,
     process_redfish_perfdata,
     redfish_health_state,

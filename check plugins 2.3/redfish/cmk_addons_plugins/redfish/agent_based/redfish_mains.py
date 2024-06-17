@@ -8,7 +8,7 @@
 from collections.abc import Mapping
 from typing import Any
 from cmk.agent_based.v2 import AgentSection
-from cmk.plugins.redfish.lib import (
+from cmk_addons.plugins.redfish.lib import (
     parse_redfish_multiple,
 )
 from cmk.agent_based.v2 import (
@@ -19,7 +19,7 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
-from cmk.plugins.redfish.lib import (
+from cmk_addons.plugins.redfish.lib import (
     RedfishAPIData,
     redfish_health_state,
 )
@@ -28,14 +28,14 @@ from cmk.plugins.lib.elphase import (
 )
 
 
-agent_section_redfish_outlets = AgentSection(
-    name="redfish_outlets",
+agent_section_redfish_mains = AgentSection(
+    name="redfish_mains",
     parse_function=parse_redfish_multiple,
-    parsed_section_name="redfish_outlets",
+    parsed_section_name="redfish_mains",
 )
 
 
-def discovery_redfish_outlets(section: RedfishAPIData) -> DiscoveryResult:
+def discovery_redfish_mains(section: RedfishAPIData) -> DiscoveryResult:
     """Discover single sensors"""
     for key in section.keys():
         if section[key].get("Status", {}).get("State") == "Absent":
@@ -43,7 +43,7 @@ def discovery_redfish_outlets(section: RedfishAPIData) -> DiscoveryResult:
         yield Service(item=section[key]["Id"])
 
 
-def check_redfish_outlets(
+def check_redfish_mains(
     item: str, params: Mapping[str, Any], section: RedfishAPIData
 ) -> CheckResult:
     """Check single outlet state"""
@@ -52,10 +52,12 @@ def check_redfish_outlets(
         return
 
     socket_data = {item: {
-        "voltage": data.get('Voltage', {}).get('Reading'),
-        "current": data.get('CurrentAmps', {}).get('Reading'),
-        "power": data.get('PowerWatts', {}).get('Reading'),
-        "frequency": data.get('FrequencyHz', {}).get('Reading'),
+        "voltage": data.get('Voltage', {}).get('Reading', 0),
+        "current": data.get('CurrentAmps', {}).get('Reading', 0),
+        "power": data.get('PowerWatts', {}).get('Reading', 0),
+        "frequency": data.get('FrequencyHz', {}).get('Reading', 0),
+        "appower": data.get('PowerWatts', {}).get('ApparentVA', 0),
+        "energy": data.get('EnergykWh', {}).get('Reading', 0) * 1000
     }}
 
     yield from check_elphase(
@@ -68,12 +70,12 @@ def check_redfish_outlets(
     yield Result(state=State(dev_state), notice=dev_msg)
 
 
-check_plugin_redfish_outlets = CheckPlugin(
-    name="redfish_outlets",
-    service_name="Outlet %s",
-    sections=["redfish_outlets"],
-    discovery_function=discovery_redfish_outlets,
-    check_function=check_redfish_outlets,
+check_plugin_redfish_mains = CheckPlugin(
+    name="redfish_mains",
+    service_name="Mains %s",
+    sections=["redfish_mains"],
+    discovery_function=discovery_redfish_mains,
+    check_function=check_redfish_mains,
     check_default_parameters={},
     check_ruleset_name="ups_outphase",
 )

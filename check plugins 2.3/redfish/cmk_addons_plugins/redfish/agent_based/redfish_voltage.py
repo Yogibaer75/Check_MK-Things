@@ -14,7 +14,7 @@ from cmk.agent_based.v2 import (
     State,
     check_levels,
 )
-from cmk.plugins.redfish.lib import (
+from cmk_addons.plugins.redfish.lib import (
     RedfishAPIData,
     process_redfish_perfdata,
     redfish_health_state,

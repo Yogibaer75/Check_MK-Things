@@ -13,7 +13,7 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
-from cmk.plugins.redfish.lib import (
+from cmk_addons.plugins.redfish.lib import (
     RedfishAPIData,
     redfish_health_state,
 )

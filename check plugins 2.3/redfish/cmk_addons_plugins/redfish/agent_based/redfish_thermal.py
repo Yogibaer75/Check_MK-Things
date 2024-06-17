@@ -6,7 +6,7 @@
 # License: GNU General Public License v2
 
 from cmk.agent_based.v2 import AgentSection
-from cmk.plugins.redfish.lib import (
+from cmk_addons.plugins.redfish.lib import (
     parse_redfish_multiple,
 )
 
