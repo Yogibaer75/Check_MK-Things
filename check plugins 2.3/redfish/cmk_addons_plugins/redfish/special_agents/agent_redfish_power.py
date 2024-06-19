@@ -12,10 +12,14 @@ from pathlib import Path
 
 import redfish
 import urllib3
-from cmk.special_agents.v0_unstable.agent_common import (SectionWriter,
-                                                         special_agent_main)
+from cmk.special_agents.v0_unstable.agent_common import (
+    SectionWriter,
+    special_agent_main,
+)
 from cmk.special_agents.v0_unstable.argument_parsing import (
-    Args, create_default_argument_parser)
+    Args,
+    create_default_argument_parser,
+)
 from cmk.utils import password_store
 from redfish.rest.v1 import RetriesExhaustedError, ServerDownOrUnreachableError
 
@@ -367,7 +371,7 @@ def detect_vendor(root_data):
 
 def get_information(redfishobj):
     """get a the information from the Redfish management interface"""
-    sections = ['PowerEquipment', 'RackPDUs']
+    sections = ["PowerEquipment", "RackPDUs"]
     base_data = fetch_data(redfishobj, "/redfish/v1", "Base")
 
     vendor_data = detect_vendor(base_data)
@@ -406,18 +410,14 @@ def get_information(redfishobj):
     for system in systems_data:
         result = fetch_sections(redfishobj, resulting_sections, sections, system)
         process_result(result)
-        sub_sections = ['Mains', 'Outlets', 'Sensors']
+        sub_sections = ["Mains", "Outlets", "Sensors"]
         pdu_data = result.get("RackPDUs")
         if isinstance(pdu_data, list):
             for entry in pdu_data:
-                result = fetch_sections(
-                    redfishobj, sub_sections, sub_sections, entry
-                )
+                result = fetch_sections(redfishobj, sub_sections, sub_sections, entry)
                 process_result(result)
         else:
-            result = fetch_sections(
-                redfishobj, sub_sections, sub_sections, pdu_data
-            )
+            result = fetch_sections(redfishobj, sub_sections, sub_sections, pdu_data)
             process_result(result)
 
     return 0

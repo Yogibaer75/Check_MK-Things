@@ -14,10 +14,14 @@ from pathlib import Path
 
 import redfish
 import urllib3
-from cmk.special_agents.v0_unstable.agent_common import (SectionWriter,
-                                                         special_agent_main)
+from cmk.special_agents.v0_unstable.agent_common import (
+    SectionWriter,
+    special_agent_main,
+)
 from cmk.special_agents.v0_unstable.argument_parsing import (
-    Args, create_default_argument_parser)
+    Args,
+    create_default_argument_parser,
+)
 from cmk.utils import password_store, paths, store
 from redfish.rest.v1 import RetriesExhaustedError, ServerDownOrUnreachableError
 
@@ -469,6 +473,30 @@ def get_information(redfishobj, sections):
             )
             data_model_links.extend(system_oem_links)
         extra_links = list(set(data_model_links).intersection(sections))
+        res_dir = (
+            base_data.get("Oem", {"Unknown": "Unknown model"})
+            .get(data_model, {"Unknown": "Unknown model"})
+            .get("Links", {})
+            .get("ResourceDirectory", {})
+            .get("@odata.id")
+        )
+        if res_dir:
+            res_data = fetch_data(redfishobj, res_dir, "ResourceDirectory")
+            res_instances = res_data.get("Instances", [])
+            for instance in res_instances:
+                if "#SoftwareInventoryCollection." in instance.get(
+                    "@odata.type", ""
+                ) and "UpdateService/FirmwareInventory" in instance.get(
+                    "@odata.id", ""
+                ):
+                    firmwares = fetch_data(
+                        redfishobj,
+                        instance["@odata.id"] + "?$expand=.",
+                        "FirmwareDirectory",
+                    )
+                    if firmwares.get("Members"):
+                        with SectionWriter("redfish_firmware_hpe") as w:
+                            w.append_json(firmwares.get("Members"))
     else:
         extra_links = []
 
