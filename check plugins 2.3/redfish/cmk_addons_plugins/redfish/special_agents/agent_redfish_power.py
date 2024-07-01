@@ -22,6 +22,9 @@ from cmk.special_agents.v0_unstable.argument_parsing import (
 )
 from cmk.utils import password_store
 from redfish.rest.v1 import RetriesExhaustedError, ServerDownOrUnreachableError
+from cmk_addons.plugins.redfish.tools import (
+    verify_response
+)
 
 
 def parse_arguments(argv: Sequence[str] | None) -> Args:
@@ -103,9 +106,7 @@ def fetch_data(redfishobj, url, component):
     if response_url.status == 200:
         return response_url.dict
 
-    sys.stdout.write(f"{component} data could not be fetched\n")
-    redfishobj.logout()
-    sys.exit(1)
+    return {"error": f"{component} data could not be fetched\n"}
 
 
 def fetch_collection(redfishobj, data, component):

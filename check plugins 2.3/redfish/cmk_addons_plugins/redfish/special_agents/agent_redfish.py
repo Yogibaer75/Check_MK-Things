@@ -24,6 +24,10 @@ from cmk.special_agents.v0_unstable.argument_parsing import (
 )
 from cmk.utils import password_store, paths, store
 from redfish.rest.v1 import RetriesExhaustedError, ServerDownOrUnreachableError
+from cmk_addons.plugins.redfish.tools import (
+    verify_response,
+    get_object_ids,
+)
 
 
 def parse_arguments(argv: Sequence[str] | None) -> Args:
@@ -87,6 +91,12 @@ def parse_arguments(argv: Sequence[str] | None) -> Args:
                Possible values: {','.join(sections)} (default: all)",
     )
     parser.add_argument(
+        "-n",
+        "--disabled_sections",
+        help=f"Comma separated list of data to ignore. \
+               Possible values: {','.join(sections)} (default: None)",
+    )
+    parser.add_argument(
         "--verify_ssl",
         action="store_true",
         default=False,
@@ -131,9 +141,7 @@ def fetch_data(redfishobj, url, component):
     if response_url.status == 200:
         return response_url.dict
 
-    sys.stdout.write(f"{component} data could not be fetched\n")
-    redfishobj.logout()
-    sys.exit(1)
+    return {"error": f"{component} data could not be fetched\n"}
 
 
 def fetch_collection(redfishobj, data, component):
@@ -430,7 +438,6 @@ def detect_vendor(root_data):
 
 def get_information(redfishobj, sections):
     """get a the information from the Redfish management interface"""
-    sections = sections.split(",")
     base_data = fetch_data(redfishobj, "/redfish/v1", "Base")
 
     vendor_data = detect_vendor(base_data)
@@ -536,6 +543,8 @@ def get_information(redfishobj, sections):
             storage_data = result.get("Storage")
             if isinstance(storage_data, list):
                 for entry in storage_data:
+                    if entry.get("error"):
+                        continue
                     if (
                         entry.get("Drives@odata.count", 0) != 0
                         or len(entry.get("Drives", [])) >= 1
@@ -562,8 +571,14 @@ def get_information(redfishobj, sections):
         "NetworkAdapters",
         "Power",
         "Thermal",
-        "Sensors",
     ]
+    new_environment_resources = [
+        "Sensors",
+        "EnvironmentMetrics",
+        "PowerSubsystem",
+        "ThermalSubsystem",
+    ]
+
     resulting_sections = list(set(chassis_sections).intersection(sections))
     for chassis in chassis_data:
         result = fetch_sections(redfishobj, resulting_sections, sections, chassis)
@@ -610,7 +625,7 @@ def get_session(args: Args):
             max_retry=args.retries,
         )
         existing_session = load_session_key(args.host)
-        # existing session with key found return this session instead of login
+        # existing session with key found reuse this session instead of login
         if existing_session:
             redfishobj.set_session_location(existing_session.get("location"))
             redfishobj.set_session_key(existing_session.get("session"))
@@ -653,7 +668,11 @@ def agent_redfish_main(args: Args) -> int:
 
     # Start Redfish Session Object
     redfishobj = get_session(args)
-    get_information(redfishobj, args.sections)
+    sections = args.sections.split(",")
+    if args.disabled_sections:
+        sections_disabled = args.disabled_sections.split(",")
+        sections = list(set(sections).difference(sections_disabled))
+    get_information(redfishobj, sections)
     # logout not needed anymore if no problem - session saved to file
     # logout is done if some query fails
     # REDFISHOBJ.logout()

@@ -18,6 +18,7 @@ from cmk.rulesets.v1.form_specs import (
     MultipleChoiceElement,
     Password,
     String,
+    migrate_to_password,
     validators,
 )
 from cmk.rulesets.v1.rule_specs import Topic, SpecialAgent
@@ -36,12 +37,15 @@ def _valuespec_special_agents_redfish() -> Dictionary:
             "password": DictElement(
                 parameter_form=Password(
                     title=Title("Password"),
+                    custom_validate=(validators.LengthInRange(min_value=1),),
+                    migrate=migrate_to_password,
                 ),
                 required=True,
             ),
             "sections": DictElement(
                 parameter_form=MultipleChoice(
-                    title=Title("Retrieve information about..."),
+                    title=Title("Enabled Sections... (only use in case of problems)"),
+                    help_text=Help("If there are problems please use disabled sections."),
                     elements=[
                         MultipleChoiceElement(
                             name="Memory", title=Title("Memory Modules")
@@ -121,6 +125,71 @@ def _valuespec_special_agents_redfish() -> Dictionary:
                     show_toggle_all=True,
                 ),
             ),
+            "disabled_sections": DictElement(
+                parameter_form=MultipleChoice(
+                    title=Title("Disabled Sections..."),
+                    help_text=Help("Please only define sections or disabled sections."),
+                    elements=[
+                        MultipleChoiceElement(
+                            name="Memory", title=Title("Memory Modules")
+                        ),
+                        MultipleChoiceElement(
+                            name="Power", title=Title("Powers Supply")
+                        ),
+                        MultipleChoiceElement(name="Processors", title=Title("CPUs")),
+                        MultipleChoiceElement(
+                            name="Thermal", title=Title("Fan and Temperatures")
+                        ),
+                        MultipleChoiceElement(
+                            name="FirmwareInventory",
+                            title=Title("Firmware Versions"),
+                        ),
+                        MultipleChoiceElement(
+                            name="NetworkAdapters", title=Title("Network Cards")
+                        ),
+                        MultipleChoiceElement(
+                            name="NetworkInterfaces",
+                            title=Title("Network Interfaces 1"),
+                        ),
+                        MultipleChoiceElement(
+                            name="EthernetInterfaces",
+                            title=Title("Network Interfaces 2"),
+                        ),
+                        MultipleChoiceElement(name="Storage", title=Title("Storage")),
+                        MultipleChoiceElement(
+                            name="ArrayControllers",
+                            title=Title("Array Controllers"),
+                        ),
+                        MultipleChoiceElement(
+                            name="SmartStorage",
+                            title=Title("HPE - Storagesubsystem"),
+                        ),
+                        MultipleChoiceElement(
+                            name="HostBusAdapters",
+                            title=Title("Hostbustadapters"),
+                        ),
+                        MultipleChoiceElement(
+                            name="PhysicalDrives", title=Title("iLO5 - Physical Drives")
+                        ),
+                        MultipleChoiceElement(
+                            name="LogicalDrives", title=Title("iLO5 - Logical Drives")
+                        ),
+                        MultipleChoiceElement(
+                            name="Drives", title=Title("Drives")
+                        ),
+                        MultipleChoiceElement(
+                            name="Volumes", title=Title("Volumes")
+                        ),
+                        MultipleChoiceElement(
+                            name="SimpleStorage", title=Title("Simple Storage Collection (tbd)")
+                        ),
+                    ],
+                    prefill=DefaultValue(
+                        []
+                    ),
+                    show_toggle_all=True,
+                ),
+            ),
             "port": DictElement(
                 parameter_form=Integer(
                     title=Title("Advanced - TCP Port number"),
@@ -179,7 +248,7 @@ def _valuespec_special_agents_redfish() -> Dictionary:
 
 def _valuespec_special_agents_redfish_power() -> Dictionary:
     return Dictionary(
-        title=Title("Redfish Compatible Management Controller"),
+        title=Title("Redfish Compatible Power Equipment (PDU)"),
         elements={
             "user": DictElement(
                 parameter_form=String(

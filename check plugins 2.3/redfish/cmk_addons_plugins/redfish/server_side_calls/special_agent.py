@@ -23,6 +23,7 @@ class Params(BaseModel):
     port: int | None = None
     proto: tuple[str, str | None] = ("https", None)
     sections: list | None = None
+    disabled_sections: list | None = None
     timeout: int | None = None
     retries: int | None = None
 
@@ -41,6 +42,8 @@ def _agent_redfish_arguments(
         command_arguments += ["-P", params.proto[0]]
     if params.sections is not None:
         command_arguments += ["-m", ",".join(params.sections)]
+    if params.disabled_sections is not None:
+        command_arguments += ["-n", ",".join(params.disabled_sections)]
     if params.timeout is not None:
         command_arguments += ["--timeout", str(params.timeout)]
     if params.retries is not None:
