@@ -31,3 +31,4 @@ The Redfish library is already existing inside CMK.
 - 2.3.44 - moved all files to addon folder
 - 2.3.45 - forgotten paths from last patch fixed and outlets without measurements working
 - 2.3.46 - firmware inventory is back for HPE devices
+- 2.3.47 - changed behaviour if data could not be fetched
