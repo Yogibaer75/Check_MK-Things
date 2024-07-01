@@ -23,10 +23,16 @@ def agent_redfish_arguments(
         *(["-p", f"{params['port']}"] if "port" in params else []),
         *(["-P", f"{params['proto']}"] if "proto" in params else []),
         *(["-m", f"{','.join(params['sections'])}"] if "sections" in params else []),
-        *(["--timeout", params['timeout']] if "timeout" in params else []),
-        *(["--retries", params['retries']] if "retries" in params else []),
+        *(
+            ["-n", f"{','.join(params['disabled_sections'])}"]
+            if "disabled_sections" in params
+            else []
+        ),
+        *(["--timeout", params["timeout"]] if "timeout" in params else []),
+        *(["--retries", params["retries"]] if "retries" in params else []),
         ipaddress or hostname,
     ]
 
 
 special_agent_info["redfish"] = agent_redfish_arguments
+special_agent_info["redfish_power"] = agent_redfish_arguments

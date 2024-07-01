@@ -42,7 +42,7 @@ def _valuespec_special_agents_redfish():
             (
                 "sections",
                 ListChoice(
-                    title=_("Retrieve information about..."),
+                    title=_("Enabled Sections... (only use in case of problems)"),
                     choices=[
                         ("Memory", _("Memory Modules")),
                         ("Power", _("Powers Supply")),
@@ -81,6 +81,107 @@ def _valuespec_special_agents_redfish():
                         "Volumes",
                         "SimpleStorage",
                     ],
+                    allow_empty=False,
+                ),
+            ),
+            (
+                "disabled_sections",
+                ListChoice(
+                    title=_("Disabled Sections..."),
+                    choices=[
+                        ("Memory", _("Memory Modules")),
+                        ("Power", _("Powers Supply")),
+                        ("Processors", _("CPUs")),
+                        ("Thermal", _("Fan and Temperatures")),
+                        ("FirmwareInventory", _("Firmware Versions")),
+                        ("NetworkAdapters", _("Network Cards")),
+                        ("NetworkInterfaces", _("Network Interfaces 1")),
+                        ("EthernetInterfaces", _("Network Interfaces 2")),
+                        ("Storage", _("Storage")),
+                        ("ArrayControllers", _("Array Controllers")),
+                        ("SmartStorage", _("HPE - Storagesubsystem")),
+                        ("HostBusAdapters", _("Hostbustadapters")),
+                        ("PhysicalDrives", _("iLO5 - Physical Drives")),
+                        ("LogicalDrives", _("iLO5 - Logical Drives")),
+                        ("Drives", _("Drives")),
+                        ("Volumes", _("Volumes")),
+                        ("SimpleStorage", _("Simple Storage Collection (tbd)")),
+                    ],
+                    allow_empty=True,
+                ),
+            ),
+            (
+                "port",
+                Integer(
+                    title=_("Advanced - TCP Port number"),
+                    help=_(
+                        "Port number for connection to the Rest API. Usually 8443 (TLS)"
+                    ),
+                    default_value=443,
+                    minvalue=1,
+                    maxvalue=65535,
+                ),
+            ),
+            (
+                "proto",
+                DropdownChoice(
+                    title=_("Advanced - Protocol"),
+                    default_value="https",
+                    help=_(
+                        "Protocol for the connection to the Rest API. https is highly recommended!!!"
+                    ),
+                    choices=[
+                        ("http", _("http")),
+                        ("https", _("https")),
+                    ],
+                ),
+            ),
+            (
+                "retries",
+                Integer(
+                    title=_("Advanced - Number of retries"),
+                    help=_("Number of retry attempts made by the special agent."),
+                    default_value=10,
+                    minvalue=1,
+                    maxvalue=20,
+                ),
+            ),
+            (
+                "timeout",
+                Integer(
+                    title=_("Advanced - Timeout for connection"),
+                    help=_(
+                        "Number of seconds for a single connection attempt before timeout occurs."
+                    ),
+                    default_value=10,
+                    minvalue=1,
+                    maxvalue=20,
+                ),
+            ),
+        ],
+        optional_keys=["port", "proto", "sections", "disabled_sections", "retries", "timeout"],
+    )
+
+
+def _valuespec_special_agents_redfish_power():
+    return Dictionary(
+        title=_("Redfish Compatible Power Equipment (PDU)"),
+        help=_(
+            "This rule selects the Agent Redfish instead of the normal Check_MK Agent "
+            "which collects the data through the Redfish REST API"
+        ),
+        elements=[
+            (
+                "user",
+                TextAscii(
+                    title=_("Username"),
+                    allow_empty=False,
+                ),
+            ),
+            (
+                "password",
+                IndividualOrStoredPassword(
+                    title=_("Password"),
                     allow_empty=False,
                 ),
             ),
@@ -133,7 +234,7 @@ def _valuespec_special_agents_redfish():
                 ),
             ),
         ],
-        optional_keys=["port", "proto", "sections", "retries", "timeout"],
+        optional_keys=["port", "proto", "retries", "timeout"],
     )
 
 
@@ -142,5 +243,13 @@ rulespec_registry.register(
         group=RulespecGroupDatasourceProgramsHardware,
         name="special_agents:redfish",
         valuespec=_valuespec_special_agents_redfish,
+    )
+)
+
+rulespec_registry.register(
+    HostRulespec(
+        group=RulespecGroupDatasourceProgramsHardware,
+        name="special_agents:redfish_power",
+        valuespec=_valuespec_special_agents_redfish_power,
     )
 )
