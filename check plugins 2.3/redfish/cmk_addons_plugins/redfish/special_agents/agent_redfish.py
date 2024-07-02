@@ -23,7 +23,7 @@ from cmk.special_agents.v0_unstable.argument_parsing import (
     create_default_argument_parser,
 )
 from cmk.utils import password_store, paths, store
-from redfish.rest.v1 import RetriesExhaustedError, ServerDownOrUnreachableError
+from redfish.rest.v1 import RetriesExhaustedError, ServerDownOrUnreachableError, JsonDecodingError
 from cmk_addons.plugins.redfish.tools import (
     verify_response,
     get_object_ids,
@@ -139,7 +139,11 @@ def fetch_data(redfishobj, url, component):
     """fetch a single data object from Redfish"""
     response_url = redfishobj.get(url, None)
     if response_url.status == 200:
-        return response_url.dict
+        try:
+            response_dict = response_url.dict
+            return response_dict
+        except JsonDecodingError:
+            return {"error": f"{component} data had a JSON decoding problem\n"}
 
     return {"error": f"{component} data could not be fetched\n"}
 
@@ -148,6 +152,8 @@ def fetch_collection(redfishobj, data, component):
     """fetch a whole collection from Redfish data"""
     member_list = data.get("Members")
     data_list = []
+    if not member_list:
+        return data_list
     for element in member_list:
         if element.get("@odata.id"):
             element_data = fetch_data(redfishobj, element.get("@odata.id"), component)

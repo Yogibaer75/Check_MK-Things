@@ -38,9 +38,10 @@ To use this agent you need the Redfish Python module installed.
 - 2.2.33 - fixed bug for iLO5 firmware 3.0 and newer to detect
            disk, controller and volumes + typo fix
 - 2.2.41 - explicitly don't try to fetch collections without members + changes from upstream
-- 2.3.42 - added extra special agent for power equipment with Redfish support
-- 2.3.43 - fixed crash for components without state information
-- 2.3.45 - outlets without measurements working
-- 2.3.46 - firmware inventory is back for HPE devices
-- 2.3.47 - changed behaviour if data could not be fetched
+- 2.2.42 - added extra special agent for power equipment with Redfish support
+- 2.2.43 - fixed crash for components without state information
+- 2.2.45 - outlets without measurements working
+- 2.2.46 - firmware inventory is back for HPE devices
+- 2.2.47 - changed behaviour if data could not be fetched
            small fix for firmware checks
+- 2.2.48 - fixed exception in message decoding
