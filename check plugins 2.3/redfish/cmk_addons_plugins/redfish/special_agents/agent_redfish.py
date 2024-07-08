@@ -204,7 +204,7 @@ def fetch_sections(redfishobj, fetching_sections, sections, data):
         )
         if section_data.get("Members@odata.count") == 0:
             continue
-        if "Collection" in section_data.get("@odata.type"):
+        if "Collection" in section_data.get("@odata.type", {}):
             if section_data.get("Members@odata.count", 0) != 0:
                 result = fetch_collection(redfishobj, section_data, section)
                 result_set[section] = result
@@ -504,12 +504,25 @@ def get_information(redfishobj, sections):
                 ):
                     firmwares = fetch_data(
                         redfishobj,
-                        instance["@odata.id"] + "?$expand=.",
+                        instance["@odata.id"] + vendor_data.expand_string,
                         "FirmwareDirectory",
                     )
                     if firmwares.get("Members"):
                         with SectionWriter("redfish_firmware_hpe") as w:
                             w.append_json(firmwares.get("Members"))
+                elif "#FwSwVersionInventory." in instance.get(
+                    "@odata.type", ""
+                ) and "FirmwareInventory" in instance.get(
+                    "@odata.id", ""
+                ):
+                    firmwares = fetch_data(
+                        redfishobj,
+                        instance["@odata.id"] + vendor_data.expand_string,
+                        "FirmwareDirectory",
+                    )
+                    if firmwares.get("Current"):
+                        with SectionWriter("redfish_firmware_hpe_ilo4") as w:
+                            w.append_json(firmwares.get("Current"))
     else:
         extra_links = []
 

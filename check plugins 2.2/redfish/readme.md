@@ -45,3 +45,4 @@ To use this agent you need the Redfish Python module installed.
 - 2.2.47 - changed behaviour if data could not be fetched
            small fix for firmware checks
 - 2.2.48 - fixed exception in message decoding
+- 2.2.49 - fixed firmware inventory for ilo4 & added dedicated view for inventory & exception fix

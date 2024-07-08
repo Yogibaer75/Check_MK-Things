@@ -33,3 +33,4 @@ The Redfish library is already existing inside CMK.
 - 2.3.46 - firmware inventory is back for HPE devices
 - 2.3.47 - changed behaviour if data could not be fetched
 - 2.3.48 - fixed exception in message decoding
+- 2.3.49 - fixed firmware inventory for ilo4 & added dedicated view for inventory & exception fix
