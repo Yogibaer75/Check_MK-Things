@@ -23,7 +23,11 @@ from cmk.special_agents.v0_unstable.argument_parsing import (
     create_default_argument_parser,
 )
 from cmk.utils import password_store, paths, store
-from redfish.rest.v1 import RetriesExhaustedError, ServerDownOrUnreachableError, JsonDecodingError
+from redfish.rest.v1 import (
+    RetriesExhaustedError,
+    ServerDownOrUnreachableError,
+    JsonDecodingError,
+)
 from cmk_addons.plugins.redfish.tools import (
     verify_response,
     get_object_ids,
@@ -276,6 +280,10 @@ class VendorGeneric:
     view_supported = False
     view_select = None
     expand_string = ""
+    manager_data = None
+    system_data = None
+    chassis_data = None
+    base_data = None
 
 
 class VendorHPEData(VendorGeneric):
@@ -389,6 +397,15 @@ class VendorSupermicroData(VendorGeneric):
     expand_string = ""
 
 
+class VendorSeagateData(VendorGeneric):
+    """Seagate specific settings"""
+
+    name = "Seagate"
+    version = None
+    firmware_version = None
+    expand_string = ""
+
+
 def detect_vendor(root_data):
     """Extract Vendor information from base data"""
     vendor_string = ""
@@ -436,6 +453,8 @@ def detect_vendor(root_data):
     elif vendor_string in ["Cisco", "Cisco Systems Inc."]:
         vendor_data = VendorCiscoData()
         vendor_data.version = "CIMC"
+    elif vendor_string in ["Seagate"]:
+        vendor_data = VendorSeagateData()
     else:
         vendor_data = VendorGeneric()
 
@@ -457,8 +476,14 @@ def get_information(redfishobj, sections):
 
     # fetch managers
     if manager_url:
-        manager_col = fetch_data(redfishobj, manager_url, "Manager")
-        manager_data = fetch_collection(redfishobj, manager_col, "Manager")
+        if vendor_data.expand_string:
+            manager_col = fetch_data(
+                redfishobj, manager_url + vendor_data.expand_string, "Manager"
+            )
+            manager_data = manager_col.get("Members", [])
+        else:
+            manager_col = fetch_data(redfishobj, manager_url, "Manager")
+            manager_data = fetch_collection(redfishobj, manager_col, "Manager")
 
         for element in manager_data:
             data_model = list(element.get("Oem", {"Unknown": "Unknown model"}).keys())[
@@ -512,9 +537,7 @@ def get_information(redfishobj, sections):
                             w.append_json(firmwares.get("Members"))
                 elif "#FwSwVersionInventory." in instance.get(
                     "@odata.type", ""
-                ) and "FirmwareInventory" in instance.get(
-                    "@odata.id", ""
-                ):
+                ) and "FirmwareInventory" in instance.get("@odata.id", ""):
                     firmwares = fetch_data(
                         redfishobj,
                         instance["@odata.id"] + vendor_data.expand_string,

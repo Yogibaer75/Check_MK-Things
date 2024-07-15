@@ -11,7 +11,7 @@ from cmk.agent_based.v2 import DiscoveryResult, Service, StringTable
 
 
 Levels = Optional[Tuple[float, float]]
-RedfishAPIData = Dict[str, Any]
+RedfishAPIData = Dict[str, object]
 
 
 class Perfdata(NamedTuple):
