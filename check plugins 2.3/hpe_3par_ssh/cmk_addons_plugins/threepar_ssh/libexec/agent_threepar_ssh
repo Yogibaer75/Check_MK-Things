@@ -6,7 +6,7 @@
 # License: GNU General Public License v2
 
 import sys
-from cmk.plugins.threepar_ssh.special_agents.agent_threepar_ssh import main
+from cmk_addons.plugins.threepar_ssh.special_agents.agent_threepar_ssh import main
 
 
 if __name__ == "__main__":

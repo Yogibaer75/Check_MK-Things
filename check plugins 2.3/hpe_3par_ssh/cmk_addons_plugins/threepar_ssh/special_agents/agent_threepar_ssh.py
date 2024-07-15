@@ -143,7 +143,6 @@ def main():
         except ValueError:
             pass
 
-
     cmd = ""
     cmdcore = (
         f"ssh -o ConnectTimeout={opt_timeout} {opt_any_hostkey} {user}@{host_address} '"
