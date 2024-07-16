@@ -24,45 +24,70 @@ from cmk_addons.plugins.redfish.lib import (
     redfish_health_state,
 )
 
-agent_section_redfish_firmware_hpe = AgentSection(
-    name="redfish_firmware_hpe",
+agent_section_redfish_firmware = AgentSection(
+    name="redfish_firmware",
     parse_function=parse_redfish,
-    parsed_section_name="redfish_firmware_hpe",
+    parsed_section_name="redfish_firmware",
 )
 
 
-def inventory_redfish_firmware_hpe(section: RedfishAPIData) -> InventoryResult:
+def _item_name(item_data, padding):
+    """build item name for inventory entry"""
+    if not item_data.get('Id'):
+        if item_data.get('Name'):
+            item_name = item_data.get('Name')
+        else:
+            return None
+    elif item_data.get('Id').isdigit():
+        item_name = f"{item_data.get('Id').zfill(padding)}-{item_data.get('Name')}"
+    elif item_data.get('Id') == item_data.get('Name'):
+        item_name = item_data.get('Name')
+    elif item_data.get('Description') == "Represents Firmware Inventory":
+        prefix = item_data.get('Id').split("-")[0]
+        item_name = f"{prefix}-{item_data.get('Name')}"
+    else:
+        item_name = f"{item_data.get('Id')}-{item_data.get('Name')}"
+    return item_name
+
+
+def inventory_redfish_firmware(section: RedfishAPIData) -> InventoryResult:
     """create inventory table for firmware"""
-    path = ["hardware", "firmware", "hpe"]
+    path = ["hardware", "firmware", "redfish"]
     padding = len(str(len(section)))
     for entry in section:
-        component_name = f"{entry.get('Id').zfill(padding)}-{entry.get('Name')}"
+        item_name = _item_name(entry, padding)
+        if not item_name:
+            continue
+        if entry.get('Description') == "Represents Firmware Inventory":
+            description = entry.get('Id')
+        else:
+            description = entry.get('Description')
         yield TableRow(
             path=path,
             key_columns={
-                "component": component_name,
+                "component": item_name,
             },
             inventory_columns={
                 "version": entry.get("Version"),
-                "description": entry.get("Description"),
+                "description": description,
                 "updateable": entry.get("Updateable"),
             },
         )
 
 
-inventory_plugin_redfish_firmware_hpe = InventoryPlugin(
-    name="redfish_firmware_hpe",
-    inventory_function=inventory_redfish_firmware_hpe,
+inventory_plugin_redfish_firmware = InventoryPlugin(
+    name="redfish_firmware",
+    inventory_function=inventory_redfish_firmware,
 )
 
 
-def discovery_redfish_firmware_hpe(section: RedfishAPIData) -> DiscoveryResult:
+def discovery_redfish_firmware(section: RedfishAPIData) -> DiscoveryResult:
     """discover service if data exists"""
     if section:
         yield Service()
 
 
-def check_redfish_firmware_hpe(section: RedfishAPIData) -> CheckResult:
+def check_redfish_firmware(section: RedfishAPIData) -> CheckResult:
     """check the health state of the firmware"""
 
     padding = len(str(len(section)))
@@ -73,7 +98,7 @@ def check_redfish_firmware_hpe(section: RedfishAPIData) -> CheckResult:
     for entry in section:
         if not entry.get("Status"):
             continue
-        component_name = f"{entry.get('Id').zfill(padding)}-{entry.get('Name')}"
+        component_name = _item_name(entry, padding)
         comp_state, comp_msg = redfish_health_state(entry.get("Status", {}))
         overall_state = max(overall_state, comp_state)
         if comp_state != 0:
@@ -89,7 +114,7 @@ def check_redfish_firmware_hpe(section: RedfishAPIData) -> CheckResult:
     cell_bracket = "<td>%s</td>"
     cell_seperator = ""
     headers = ("Component", "Status", "Version", "Updateable")
-    info_text = f'<table>{(
+    info_text = f'<table style="border-collapse: separate; border-spacing: 10px 0;">{(
         "<tr><th>"
         + "</th><th>".join(headers)
         + "</th></tr>"
@@ -105,10 +130,10 @@ def check_redfish_firmware_hpe(section: RedfishAPIData) -> CheckResult:
     yield Result(state=State(overall_state), summary=msg_text, details=info_text)
 
 
-check_plugin_redfish_firmware_hpe = CheckPlugin(
-    name="redfish_firmware_hpe",
+check_plugin_redfish_firmware = CheckPlugin(
+    name="redfish_firmware",
     service_name="Firmware health",
-    sections=["redfish_firmware_hpe"],
-    discovery_function=discovery_redfish_firmware_hpe,
-    check_function=check_redfish_firmware_hpe,
+    sections=["redfish_firmware"],
+    discovery_function=discovery_redfish_firmware,
+    check_function=check_redfish_firmware,
 )

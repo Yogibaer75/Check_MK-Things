@@ -511,6 +511,10 @@ def get_information(redfishobj, sections):
             )
             data_model_links.extend(system_oem_links)
         extra_links = list(set(data_model_links).intersection(sections))
+    else:
+        extra_links = []
+
+    if data_model in ["Hp"]:
         res_dir = (
             base_data.get("Oem", {"Unknown": "Unknown model"})
             .get(data_model, {"Unknown": "Unknown model"})
@@ -522,20 +526,7 @@ def get_information(redfishobj, sections):
             res_data = fetch_data(redfishobj, res_dir, "ResourceDirectory")
             res_instances = res_data.get("Instances", [])
             for instance in res_instances:
-                if "#SoftwareInventoryCollection." in instance.get(
-                    "@odata.type", ""
-                ) and "UpdateService/FirmwareInventory" in instance.get(
-                    "@odata.id", ""
-                ):
-                    firmwares = fetch_data(
-                        redfishobj,
-                        instance["@odata.id"] + vendor_data.expand_string,
-                        "FirmwareDirectory",
-                    )
-                    if firmwares.get("Members"):
-                        with SectionWriter("redfish_firmware_hpe") as w:
-                            w.append_json(firmwares.get("Members"))
-                elif "#FwSwVersionInventory." in instance.get(
+                if "#FwSwVersionInventory." in instance.get(
                     "@odata.type", ""
                 ) and "FirmwareInventory" in instance.get("@odata.id", ""):
                     firmwares = fetch_data(
@@ -546,8 +537,6 @@ def get_information(redfishobj, sections):
                     if firmwares.get("Current"):
                         with SectionWriter("redfish_firmware_hpe_ilo4") as w:
                             w.append_json(firmwares.get("Current"))
-    else:
-        extra_links = []
 
     if manager_data:
         with SectionWriter("redfish_manager") as w:
@@ -559,6 +548,7 @@ def get_information(redfishobj, sections):
     systems_sections = list(
         set(
             [
+                "FirmwareInventory",
                 "EthernetInterfaces",
                 "NetworkInterfaces",
                 "Processors",
@@ -573,6 +563,33 @@ def get_information(redfishobj, sections):
     ]
 
     resulting_sections = list(set(systems_sections).intersection(sections))
+    if "FirmwareInventory" in resulting_sections and base_data.get(
+        "UpdateService", {}
+    ).get("@odata.id"):
+        firmware_url = (
+            base_data.get("UpdateService").get("@odata.id"),
+            "/FirmwareInventory",
+            vendor_data.expand_string,
+        )
+        if vendor_data.expand_string:
+            firmwares = fetch_data(
+                redfishobj,
+                ''.join(firmware_url),
+                "FirmwareDirectory",
+            )
+            if firmwares.get("Members"):
+                with SectionWriter("redfish_firmware") as w:
+                    w.append_json(firmwares.get("Members"))
+        else:
+            firmware_col = fetch_data(
+                redfishobj,
+                ''.join(firmware_url),
+                "FirmwareDirectory",
+            )
+            firmwares = fetch_collection(redfishobj, firmware_col, "Manager")
+            with SectionWriter("redfish_firmware") as w:
+                w.append_json(firmwares)
+
     for system in systems_data:
         if data_model in ["Hpe", "Hp"] and "SmartStorage" in resulting_sections:
             if vendor_data.firmware_version.startswith("3."):

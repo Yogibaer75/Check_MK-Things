@@ -36,3 +36,4 @@ The Redfish library is already existing inside CMK.
 - 2.3.49 - fixed firmware inventory for ilo4 & added dedicated view for inventory & exception fix
 - 2.3.50 - voltage sensor without names are ignored
 - 2.3.51 - small naming modification for HW/SW inventory table
+- 2.3.52 - firmware inventory for all vendors that use the path UpdateService/FirmwareInventory
