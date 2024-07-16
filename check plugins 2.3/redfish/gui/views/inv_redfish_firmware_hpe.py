@@ -12,8 +12,9 @@ from cmk.gui.i18n import _l
 
 inventory_displayhints.update(
     {
+        ".hardware.firmware.": {"title": _l("Firmware")},
         ".hardware.firmware.hpe:": {
-            "title": _l("HPE Firmware"),
+            "title": _l("HPE"),
             "keyorder": ["component", "version", "location", "description"],
             "view": "invfirmwarehpe_of_host",
         },
@@ -21,6 +22,9 @@ inventory_displayhints.update(
         ".hardware.firmware.hpe:*.version": {"title": _l("Version")},
         ".hardware.firmware.hpe:*.location": {"title": _l("Location")},
         ".hardware.firmware.hpe:*.description": {"title": _l("Description")},
-        ".hardware.firmware.hpe:*.updateable": {"title": _l("Update possible"), "paint": "bool"},
+        ".hardware.firmware.hpe:*.updateable": {
+            "title": _l("Update possible"),
+            "paint": "bool",
+        },
     }
 )
