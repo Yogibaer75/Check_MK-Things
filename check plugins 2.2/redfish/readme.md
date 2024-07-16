@@ -46,3 +46,5 @@ To use this agent you need the Redfish Python module installed.
            small fix for firmware checks
 - 2.2.48 - fixed exception in message decoding
 - 2.2.49 - fixed firmware inventory for ilo4 & added dedicated view for inventory & exception fix
+- 2.2.50 - voltage sensor without names are ignored
+- 2.2.51 - small naming modification for HW/SW inventory table

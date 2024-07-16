@@ -29,6 +29,7 @@ register.agent_section(
 
 
 def discovery_redfish_logicaldrives(section) -> DiscoveryResult:
+    '''One service per logical drive is discovered'''
     for key in section.keys():
         if "SmartStorageLogicalDrive" in section[key].get("@odata.type"):
             item = redfish_item_hpe(section[key])
@@ -38,6 +39,7 @@ def discovery_redfish_logicaldrives(section) -> DiscoveryResult:
 
 
 def check_redfish_logicaldrives(item: str, section) -> CheckResult:
+    '''Check the state of a logical drive'''
     data = section.get(item, None)
     if data is None:
         return

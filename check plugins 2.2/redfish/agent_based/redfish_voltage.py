@@ -32,10 +32,13 @@ def discovery_redfish_voltage(section: RedfishAPIData) -> DiscoveryResult:
         for entry in data:
             if not entry.get("ReadingVolts"):
                 continue
+            if not entry["Name"]:
+                continue
             yield Service(item=entry["Name"])
 
 
 def check_redfish_voltage(item: str, section: RedfishAPIData) -> CheckResult:
+    '''Check single Voltage'''
     voltage = None
     for key in section.keys():
         voltages = section[key].get("Voltages", None)

@@ -15,7 +15,7 @@ from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
 )
 
 Levels = Optional[Tuple[float, float]]
-RedfishAPIData = Dict[str, Any]
+RedfishAPIData = Dict[str, object]
 
 
 class Perfdata(NamedTuple):
