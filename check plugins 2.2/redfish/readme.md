@@ -48,3 +48,4 @@ To use this agent you need the Redfish Python module installed.
 - 2.2.49 - fixed firmware inventory for ilo4 & added dedicated view for inventory & exception fix
 - 2.2.50 - voltage sensor without names are ignored
 - 2.2.51 - small naming modification for HW/SW inventory table
+- 2.2.52 - firmware inventory for all vendors that use the path UpdateService/FirmwareInventory - all service names made the same as 2.3 version
