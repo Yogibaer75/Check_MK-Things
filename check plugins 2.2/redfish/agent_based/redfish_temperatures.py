@@ -74,7 +74,7 @@ def check_redfish_temperatures(
 
 register.check_plugin(
     name="redfish_temperatures",
-    service_name="Temp %s",
+    service_name="Temperature %s",
     sections=["redfish_thermal"],
     discovery_function=discovery_redfish_temperatures,
     check_function=check_redfish_temperatures,

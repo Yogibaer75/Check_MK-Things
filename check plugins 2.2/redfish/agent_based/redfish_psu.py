@@ -78,7 +78,7 @@ def check_redfish_psu(item: str, section: RedfishAPIData) -> CheckResult:
 
 register.check_plugin(
     name="redfish_psu",
-    service_name="PSU %s",
+    service_name="Power supply %s",
     sections=["redfish_power"],
     discovery_function=discovery_redfish_psu,
     check_function=check_redfish_psu,

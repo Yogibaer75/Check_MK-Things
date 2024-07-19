@@ -54,7 +54,7 @@ def check_redfish_networkports(item: str, section) -> CheckResult:
 
 register.check_plugin(
     name="redfish_networkports",
-    service_name="Network Interface %s",
+    service_name="Physical port %s",
     sections=["redfish_networkports"],
     discovery_function=discovery_redfish_networkports,
     check_function=check_redfish_networkports,

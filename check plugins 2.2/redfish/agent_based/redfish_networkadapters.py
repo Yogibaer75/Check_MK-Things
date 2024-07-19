@@ -60,7 +60,7 @@ def check_redfish_networkadapters(item: str, section) -> CheckResult:
 
 register.check_plugin(
     name="redfish_networkadapters",
-    service_name="Network Adapter %s",
+    service_name="Network adapter %s",
     sections=["redfish_networkadapters"],
     discovery_function=discovery_redfish_networkadapters,
     check_function=check_redfish_networkadapters,

@@ -83,7 +83,7 @@ def check_redfish_ethernetinterfaces(item: str, section) -> CheckResult:
 
 register.check_plugin(
     name="redfish_ethernetinterfaces",
-    service_name="Network Interface %s",
+    service_name="Physical port %s",
     sections=["redfish_ethernetinterfaces"],
     discovery_function=discovery_redfish_ethernetinterfaces,
     check_function=check_redfish_ethernetinterfaces,

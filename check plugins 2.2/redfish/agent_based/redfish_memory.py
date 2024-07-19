@@ -91,7 +91,7 @@ def check_redfish_memory(item: str, section) -> CheckResult:
 
 register.check_plugin(
     name="redfish_memory",
-    service_name="Memory Module %s",
+    service_name="Memory %s",
     sections=["redfish_memory"],
     discovery_function=discovery_redfish_memory,
     check_function=check_redfish_memory,

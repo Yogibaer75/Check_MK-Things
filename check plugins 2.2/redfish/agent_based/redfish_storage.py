@@ -72,7 +72,7 @@ def check_redfish_storage(item: str, section) -> CheckResult:
 
 register.check_plugin(
     name="redfish_storage",
-    service_name="Storage Controller %s",
+    service_name="Storage controller %s",
     sections=["redfish_storage"],
     discovery_function=discovery_redfish_storage,
     check_function=check_redfish_storage,
