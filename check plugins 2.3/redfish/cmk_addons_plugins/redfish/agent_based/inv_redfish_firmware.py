@@ -100,6 +100,8 @@ def check_redfish_firmware(section: RedfishAPIData) -> CheckResult:
             continue
         component_name = _item_name(entry, padding)
         comp_state, comp_msg = redfish_health_state(entry.get("Status", {}))
+        if entry.get("Status", {}).get("State", "UNKNOWN") == "StandbyOffline":
+            comp_state = 0
         overall_state = max(overall_state, comp_state)
         if comp_state != 0:
             msg_text += f"{component_name} - {comp_msg} - "
