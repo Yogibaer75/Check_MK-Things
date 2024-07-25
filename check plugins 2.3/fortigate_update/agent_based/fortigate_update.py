@@ -47,6 +47,8 @@ def parse_fortigate_update(string_table: StringTable) -> Optional[Section]:
 def discover_fortigate_update(section: Section) -> DiscoveryResult:
     """every key of the parsed data is found as a service"""
     for key in section:
+        if not key:
+            continue
         if section[key]["license"] != "n/a":
             yield Service(item=key)
 
