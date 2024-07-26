@@ -28,7 +28,7 @@ def discovery_redfish_voltage(section: RedfishAPIData) -> DiscoveryResult:
     for key in section.keys():
         data = section[key].get("Voltages", None)
         if not data:
-            return
+            continue
         for entry in data:
             if not entry.get("ReadingVolts"):
                 continue

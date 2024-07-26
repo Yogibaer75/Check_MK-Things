@@ -33,6 +33,8 @@ def discovery_redfish_fans(section) -> DiscoveryResult:
     """Discover single fans"""
     for key in section.keys():
         fans = section[key].get("Fans", None)
+        if not fans:
+            continue
         for fan in fans:
             if fan.get("Status", {}).get("State") == "Absent":
                 continue
