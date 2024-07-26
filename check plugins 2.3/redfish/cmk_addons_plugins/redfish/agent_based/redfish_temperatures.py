@@ -29,6 +29,8 @@ def discovery_redfish_temperatures(section: RedfishAPIData) -> DiscoveryResult:
     """Discover temperature sensors"""
     for key in section.keys():
         temps = section[key].get("Temperatures", None)
+        if not temps:
+            continue
         for temp in temps:
             if temp.get("Status").get("State") in ["Absent", "Disabled"]:
                 continue
