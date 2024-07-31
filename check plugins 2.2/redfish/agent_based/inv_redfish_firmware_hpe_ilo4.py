@@ -27,7 +27,7 @@ register.agent_section(
 
 def inventory_redfish_firmware_hpe_ilo4(section: RedfishAPIData) -> InventoryResult:
     """create inventory table for firmware"""
-    path = ["hardware", "firmware", "hpe"]
+    path = ["hardware", "firmware", "redfish"]
     padding = len(str(len(section)))
     for index, entry_id in enumerate(section):
         entry = section.get(entry_id)
