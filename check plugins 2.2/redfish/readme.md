@@ -51,3 +51,4 @@ To use this agent you need the Redfish Python module installed.
 - 2.2.52 - firmware inventory for all vendors that use the path UpdateService/FirmwareInventory - all service names made the same as 2.3 version
 - 2.2.53 - standby Firmware is shown as ok
 - 2.2.54 - fixed crash if no fans or temperatures exists in the thermal section
+- 2.2.55 - removed auto expand for iLO4
