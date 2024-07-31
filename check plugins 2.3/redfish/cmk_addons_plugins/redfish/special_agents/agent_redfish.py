@@ -417,6 +417,8 @@ def detect_vendor(root_data):
 
     if vendor_string in ["Hpe", "Hp"]:
         vendor_data = VendorHPEData()
+        if vendor_string in ["Hp"]:
+            vendor_data.expand_string = ""
         manager_data = (
             root_data.get("Oem", {}).get(vendor_string, {}).get("Manager", {})[0]
         )

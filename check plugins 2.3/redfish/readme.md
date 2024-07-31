@@ -39,3 +39,4 @@ The Redfish library is already existing inside CMK.
 - 2.3.52 - firmware inventory for all vendors that use the path UpdateService/FirmwareInventory
 - 2.3.53 - standby Firmware is shown as ok
 - 2.3.54 - fixed crash if no fans or temperatures exists in the thermal section
+- 2.3.55 - removed autoexpand for iLO4
