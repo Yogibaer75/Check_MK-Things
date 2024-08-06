@@ -52,3 +52,5 @@ To use this agent you need the Redfish Python module installed.
 - 2.2.53 - standby Firmware is shown as ok
 - 2.2.54 - fixed crash if no fans or temperatures exists in the thermal section
 - 2.2.55 - removed auto expand for iLO4
+- 2.2.56 - adjusting HW/SW inventory path for view and iLO4
+- 2.2.57 - add "StandbyOffline" to ignored states for discovery of ethernet interfaces

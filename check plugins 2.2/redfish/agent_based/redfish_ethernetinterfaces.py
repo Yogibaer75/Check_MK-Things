@@ -33,6 +33,7 @@ def discovery_redfish_ethernetinterfaces(section) -> DiscoveryResult:
             "Disabled",
             "Offline",
             "UnavailableOffline",
+            "StandbyOffline",
         ]:
             continue
         yield Service(item=section[key]["Id"])
