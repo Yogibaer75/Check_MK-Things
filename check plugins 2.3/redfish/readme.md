@@ -42,3 +42,4 @@ The Redfish library is already existing inside CMK.
 - 2.3.55 - removed autoexpand for iLO4
 - 2.3.56 - changed location of inventory view file
 - 2.3.57 - add "StandbyOffline" to ignored states for discovery of ethernet interfaces
+- 2.3.58 - outlet names can be configured at discovery & EnergykWh are shown for outlets
