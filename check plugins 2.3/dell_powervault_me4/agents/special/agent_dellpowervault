@@ -52,9 +52,19 @@ def parse_arguments(argv):
     parser.add_argument(
         "-p", "--password", required=True, help="DELL EMC user password"
     )
+    parser.add_argument(
+        "--verify-cert",
+        action="store_true",
+        help="Should TLS Certificate been verified",
+    )
 
     args = parser.parse_args(argv)
     return args
+
+
+def fetch_url(session, url, verify, timeout):
+    """Fetch data from url"""
+    return session.get(url, verify=verify, timeout=timeout)
 
 
 def main(argv=None):
@@ -66,14 +76,19 @@ def main(argv=None):
         f"{args.username}_{args.password}".encode("utf-8")
     ).hexdigest()
 
+    verify = False
+    if args.verify_cert:
+        verify = True
+
+    timeout = 5
     s = requests.session()
     s.headers.update({"datatype": "json"})
-    r = s.get(url + "/api/login/" + auth_string, verify=False, timeout=5)
+    r = fetch_url(s, url + "/api/login/" + auth_string, verify, timeout)
     sessionkey = r.json()["status"][0]["response"]
     s.headers.update({"sessionKey": sessionkey})
 
     for element in commands:
-        response = s.get(url + "/api/show/" + element, timeout=5)
+        response = fetch_url(s, url + "/api/show/" + element, verify, timeout)
         with SectionWriter(f"dell_powervault_me4_{element.replace('-', '_')}") as w:
             w.append_json(response.json())
 

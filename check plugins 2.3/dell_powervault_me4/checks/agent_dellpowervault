@@ -19,6 +19,7 @@ def agent_dellpowervault_arguments(
         f"{params['user']}",
         "-p",
         passwordstore_get_cmdline("%s", params["password"]),
+        *(["--verify-cert"] if params.get("verify-cert") else []),
         ipaddress or hostname,
     ]
 

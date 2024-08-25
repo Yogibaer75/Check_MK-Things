@@ -19,6 +19,9 @@ from cmk.gui.wato import (
     MigrateToIndividualOrStoredPassword,
     RulespecGroupDatasourceProgramsHardware,
 )
+from cmk.gui.plugins.wato.special_agents.common_tls_verification import (
+    tls_verify_flag_default_no,
+)
 
 
 def _valuespec_special_agents_dellpowervault():
@@ -39,6 +42,7 @@ def _valuespec_special_agents_dellpowervault():
                     allow_empty=False,
                 ),
             ),
+            tls_verify_flag_default_no(),
         ],
         optional_keys=False,
     )
