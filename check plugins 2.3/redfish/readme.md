@@ -43,3 +43,5 @@ The Redfish library is already existing inside CMK.
 - 2.3.56 - changed location of inventory view file
 - 2.3.57 - add "StandbyOffline" to ignored states for discovery of ethernet interfaces
 - 2.3.58 - outlet names can be configured at discovery & EnergykWh are shown for outlets
+- 2.3.59 - ignore temperature sensors without reading at discovery
+- 2.3.60 - special agent fixed if user and password is used on CLI

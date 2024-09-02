@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+'''Redfish temperature checks'''
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
@@ -14,14 +15,11 @@ from cmk.agent_based.v2 import (
     State,
     get_value_store,
 )
+from cmk.plugins.lib.temperature import TempParamDict, check_temperature
 from cmk_addons.plugins.redfish.lib import (
     RedfishAPIData,
     process_redfish_perfdata,
     redfish_health_state,
-)
-from cmk.plugins.lib.temperature import (
-    check_temperature,
-    TempParamDict,
 )
 
 
@@ -33,6 +31,8 @@ def discovery_redfish_temperatures(section: RedfishAPIData) -> DiscoveryResult:
             continue
         for temp in temps:
             if temp.get("Status").get("State") in ["Absent", "Disabled"]:
+                continue
+            if not temp.get("ReadingCelsius"):
                 continue
             if temp.get("Name"):
                 yield Service(item=temp.get("Name"))
