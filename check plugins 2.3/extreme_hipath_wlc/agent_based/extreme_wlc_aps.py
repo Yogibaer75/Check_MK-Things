@@ -4,7 +4,7 @@
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 # License: GNU General Public License v2
 
-from typing import Dict, NamedTuple, Mapping, List, Optional
+from typing import Dict, NamedTuple, Mapping, List, Optional, Any
 
 from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     register,
@@ -136,39 +136,37 @@ def discover_extreme_wlc_aps(section: Section) -> DiscoveryResult:
         yield Service(item=ap_name)
 
 
-def check_extreme_wlc_aps(item: str, section: Optional[Section]) -> CheckResult:
+def check_extreme_wlc_aps(item: str, params: Mapping[str, Any], section: Optional[Section]) -> CheckResult:
     """check the state of a single AP"""
     if not section:
         return
-
+    wanted_state = params.get("state", 1)
     ap_data = section.get(item)
     if not ap_data:
         return
 
     map_state = {
-        "1": (0, "up"),
-        "2": (2, "down"),
+        1: (0, "up"),
+        2: (2, "down"),
     }
     map_home = {
         "1": "local",
         "2": "foreign",
     }
+    ap_state = max(int(ap_data.status), wanted_state)
+    state, state_readable = map_state[ap_state]
+    if int(ap_data.status) == wanted_state:
+        state = 0
+    yield Result(state=State(state), summary=f"Status: {state_readable}")
 
-    state, state_readable = map_state[ap_data.status]
-    infotext = f"Status: {state_readable}"
     if ap_data.clients:
-        infotext += f", Clients: {ap_data.clients}"
+        yield Result(state=State(0), summary=f", Clients: {ap_data.clients}")
     if ap_data.zone:
-        infotext += f", Zone: {ap_data.zone}"
+        yield Result(state=State(0), summary=f", Zone: {ap_data.zone}")
     if ap_data.location:
-        infotext += f", System location: {ap_data.location}"
+        yield Result(state=State(0), summary=f", System location: {ap_data.location}")
     if ap_data.home_state:
-        infotext += f", Home state: {map_home[ap_data.home_state]}"
-    yield Result(
-        state=State(state),
-        summary=infotext,
-    )
-
+        yield Result(state=State(0), summary=f", Home state: {map_home[ap_data.home_state]}")
     if ap_data.registration == "2":
         yield Result(
             state=State.WARN,
@@ -177,12 +175,12 @@ def check_extreme_wlc_aps(item: str, section: Optional[Section]) -> CheckResult:
 
 
 def cluster_check_extreme_wlc_aps(
-    item: str, section: Mapping[str, Optional[Section]]
+    item: str, params: Mapping[str, Any], section: Mapping[str, Optional[Section]]
 ) -> CheckResult:
     """Cluster check function"""
     found = []
     for node, node_section in section.items():
-        results = list(check_extreme_wlc_aps(item, node_section))
+        results = list(check_extreme_wlc_aps(item, params, node_section))
         if results:
             found.append((node, results[0]))
 
@@ -206,6 +204,11 @@ register.check_plugin(
     discovery_function=discover_extreme_wlc_aps,
     check_function=check_extreme_wlc_aps,
     cluster_check_function=cluster_check_extreme_wlc_aps,
+    check_ruleset_name="extreme_wlc_aps",
+    check_default_parameters={
+        "state": 1,
+        "location": "both",
+    }
 )
 
 
