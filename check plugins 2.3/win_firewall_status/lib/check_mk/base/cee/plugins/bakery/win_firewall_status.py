@@ -15,8 +15,10 @@ from cmk.base.cee.plugins.bakery.bakery_api.v1 import (
 )
 
 
-def get_win_firewall_status_files(_conf: Dict[str, Any]) -> FileGenerator:
+def get_win_firewall_status_files(conf: Dict[str, Any]) -> FileGenerator:
     """select and integrate plugin into agent"""
+    if not conf:
+        return
     yield Plugin(base_os=OS.WINDOWS, source=Path("win_firewall_status.ps1"))
 
 
