@@ -26,7 +26,8 @@ from cmk.agent_based.v2 import (
 
 
 class WinPatchday(NamedTuple):
-    '''one update'''
+    """one update"""
+
     name: str
     date: str
     result: str
@@ -36,10 +37,8 @@ Section = List[WinPatchday]
 
 
 def parse_windows_patch_day(string_table: StringTable) -> Section:
-    '''parse raw data into list of named tuples'''
-    return [
-        WinPatchday(name, date, result) for name, date, result in string_table
-    ]
+    """parse raw data into list of named tuples"""
+    return [WinPatchday(name, date, result) for name, date, result in string_table]
 
 
 agent_section_windows_patch_day = AgentSection(
@@ -50,16 +49,20 @@ agent_section_windows_patch_day = AgentSection(
 
 
 def discovery_windows_patch_day(section: Section) -> DiscoveryResult:
-    '''if data is present discover one service'''
+    """if data is present discover one service"""
     if section:
         yield Service()
 
 
-def check_windows_patch_day(params: Mapping[str, Any],
-                            section: Section) -> CheckResult:
-    '''check the status of the last installed updates'''
+def check_windows_patch_day(params: Mapping[str, Any], section: Section) -> CheckResult:
+    """check the status of the last installed updates"""
     if not any(section):
-        return None
+        yield Result(
+            state=State(0),
+            summary=("No information found for update, ",
+                     "possible new system or major update installed"),
+        )
+        return
 
     result_code = {
         0: "Not Started",
@@ -76,25 +79,32 @@ def check_windows_patch_day(params: Mapping[str, Any],
     date_list = []
 
     for update in section:
-        timestring = update.date.split(' ')[0]
+        timestring = update.date.split(" ")[0]
         install_time = datetime.datetime.strptime(timestring, "%m/%d/%Y")
         date_list.append(install_time)
         if int(update.result) in [1, 2]:
-            success_list.append(f"{update.date} - "
-                                f"{result_code.get(int(update.result))} - {update.name}")
+            success_list.append(
+                f"{update.date} - "
+                f"{result_code.get(int(update.result))} - {update.name}"
+            )
         else:
-            problem_list.append(f"{update.date} - "
-                                f"{result_code.get(int(update.result))} - {update.name}")
+            problem_list.append(
+                f"{update.date} - "
+                f"{result_code.get(int(update.result))} - {update.name}"
+            )
 
-    messagetext = "Last updates installed at " + datetime.datetime.strftime(
-        max(date_list), "%d %b %Y") + " - updates shown since " + datetime.datetime.strftime(
-        min(date_list), "%d %b %Y")
-    messagetext += (f" - {len(success_list)} updates installed - "
-                    f"{len(problem_list)} updates with problems")
-    detailstext = "Problem updates\n"
-    detailstext += ("\n".join(problem_list))
-    detailstext += ("\n\nSucceeded updates\n")
-    detailstext += ("\n".join(success_list))
+    messagetext = (
+        "Last updates installed at "
+        f"{datetime.datetime.strftime(max(date_list), "%d %b %Y")}"
+        " - updates shown since "
+        f"{datetime.datetime.strftime(min(date_list), "%d %b %Y")}"
+        f" - {len(success_list)} updates installed - "
+        f"{len(problem_list)} updates with problems"
+    )
+    detailstext = (
+        f"Problem updates\n{'\n'.join(problem_list)}"
+        f"\n\nSucceeded updates\n{'\n'.join(success_list)}"
+    )
 
     yield Result(state=State(status), summary=messagetext, details=detailstext)
 
