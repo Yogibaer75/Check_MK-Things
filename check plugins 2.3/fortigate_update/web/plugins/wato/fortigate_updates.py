@@ -19,7 +19,7 @@ def _parameter_valuespec_fortigate_update() -> Dictionary:
             (
                 "levels",
                 Tuple(
-                    title=_("Days since last update"),
+                    title=_("Days since last update check"),
                     help=_("This rule sets the levels of the checked value."),
                     elements=[
                         Integer(title=_("Warning at"), default_value=30),

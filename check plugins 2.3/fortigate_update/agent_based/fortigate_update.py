@@ -67,9 +67,9 @@ def check_fortigate_update(item, params, section: Section) -> CheckResult:
         return
 
     warn, crit = params["levels"]
-    update, update_age = parse_date(data["last_update"])
+    update, _update_age = parse_date(data["last_update"])
     message = f"Last update {render.date(update)}"
-    contact, _contact_diff = parse_date(data["last_contact"])
+    contact, contact_diff = parse_date(data["last_contact"])
     if data["update_typ"] == "manual":
         update_typ = "manual (!)"
     else:
@@ -80,14 +80,16 @@ def check_fortigate_update(item, params, section: Section) -> CheckResult:
 
     if params.get("no_levels"):
         yield Result(state=State.OK, summary= message + " no Levels (!)" + addon_msg)
-    elif update_age > crit * 3600 * 24:
+    elif contact_diff > crit * 3600 * 24:
         message += (f" (Warn/Crit: {render.timespan(warn * 3600 * 24)}"
                     f"/{render.timespan(crit * 3600 * 24)})")
         yield Result(state=State.CRIT, summary= message + addon_msg)
-    elif update_age > warn * 3600 * 24:
+    elif contact_diff > warn * 3600 * 24:
         message += (f" (Warn/Crit: {render.timespan(warn * 3600 * 24)}"
                     f"/{render.timespan(crit * 3600 * 24)})")
         yield Result(state=State.WARN, summary= message + addon_msg)
+    elif data['last_result'] not in ["No Updates", "Updates Installed"]:
+        yield Result(state=State.WARN, summary= message + addon_msg + "(!)")
     else:
         yield Result(state=State.OK, summary= message + addon_msg)
 
