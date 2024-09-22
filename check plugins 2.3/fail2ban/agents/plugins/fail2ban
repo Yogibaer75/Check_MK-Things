@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# (c) Jens Kühnel <fail2ban-checkmk@jens.kuehnel.org> 2021
+#
+# This file is a check Script for check_mk
+# Information about fail2ban check_mk module see:
+# https://github.com/JensKuehnel/fail2ban-check-mk
+#
+# This is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# ails.  You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+
+if [ -x /usr/bin/fail2ban-client ]; then
+echo "<<<fail2ban>>>"
+jails="$(/usr/bin/fail2ban-client status | grep "Jail list" | sed -e 's/.*://' -e 's/,//g')"
+	echo "Detected jails: $jails"
+	for jail in $jails
+	do
+		/usr/bin/fail2ban-client status "$jail"
+	done
+fi
+
