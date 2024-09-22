@@ -38,6 +38,8 @@ Section = List[WinPatchday]
 
 def parse_windows_patch_day(string_table: StringTable) -> Section:
     """parse raw data into list of named tuples"""
+    if string_table[0] == "No":
+        return [WinPatchday("No Updates found", "01/01/2024", "2")]
     return [WinPatchday(name, date, result) for name, date, result in string_table]
 
 

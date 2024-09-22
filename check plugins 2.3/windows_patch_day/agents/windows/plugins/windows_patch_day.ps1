@@ -38,7 +38,7 @@ if (!$updatecount) {
 }
 
 if (!$filterstring) {
-    $filterstring = '#######'
+    $filterstring = @('######')
 }
 [regex] $filter_regex ='(?i)^(' + (($filterstring |ForEach-Object {[regex]::escape($_)}) -join "|") + ')'
 
@@ -48,8 +48,13 @@ $HistoryCount = $Searcher.GetTotalHistoryCount()
 if ($HistoryCount -eq 0) {
     exit 0
 }
-$Searcher.QueryHistory(0, $HistoryCount) `
+$result = @{}
+$result = $Searcher.QueryHistory(0, $HistoryCount) `
 | Where-Object { $_.title -notmatch $filter_regex -AND $_.title -ne $null } `
 | Sort-Object date -desc `
-| Select-Object -First $updatecount `
-| ForEach-Object { Write-Host($_.title + '|' + $_.date + '|' + $_.resultcode) }
+| Select-Object -First $updatecount 
+if ($result.Length -eq 0) {
+    write-host('No updates found')
+} else {
+    $result | ForEach-Object { Write-Host($_.title + '|' + $_.date + '|' + $_.resultcode) }
+}

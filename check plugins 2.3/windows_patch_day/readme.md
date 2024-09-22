@@ -15,3 +15,5 @@ This plugin will read the patch history and shows installed patches for a given 
 - 2.3.0 - migrated check function and rulesets to CMK 2.3 API
 - 2.3.1 - moved files to plugin folder, no updates found don't result in UNKN anymore
 - 2.3.2 - some code formatting
+- 2.3.3 - plugin can handle empty output from agent
+- 2.3.4 - rule text and help modification

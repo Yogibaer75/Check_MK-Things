@@ -41,9 +41,9 @@ def _valuespec_agent_config_windows_patch_day():
             ),
             "filterstring": DictElement(
                 parameter_form=List(
-                    title=Title("Unwanted updates (Regular Expressions)"),
+                    title=Title("Unwanted updates (Prefix Match)"),
                     help_text=Help(
-                        "Regular expressions matching the begining of the installed update name."
+                        "Prefix matching the begining of the installed update name. One line for every update."
                     ),
                     element_template=RegularExpression(
                         title=Title("Pattern"),
