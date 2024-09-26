@@ -36,6 +36,13 @@ def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
     parser.add_argument(
         "--password", type=str, required=True, metavar="PASSWORD", help="password for that account"
     )
+    parser.add_argument(
+        "--no-cert-check",
+        action='store_true',
+        default=False,
+        dest="no_cert_check",
+        help="if SSL certificate should be verified",
+    )
 
     return parser.parse_args(argv)
 
