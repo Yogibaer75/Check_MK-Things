@@ -38,7 +38,7 @@ Section = List[WinPatchday]
 
 def parse_windows_patch_day(string_table: StringTable) -> Section:
     """parse raw data into list of named tuples"""
-    if string_table[0] == "No":
+    if string_table[0][0] == "No updates found":
         return [WinPatchday("No Updates found", "01/01/2024", "2")]
     return [WinPatchday(name, date, result) for name, date, result in string_table]
 
@@ -61,8 +61,8 @@ def check_windows_patch_day(params: Mapping[str, Any], section: Section) -> Chec
     if not any(section):
         yield Result(
             state=State(0),
-            summary=("No information found for update, ",
-                     "possible new system or major update installed"),
+            summary=(("No information found for update, "
+                      "possible new system or major update installed")),
         )
         return
 
@@ -81,6 +81,11 @@ def check_windows_patch_day(params: Mapping[str, Any], section: Section) -> Chec
     date_list = []
 
     for update in section:
+        if update.name == "No Updates found":
+            yield Result(state=State(0), summary=(("No information found for updates, "
+                                                   "possible new system or major update installed")))
+            return
+
         timestring = update.date.split(" ")[0]
         install_time = datetime.datetime.strptime(timestring, "%m/%d/%Y")
         date_list.append(install_time)
