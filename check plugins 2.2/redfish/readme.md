@@ -54,3 +54,6 @@ To use this agent you need the Redfish Python module installed.
 - 2.2.55 - removed auto expand for iLO4
 - 2.2.56 - adjusting HW/SW inventory path for view and iLO4
 - 2.2.57 - add "StandbyOffline" to ignored states for discovery of ethernet interfaces
+- 2.2.58 - outlet names can be configured at discovery & EnergykWh are shown for outlets
+- 2.2.59 - ignore temperature sensors without reading at discovery
+- 2.2.60 - only 2.3 version specific changes
