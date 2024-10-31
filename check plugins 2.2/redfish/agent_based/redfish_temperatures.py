@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
-
+'''Redfish temperature checks'''
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 
 # License: GNU General Public License v2
@@ -32,6 +32,8 @@ def discovery_redfish_temperatures(section) -> DiscoveryResult:
             continue
         for temp in temps:
             if temp.get("Status").get("State") in ["Absent", "Disabled"]:
+                continue
+            if not temp.get("ReadingCelsius"):
                 continue
             if temp.get("Name"):
                 yield Service(item=temp.get("Name"))

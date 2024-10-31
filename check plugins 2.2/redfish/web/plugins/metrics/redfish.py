@@ -6,7 +6,11 @@
 # License: GNU General Public License v2
 
 from cmk.gui.i18n import _
-from cmk.gui.plugins.metrics.utils import metric_info, perfometer_info
+from cmk.gui.plugins.metrics.utils import metric_info, perfometer_info, check_metrics, K
+
+check_metrics["check_mk-redfish_outlets"] = {
+    "energy": {"scale": K},
+}
 
 metric_info["input_power"] = {
     "title": _("Electrical input power"),
