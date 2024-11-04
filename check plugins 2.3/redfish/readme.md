@@ -46,4 +46,4 @@ The Redfish library is already existing inside CMK.
 - 2.3.59 - ignore temperature sensors without reading at discovery
 - 2.3.60 - special agent fixed if user and password is used on CLI
 - 2.3.61 - small naming change in metric translation
-- 2.3.62 - implemented caching for sections
+- 2.3.62 - implemented caching for sections - Attention if you monitor iLO4 please stay at 2.3.60 for the moment
