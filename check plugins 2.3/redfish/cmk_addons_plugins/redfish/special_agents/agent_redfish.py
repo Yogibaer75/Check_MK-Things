@@ -299,17 +299,16 @@ def fetch_hpe_smartstorage(redfishobj, link_list, sections):
             "PhysicalDrives",
         ]
         resulting_sections = list(set(storage_sections).intersection(sections))
-        cntrl_result = fetch_sections(
+        fetch_sections(
             redfishobj, resulting_sections, sections, storage_links
         )
-        process_result(cntrl_result)
-        for element in cntrl_result.get("ArrayControllers", []):
+        for element in redfishobj.section_data.get("ArrayControllers", []):
             contrl_links = element.get("Links", {})
             resulting_sections = list(set(controller_sections).intersection(sections))
-            result = fetch_sections(
+            fetch_sections(
                 redfishobj, resulting_sections, sections, contrl_links
             )
-            process_result(result)
+    return redfishobj
 
 
 def fetch_extra_data(redfishobj, data_model, extra_links, sections, data):
@@ -528,7 +527,7 @@ def get_information(redfishobj):
                 )
 
     with SectionWriter("check_mk", " ") as w:
-        w.append("Version: 2.0")
+        w.append("Version: 2.3.0")
         w.append("AgentOS: redfish")
         w.append("OSType: redfish")
         w.append(f"OSName: {redfishobj.vendor_data.version}")
@@ -553,7 +552,7 @@ def get_information(redfishobj):
     else:
         extra_links = []
 
-    if data_model in ["Hp"]:
+    if data_model in ["Hp"] and ("FirmwareInventory" in redfishobj.sections):
         res_dir = (
             redfishobj.base_data.get("Oem", {"Unknown": "Unknown model"})
             .get(data_model, {"Unknown": "Unknown model"})
@@ -574,8 +573,8 @@ def get_information(redfishobj):
                         "FirmwareDirectory",
                     )
                     if firmwares.get("Current"):
-                        with SectionWriter("redfish_firmware_hpe_ilo4") as w:
-                            w.append_json(firmwares.get("Current"))
+                        redfishobj.sections.remove("FirmwareInventory")
+                        redfishobj.section_data.setdefault("FirmwareInventory", firmwares)
 
     if manager_data:
         with SectionWriter("redfish_manager") as w:
@@ -660,10 +659,10 @@ def get_information(redfishobj):
                     redfishobj, systems_sub_sections, redfishobj.sections, storage_data
                 )
 
-    #        if extra_links:
-    #            fetch_extra_data(
-    #                redfishobj, data_model, extra_links, redfishobj.sections, system
-    #            )
+        if extra_links:
+            fetch_extra_data(
+                redfishobj, data_model, extra_links, redfishobj.sections, system
+            )
 
     # fetch chassis
     chassis_col = fetch_data(redfishobj, chassis_url, "Chassis")

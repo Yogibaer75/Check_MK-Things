@@ -46,6 +46,8 @@ def parse_redfish_multiple(string_table: StringTable) -> RedfishAPIData:
         # {"error": "Storage data could not be fetched\n"}
         if entry.get("error"):
             continue
+        if not entry.get("@odata.type"):
+            continue
         if any(x in entry.get("@odata.type") for x in hpe_matches):
             item = redfish_item_hpe(entry)
         elif "Drive" in entry.get("@odata.type"):

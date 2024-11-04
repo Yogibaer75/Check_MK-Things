@@ -53,26 +53,43 @@ def _item_name(item_data, padding):
 def inventory_redfish_firmware(section: RedfishAPIData) -> InventoryResult:
     """create inventory table for firmware"""
     path = ["hardware", "firmware", "redfish"]
-    padding = len(str(len(section)))
-    for _key, entry in section.items():
-        item_name = _item_name(entry, padding)
-        if not item_name:
-            continue
-        if entry.get('Description') == "Represents Firmware Inventory":
-            description = entry.get('Id')
-        else:
-            description = entry.get('Description')
-        yield TableRow(
-            path=path,
-            key_columns={
-                "component": item_name,
-            },
-            inventory_columns={
-                "version": entry.get("Version"),
-                "description": description,
-                "updateable": entry.get("Updateable"),
-            },
-        )
+    if section.get("FirmwareInventory", {}).get("Current"):
+        data = section.get("FirmwareInventory", {}).get("Current")
+        padding = len(str(len(data)))
+        for index, entry_id in enumerate(data):
+            entry = data.get(entry_id)
+            component_name = f"{str(index).zfill(padding)}-{entry[0].get('Name')}"
+            yield TableRow(
+                path=path,
+                key_columns={
+                    "component": component_name,
+                },
+                inventory_columns={
+                    "version": entry[0].get("VersionString"),
+                    "location": entry[0].get("Location"),
+                },
+            )
+    else:
+        padding = len(str(len(section)))
+        for _key, entry in section.items():
+            item_name = _item_name(entry, padding)
+            if not item_name:
+                continue
+            if entry.get('Description') == "Represents Firmware Inventory":
+                description = entry.get('Id')
+            else:
+                description = entry.get('Description')
+            yield TableRow(
+                path=path,
+                key_columns={
+                    "component": item_name,
+                },
+                inventory_columns={
+                    "version": entry.get("Version"),
+                    "description": description,
+                    "updateable": entry.get("Updateable"),
+                },
+            )
 
 
 inventory_plugin_redfish_firmware = InventoryPlugin(
