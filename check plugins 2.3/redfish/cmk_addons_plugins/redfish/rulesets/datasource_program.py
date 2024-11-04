@@ -190,6 +190,149 @@ def _valuespec_special_agents_redfish() -> Dictionary:
                     show_toggle_all=True,
                 ),
             ),
+            "cached_sections": DictElement(
+                parameter_form=Dictionary(
+                    title=Title("Cached times for single sections"),
+                    elements={
+                        "cache_time_Memory": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section Memory"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_Power": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section Power"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_Processors": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section Processors"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_Thermal": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section Thermal"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_FirmwareInventory": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section FirmwareInventory"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_NetworkAdapters": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section NetworkAdapters"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_NetworkInterfaces": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section NetworkInterfaces"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_EthernetInterfaces": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section EthernetInterfaces"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_Storage": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section Storage"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_ArrayControllers": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section ArrayControllers"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_SmartStorage": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section SmartStorage"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_HostBusAdapters": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section HostBusAdapters"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_PhysicalDrives": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section PhysicalDrives"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_LogicalDrives": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section LogicalDrives"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_Drives": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section Drives"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_Volumes": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section Volumes"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                        "cache_time_SimpleStorage": DictElement(
+                            parameter_form=Integer(
+                                title=Title("Section SimpleStorage"),
+                                prefill=DefaultValue(60),
+                                custom_validate=(validators.NumberInRange(min_value=1),),
+                                unit_symbol="s",
+                            ),
+                        ),
+                    },
+                ),
+            ),
             "port": DictElement(
                 parameter_form=Integer(
                     title=Title("Advanced - TCP Port number"),

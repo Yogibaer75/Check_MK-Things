@@ -20,13 +20,13 @@ from cmk.agent_based.v2 import (
 )
 from cmk_addons.plugins.redfish.lib import (
     RedfishAPIData,
-    parse_redfish,
+    parse_redfish_multiple,
     redfish_health_state,
 )
 
 agent_section_redfish_firmware = AgentSection(
-    name="redfish_firmware",
-    parse_function=parse_redfish,
+    name="redfish_firmwareinventory",
+    parse_function=parse_redfish_multiple,
     parsed_section_name="redfish_firmware",
 )
 
@@ -54,7 +54,7 @@ def inventory_redfish_firmware(section: RedfishAPIData) -> InventoryResult:
     """create inventory table for firmware"""
     path = ["hardware", "firmware", "redfish"]
     padding = len(str(len(section)))
-    for entry in section:
+    for _key, entry in section.items():
         item_name = _item_name(entry, padding)
         if not item_name:
             continue
@@ -95,7 +95,7 @@ def check_redfish_firmware(section: RedfishAPIData) -> CheckResult:
     msg_text = ""
     info_text = ""
     info_list = []
-    for entry in section:
+    for _key, entry in section.items():
         if not entry.get("Status"):
             continue
         component_name = _item_name(entry, padding)

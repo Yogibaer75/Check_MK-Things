@@ -45,3 +45,5 @@ The Redfish library is already existing inside CMK.
 - 2.3.58 - outlet names can be configured at discovery & EnergykWh are shown for outlets
 - 2.3.59 - ignore temperature sensors without reading at discovery
 - 2.3.60 - special agent fixed if user and password is used on CLI
+- 2.3.61 - small naming change in metric translation
+- 2.3.62 - implemented caching for sections

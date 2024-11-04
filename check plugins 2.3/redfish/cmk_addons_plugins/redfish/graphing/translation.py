@@ -7,7 +7,7 @@
 
 from cmk.graphing.v1 import translations
 
-translation_msexch_isclienttype = translations.Translation(
+translation_redfish_outlets = translations.Translation(
     name="redfish_outlets",
     check_commands=[
         translations.PassiveCheck("redfish_outlets"),

@@ -24,6 +24,7 @@ class Params(BaseModel):
     proto: tuple[str, str | None] = ("https", None)
     sections: list | None = None
     disabled_sections: list | None = None
+    cached_sections: dict | None = None
     timeout: int | None = None
     retries: int | None = None
 
@@ -48,6 +49,12 @@ def _agent_redfish_arguments(
         command_arguments += ["--timeout", str(params.timeout)]
     if params.retries is not None:
         command_arguments += ["--retries", str(params.retries)]
+    if params.cached_sections is not None:
+        cache_sections = []
+        for n, m in params.cached_sections.items():
+            cache_sections.append(f"{n}-{m}")
+        command_arguments += ["-c", ",".join(cache_sections)]
+
     command_arguments.append(host_config.primary_ip_config.address or host_config.name)
     yield SpecialAgentCommand(command_arguments=command_arguments)
 
