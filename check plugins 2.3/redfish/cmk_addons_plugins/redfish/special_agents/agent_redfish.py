@@ -692,6 +692,8 @@ def get_information(redfishobj):
 def store_session_key(redfishobj):
     """save session data to file"""
     store_data = {}
+    if not os.path.exists(paths.tmp_dir / "agents" / "agent_redfish"):
+        os.makedirs(paths.tmp_dir / "agents" / "agent_redfish")
     store_path = (
         paths.tmp_dir / "agents" / "agent_redfish" / f"{redfishobj.hostname}.pkl"
     )
