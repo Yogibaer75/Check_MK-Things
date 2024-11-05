@@ -48,3 +48,4 @@ The Redfish library is already existing inside CMK.
 - 2.3.61 - small naming change in metric translation
 - 2.3.62 - implemented caching for sections - Attention if you monitor iLO4 please stay at 2.3.60 for the moment
 - 2.3.63 - fixed some iLO specific HW/SW inventory problems - this release should also work with iLO4 now
+- 2.3.64 - bug fixed in processing cache files

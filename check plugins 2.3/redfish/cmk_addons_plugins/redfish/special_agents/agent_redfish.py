@@ -745,7 +745,7 @@ def load_section_data(redfishobj):
             setattr(timestamps, key, store_data["timestamp"])
             redfishobj.section_data.setdefault(key, store_data["data"])
             redfishobj.sections.remove(key)
-        redfishobj.cache_timestamp_per_section = timestamps
+    redfishobj.cache_timestamp_per_section = timestamps
     return redfishobj
 
 
