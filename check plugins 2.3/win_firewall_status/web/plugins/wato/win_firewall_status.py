@@ -22,7 +22,7 @@ from cmk.gui.plugins.wato.utils import (
 
 def _parameter_valuespec_win_firewall_status():
     return Dictionary(
-        title=_("Time left for installed certificates before renew."),
+        title=_("Firewall Profile configuration"),
         elements=[
             (
                 "profiles",
