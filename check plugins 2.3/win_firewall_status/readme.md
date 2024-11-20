@@ -5,3 +5,4 @@ The plugin outputs the configured firewall status and with the check rules you c
 2.2.0 - migrated to CMK 2.2 with some smaller fixes (typos and so on)
 2.3.0 - CMK 2.3 ready
 2.3.1 - small bug in bakery fixed
+2.3.2 - fix typo in rule
