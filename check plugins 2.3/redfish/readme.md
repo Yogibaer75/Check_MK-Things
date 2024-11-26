@@ -50,3 +50,4 @@ The Redfish library is already existing inside CMK.
 - 2.3.63 - fixed some iLO specific HW/SW inventory problems - this release should also work with iLO4 now
 - 2.3.64 - bug fixed in processing cache files
 - 2.3.65 - temp folder creating bug fixed
+- 2.3.66 - added discovery option for physical ports

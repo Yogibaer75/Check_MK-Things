@@ -2,8 +2,10 @@
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
-
 # License: GNU General Public License v2
+
+from collections.abc import Mapping
+from typing import Any
 
 from cmk.agent_based.v2 import (
     AgentSection,
@@ -27,7 +29,11 @@ agent_section_redfish_ethernetinterfaces = AgentSection(
 )
 
 
-def discovery_redfish_ethernetinterfaces(section: RedfishAPIData) -> DiscoveryResult:
+def discovery_redfish_ethernetinterfaces(
+    params: Mapping[str, Any], section: RedfishAPIData
+) -> DiscoveryResult:
+    """Discover single interfaces"""
+    disc_state = params.get("state")
     for key in section.keys():
         if not section[key].get("Status"):
             continue
@@ -39,10 +45,15 @@ def discovery_redfish_ethernetinterfaces(section: RedfishAPIData) -> DiscoveryRe
             "StandbyOffline",
         ]:
             continue
+        if section[key].get("LinkStatus", "NOLINK") in ["LinkDown"] and disc_state == "up":
+            continue
+        if section[key].get("LinkStatus", "NOLINK") in ["LinkUp"] and disc_state == "down":
+            continue
         yield Service(item=section[key]["Id"])
 
 
 def check_redfish_ethernetinterfaces(item: str, section: RedfishAPIData) -> CheckResult:
+    """Check single interfaces"""
     data = section.get(item, None)
     if data is None:
         return
@@ -86,5 +97,7 @@ check_plugin_redfish_ethernetinterfaces = CheckPlugin(
     service_name="Physical port %s",
     sections=["redfish_ethernetinterfaces"],
     discovery_function=discovery_redfish_ethernetinterfaces,
+    discovery_ruleset_name="discovery_redfish_ethernetinterfaces",
+    discovery_default_parameters={"state": "updown"},
     check_function=check_redfish_ethernetinterfaces,
 )
