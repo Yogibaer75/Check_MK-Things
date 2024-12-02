@@ -51,3 +51,4 @@ The Redfish library is already existing inside CMK.
 - 2.3.64 - bug fixed in processing cache files
 - 2.3.65 - temp folder creating bug fixed
 - 2.3.66 - added discovery option for physical ports
+- 2.3.67 - implemented debug command line option for configuration with setup

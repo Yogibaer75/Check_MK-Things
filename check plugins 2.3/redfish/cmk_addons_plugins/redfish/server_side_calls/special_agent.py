@@ -27,6 +27,7 @@ class Params(BaseModel):
     cached_sections: dict | None = None
     timeout: int | None = None
     retries: int | None = None
+    debug: bool | None = None
 
 
 def _agent_redfish_arguments(
@@ -49,6 +50,8 @@ def _agent_redfish_arguments(
         command_arguments += ["--timeout", str(params.timeout)]
     if params.retries is not None:
         command_arguments += ["--retries", str(params.retries)]
+    if params.debug:
+        command_arguments += ["--debug"]
     if params.cached_sections is not None:
         cache_sections = []
         for n, m in params.cached_sections.items():
