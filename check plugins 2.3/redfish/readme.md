@@ -52,3 +52,5 @@ The Redfish library is already existing inside CMK.
 - 2.3.65 - temp folder creating bug fixed
 - 2.3.66 - added discovery option for physical ports
 - 2.3.67 - implemented debug command line option for configuration with setup
+- 2.3.68 - ignore empty element from fetch list
+- 2.3.69 - removed obsolete iLO4 firmware component

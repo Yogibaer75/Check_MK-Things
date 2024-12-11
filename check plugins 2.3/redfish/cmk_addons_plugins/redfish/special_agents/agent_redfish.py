@@ -243,6 +243,8 @@ def fetch_list_of_elements(redfishobj, fetching_sections, sections, data):
             continue
 
         fetch_result = data.get(section)
+        if not fetch_result:
+            continue
         if isinstance(fetch_result, dict):
             # result = fetch_data(redfishobj, fetch_result.get("@odata.id"), section)
             fetch_entry(redfishobj, fetch_result, section)
