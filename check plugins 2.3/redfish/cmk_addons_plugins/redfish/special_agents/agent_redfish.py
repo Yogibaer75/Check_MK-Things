@@ -620,7 +620,7 @@ def get_information(redfishobj):
                 redfishobj,
                 "".join(firmware_url),
                 "FirmwareDirectory",
-                timeout=10,
+                timeout=40,
             )
             if firmwares.get("Members"):
                 redfishobj.section_data.setdefault(
@@ -745,6 +745,8 @@ def load_section_data(redfishobj):
                 store_data = pickle.load(file)
             current_time = int(time.time())
             if store_data["timestamp"] + value < current_time:
+                continue
+            if key not in redfishobj.sections:
                 continue
             setattr(timestamps, key, store_data["timestamp"])
             redfishobj.section_data.setdefault(key, store_data["data"])

@@ -54,3 +54,4 @@ The Redfish library is already existing inside CMK.
 - 2.3.67 - implemented debug command line option for configuration with setup
 - 2.3.68 - ignore empty element from fetch list
 - 2.3.69 - removed obsolete iLO4 firmware component
+- 2.3.70 - fix crash if cached section is later disabled, timeout for firmware increased to 40 seconds
