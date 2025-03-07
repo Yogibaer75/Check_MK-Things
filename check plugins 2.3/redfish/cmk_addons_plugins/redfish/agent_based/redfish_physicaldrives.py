@@ -28,24 +28,32 @@ agent_section_redfish_physicaldrives = AgentSection(
 )
 
 
-def discovery_redfish_physicaldrives(section: RedfishAPIData) -> DiscoveryResult:
-    for key in section.keys():
-        loc = section[key].get("Location")
+def _item_names(section: RedfishAPIData) -> dict:
+    new_data = {}
+    for _key, data in section.items():
+        loc = data.get("Location")
         if loc == []:
-            item = section[key]["Name"]
+            path = data.get("@odata.id").split("/")[1:]
+            controller_id = path[-3:-2][0]
+            item = controller_id + ":" + data.get("Name")
         else:
-            item = section[key]["Location"]
+            path = data.get("@odata.id").split("/")[1:]
+            controller_id = path[-3:-2][0]
+            item = controller_id + ":" + data["Location"]
+        new_data[item] = data
 
-        yield Service(item=item)
+    return new_data
+
+
+def discovery_redfish_physicaldrives(section: RedfishAPIData) -> DiscoveryResult:
+    raw_data = _item_names(section)
+    for key in raw_data:
+        yield Service(item=key)
 
 
 def check_redfish_physicaldrives(item: str, section: RedfishAPIData) -> CheckResult:
-    data = None
-    for key in section.keys():
-        if item == section[key].get("Location"):
-            data = section.get(key, None)
-        elif item == section[key].get("Name"):
-            data = section.get(key, None)
+    raw_data = _item_names(section)
+    data = raw_data.get(item, None)
     if data is None:
         return
 
@@ -70,11 +78,13 @@ def check_redfish_physicaldrives(item: str, section: RedfishAPIData) -> CheckRes
                 f"{disc_msg}, Media Life Left: "
                 f"{int(data.get('PredictedMediaLifeLeftPercent', 0))}%"
             )
+            yield Metric("media_life_left", int(data.get("PredictedMediaLifeLeftPercent")))
         elif data.get("SSDEnduranceUtilizationPercentage"):
             disc_msg = (
                 f"{disc_msg}, SSD Utilization: "
                 f"{int(data.get('SSDEnduranceUtilizationPercentage', 0))}%"
             )
+            yield Metric("ssd_utilization", int(data.get("SSDEnduranceUtilizationPercentage")))
     yield Result(state=State(0), summary=disc_msg)
 
     dev_state, dev_msg = redfish_health_state(data.get("Status", {}))

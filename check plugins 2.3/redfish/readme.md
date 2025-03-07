@@ -55,3 +55,6 @@ The Redfish library is already existing inside CMK.
 - 2.3.68 - ignore empty element from fetch list
 - 2.3.69 - removed obsolete iLO4 firmware component
 - 2.3.70 - fix crash if cached section is later disabled, timeout for firmware increased to 40 seconds
+- 2.3.71 - drive discovery on HPE drives also includes controller id in item
+- 2.3.72 - ssd life counters as metric
+- 2.3.73 - service tag for Dell devices included inside the System state details
