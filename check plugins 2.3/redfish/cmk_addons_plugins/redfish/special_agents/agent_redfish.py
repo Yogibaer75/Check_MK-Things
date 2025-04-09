@@ -445,9 +445,11 @@ def detect_vendor(redfishobj):
         if vendor_string in ["Hp"]:
             vendor_data.expand_string = ""
         manager_data = (
-            root_data.get("Oem", {}).get(vendor_string, {}).get("Manager", {})[0]
+            root_data.get("Oem", {}).get(vendor_string, {}).get("Manager", [])
         )
         if manager_data:
+            manager_data = manager_data[0]
+        if isinstance(manager_data, dict):
             vendor_data.version = manager_data.get("ManagerType")
             if vendor_data.version is None:
                 vendor_data.version = (

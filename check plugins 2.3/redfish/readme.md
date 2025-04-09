@@ -60,4 +60,4 @@ The Redfish library is already existing inside CMK.
 - 2.3.73 - service tag for Dell devices included inside the System state details
 - 2.3.74 - ignore drives without name
 - 2.3.75 - firmware state disabled is ok
-
+- 2.3.76 - fixed bug for HPE devices without manager in data
