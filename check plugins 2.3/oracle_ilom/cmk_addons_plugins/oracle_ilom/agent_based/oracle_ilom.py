@@ -6,29 +6,29 @@
 
 # License: GNU General Public License v2
 
-from typing import Dict, NamedTuple, List
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    register,
-    Result,
-    Service,
-    SNMPTree,
-    State,
-    contains,
-    OIDEnd,
-    check_levels,
-    get_value_store,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+from typing import Dict, List, NamedTuple
+
+from cmk.agent_based.v2 import (
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
+    OIDEnd,
+    Result,
+    Service,
+    SNMPSection,
+    SNMPTree,
+    State,
     StringTable,
+    check_levels,
+    contains,
+    get_value_store,
 )
 from cmk.plugins.lib.temperature import (
-    check_temperature,
     TempParamDict,
+    check_temperature,
     parse_levels,
 )
-from cmk.base.plugins.agent_based.utils.oracle_ilom import process_oracle_ilom_perfdata
+from cmk_addons.plugins.oracle_ilom.lib import process_oracle_ilom_perfdata
 from typing_extensions import TypedDict
 
 oracle_ilom_map_unit = {
@@ -158,7 +158,7 @@ def parse_oracle_ilom(string_table: List[StringTable]) -> Section:
     return parsed
 
 
-register.snmp_section(
+snmp_section_oracle_ilom = SNMPSection(
     name="oracle_ilom",
     parse_function=parse_oracle_ilom,
     detect=contains(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.42.2.200"),
@@ -307,7 +307,7 @@ def check_oracle_ilom_temp(
         )
 
 
-register.check_plugin(
+check_plugin_oracle_ilom_temp = CheckPlugin(
     name="oracle_ilom_temp",
     sections=["oracle_ilom"],
     service_name="Temperature %s",
@@ -319,7 +319,7 @@ register.check_plugin(
     check_ruleset_name="temperature",
 )
 
-register.check_plugin(
+check_plugin_oracle_ilom_fan = CheckPlugin(
     name="oracle_ilom_fan",
     sections=["oracle_ilom"],
     service_name="Fan %s",
@@ -331,7 +331,7 @@ register.check_plugin(
     check_ruleset_name="ilom_sensor",
 )
 
-register.check_plugin(
+check_plugin_oracle_ilom_voltage = CheckPlugin(
     name="oracle_ilom_voltage",
     sections=["oracle_ilom"],
     service_name="Voltage %s",
@@ -343,7 +343,7 @@ register.check_plugin(
     check_ruleset_name="ilom_sensor",
 )
 
-register.check_plugin(
+check_plugin_oracle_ilom_other = CheckPlugin(
     name="oracle_ilom_other",
     sections=["oracle_ilom"],
     service_name="Other %s",
