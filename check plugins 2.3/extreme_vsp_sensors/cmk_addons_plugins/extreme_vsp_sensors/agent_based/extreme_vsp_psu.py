@@ -7,19 +7,19 @@
 # License: GNU General Public License v2
 
 from typing import Mapping, NamedTuple
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    all_of,
-    startswith,
-    register,
-    Result,
-    Service,
-    SNMPTree,
-    State,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+
+from cmk.agent_based.v2 import (
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
+    Result,
+    Service,
+    SimpleSNMPSection,
+    SNMPTree,
+    State,
     StringTable,
+    all_of,
+    startswith,
 )
 
 DETECT_VSP = all_of(
@@ -46,16 +46,16 @@ def parse_extreme_vsp_psu(string_table: StringTable) -> Section:
     }
 
 
-register.snmp_section(
+snmp_section_extreme_vsp_psu = SimpleSNMPSection(
     name="extreme_vsp_psu",
     detect=DETECT_VSP,
     parse_function=parse_extreme_vsp_psu,
     fetch=SNMPTree(
         base=".1.3.6.1.4.1.2272.1.4.8.1.1",
         oids=[
-            "1",
-            "2",
-        ],  # id  # status
+            "1", # id
+            "2", # status
+        ],
     ),
 )
 
@@ -86,7 +86,7 @@ def check_extreme_vsp_psu(item: str, section: Section) -> CheckResult:
     yield Result(state=State(status), summary=msg)
 
 
-register.check_plugin(
+check_plugin_extreme_vsp_psu = CheckPlugin(
     name="extreme_vsp_psu",
     service_name="PSU %s",
     discovery_function=discover_extreme_vsp_psu,

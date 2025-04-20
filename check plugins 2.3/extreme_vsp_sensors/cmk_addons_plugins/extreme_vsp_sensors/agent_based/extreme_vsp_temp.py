@@ -7,23 +7,20 @@
 # License: GNU General Public License v2
 
 from typing import Mapping, NamedTuple
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    all_of,
-    startswith,
-    register,
-    Service,
-    SNMPTree,
-    get_value_store,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+
+from cmk.agent_based.v2 import (
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
+    Service,
+    SimpleSNMPSection,
+    SNMPTree,
     StringTable,
+    all_of,
+    get_value_store,
+    startswith,
 )
-from cmk.base.plugins.agent_based.utils.temperature import (
-    check_temperature,
-    TempParamDict,
-)
+from cmk.plugins.lib.temperature import TempParamDict, check_temperature
 
 DETECT_VSP = all_of(
     startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.1916.2.325"),
@@ -55,19 +52,19 @@ def parse_extreme_vsp_temp(string_table: StringTable) -> Section:
     }
 
 
-register.snmp_section(
+snmp_section_extreme_vsp_temp = SimpleSNMPSection(
     name="extreme_vsp_temp",
     detect=DETECT_VSP,
     parse_function=parse_extreme_vsp_temp,
     fetch=SNMPTree(
         base=".1.3.6.1.4.1.2272.1.101.1.1.2.1",
         oids=[
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-        ],  # name  # value  # warn  # crit  # status
+            "2", # name
+            "3", # value
+            "4", # warn
+            "5", # crit
+            "6", # status
+        ],
     ),
 )
 
@@ -95,7 +92,7 @@ def check_extreme_vsp_temp(
     )
 
 
-register.check_plugin(
+check_plugin_extreme_vsp_temp = CheckPlugin(
     name="extreme_vsp_temp",
     service_name="Temperature %s",
     discovery_function=discover_extreme_vsp_temp,

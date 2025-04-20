@@ -7,20 +7,20 @@
 # License: GNU General Public License v2
 
 from typing import Mapping, NamedTuple
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    all_of,
-    startswith,
-    register,
-    Result,
-    Service,
-    SNMPTree,
-    State,
-    OIDEnd,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+
+from cmk.agent_based.v2 import (
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
+    OIDEnd,
+    Result,
+    Service,
+    SimpleSNMPSection,
+    SNMPTree,
+    State,
     StringTable,
+    all_of,
+    startswith,
 )
 
 DETECT_VSP = all_of(
@@ -51,7 +51,7 @@ def parse_extreme_vsp_fans(string_table: StringTable) -> Section:
     }
 
 
-register.snmp_section(
+snmp_section_extreme_vsp_fans = SimpleSNMPSection(
     name="extreme_vsp_fans",
     detect=DETECT_VSP,
     parse_function=parse_extreme_vsp_fans,
@@ -59,10 +59,10 @@ register.snmp_section(
         base=".1.3.6.1.4.1.2272.1.101.1.1.4.1",
         oids=[
             OIDEnd(),
-            "3",
-            "4",
-            "5",
-        ],  # name  # status  # speed
+            "3", # name
+            "4", # status
+            "5", # speed
+        ],
     ),
 )
 
@@ -91,7 +91,7 @@ def check_extreme_vsp_fans(item: str, section: Section) -> CheckResult:
     yield Result(state=State(status), summary=msg)
 
 
-register.check_plugin(
+check_plugin_extreme_vsp_fans = CheckPlugin(
     name="extreme_vsp_fans",
     service_name="FAN %s",
     discovery_function=discover_extreme_vsp_fans,
