@@ -3,16 +3,7 @@
 
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 
-# This is free software;  you can redistribute it and/or modify it
-# under the  terms of the  GNU General Public License  as published by
-# the Free Software Foundation in version 2.  check_mk is  distributed
-# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
-# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
-# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
-# ails.  You should have  received  a copy of the  GNU  General Public
-# License along with GNU Make; see the file  COPYING.  If  not,  write
-# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
-# Boston, MA 02110-1301 USA.
+# License: GNU General Public License v2
 
 # Example Output:
 # <<<udp_jobs:sep(124)>>>
@@ -20,24 +11,35 @@
 # 2|server2||||
 #
 
-from .agent_based_api.v1.type_defs import (
+from typing import Mapping, Any
+
+from cmk.agent_based.v2 import (
+    AgentSection,
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
-)
-
-from .agent_based_api.v1 import (
-    check_levels,
     render,
-    register,
     Result,
-    State,
     Service,
+    State,
+    StringTable,
+    check_levels,
 )
 
 import datetime as dt
 
 
-def parse_udp_jobs(string_table):
+def parse_udp_jobs(string_table: StringTable) -> Mapping[str, Mapping[str, Any]]:
+    """
+    Parse the output of the udp_jobs agent plugin.
+    The output is a list of lines, each containing the following fields:
+    1. Server ID
+    2. Server Name
+    3. Last Backup Start Time
+    4. Last Job Status
+    5. Job Size
+    6. Job Method
+    """
     parsed = {}
     for line in string_table:
         if line[1] != "":
@@ -53,11 +55,10 @@ def parse_udp_jobs(string_table):
     return parsed
 
 
-register.agent_section(
+agent_section_udp_jobs = AgentSection(
     name="udp_jobs",
     parse_function=parse_udp_jobs,
 )
-
 
 def _udp_job_age(timedelta):
     return timedelta.days * 24 + int(timedelta.seconds / 3600)
@@ -70,7 +71,7 @@ def discovery_udp_jobs(section) -> DiscoveryResult:
         yield Service(item=item)
 
 
-def check_udp_jobs(item: str, params, section) -> CheckResult:
+def check_udp_jobs(item: str, params: Mapping[str, Any], section) -> CheckResult:
     udp_job_method = {
         "-1": ("Unknown"),
         "0": ("Full backup job"),
@@ -98,9 +99,9 @@ def check_udp_jobs(item: str, params, section) -> CheckResult:
         "10000": (1, "Missed"),
     }
 
-    if type(params) == tuple:
-        params = {"levels": params}
-    warn, crit = params["levels"]
+    if type(params) is tuple:
+        params = {"levels": ("fixed",params)}
+    warn, crit = params["levels"][1]
 
     no_backup_state = params.get("no_backup", None)
 
@@ -146,7 +147,7 @@ def check_udp_jobs(item: str, params, section) -> CheckResult:
 
             yield from check_levels(
                 int(backup_age * 3600),
-                levels_upper=(warn * 3600, crit * 3600),
+                levels_upper=("fixed", (warn * 3600, crit * 3600)),
                 render_func=render.timespan,
                 notice_only=True,
                 metric_name="age",
@@ -160,14 +161,14 @@ def check_udp_jobs(item: str, params, section) -> CheckResult:
             yield Result(state=State.OK, summary=msgtext)
 
 
-register.check_plugin(
+check_plugin_udp_jobs = CheckPlugin(
     name="udp_jobs",
     service_name="UDP job %s",
+    check_ruleset_name="arcserve_udp_jobs",
     sections=["udp_jobs"],
     check_default_parameters={
-        "levels": (36, 72),
+        "levels": ("fixed", (36, 72)),
     },
     discovery_function=discovery_udp_jobs,
     check_function=check_udp_jobs,
-    check_ruleset_name="arcserve_udp_jobs",
 )

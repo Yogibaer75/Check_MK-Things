@@ -3,16 +3,7 @@
 
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 
-# This is free software;  you can redistribute it and/or modify it
-# under the  terms of the  GNU General Public License  as published by
-# the Free Software Foundation in version 2.  check_mk is  distributed
-# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
-# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
-# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
-# ails.  You should have  received  a copy of the  GNU  General Public
-# License along with GNU Make; see the file  COPYING.  If  not,  write
-# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
-# Boston, MA 02110-1301 USA.
+# License: GNU General Public License v2
 
 # Example Output:
 # <<<udp_backup:sep(124)>>>
@@ -20,21 +11,32 @@
 # 2|server2||||
 #
 
-from .agent_based_api.v1.type_defs import (
+from typing import Mapping, Any
+
+from cmk.agent_based.v2 import (
+    AgentSection,
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
-)
-
-from .agent_based_api.v1 import (
-    check_levels,
-    register,
     Result,
-    State,
     Service,
+    State,
+    StringTable,
+    check_levels,
 )
 
 
-def parse_udp_backup(string_table):
+def parse_udp_backup(string_table: StringTable) -> Mapping[str, Mapping[str, Any]]:
+    """
+    Parse the output of the udp_backup agent plugin.
+    The output is a list of lines, each containing the following fields:
+    1. Server ID
+    2. Server Name
+    3. Last Backup Start Time
+    4. Last Job Status
+    5. RecPoint Status
+    6. RecPoint Count
+    """
     parsed = {}
     for line in string_table:
         if line[1] != "":
@@ -50,20 +52,20 @@ def parse_udp_backup(string_table):
     return parsed
 
 
-register.agent_section(
+agent_section_udp_backup = AgentSection(
     name="udp_backup",
     parse_function=parse_udp_backup,
 )
 
 
 def discovery_udp_backup(section) -> DiscoveryResult:
-    for item in section:
-        if section[item].get("lastBackupStartTime") == "":
+    for item, data in section.items():
+        if data.get("lastBackupStartTime") == "":
             continue
         yield Service(item=item)
 
 
-def check_udp_backup(item: str, params, section) -> CheckResult:
+def check_udp_backup(item: str, params: Mapping[str, Any], section) -> CheckResult:
     udp_backup_status = {
         "0": (3, "Unknown"),
         "1": (0, "Finished"),
@@ -80,15 +82,15 @@ def check_udp_backup(item: str, params, section) -> CheckResult:
         "3": (2, "Error", "(!!)"),
     }
 
-    if type(params) == tuple:
-        params = {"levels": params}
-    warn_upper, crit_upper = params.get("levels")
-    warn_lower, crit_lower = params.get("levels_lower")
+    if type(params) is tuple:
+        params = {"levels": ("fixed", params)}
+    warn_upper, crit_upper = params.get("levels", ("fixed", (None, None)))[1]
+    warn_lower, crit_lower = params.get("levels_lower", ("fixed", (None, None)))[1]
 
     no_backup_state = params.get("no_backup", None)
 
-    if section.get(item):
-        data = section.get(item)
+    if (data:=section.get(item)) is not None:
+        print(data)
         status = 0
         msgtext = ""
         last_backup = data.get("lastBackupStartTime")
@@ -114,23 +116,23 @@ def check_udp_backup(item: str, params, section) -> CheckResult:
 
             yield from check_levels(
                 int(recpoints),
-                levels_upper=(warn_upper, crit_upper),
-                levels_lower=(warn_lower, crit_lower),
+                levels_upper=("fixed", (warn_upper, crit_upper)),
+                levels_lower=("fixed", (warn_lower, crit_lower)),
                 metric_name="restorepoint",
                 notice_only=True,
                 label="restore points"
             )
 
 
-register.check_plugin(
+check_plugin_udp_backup = CheckPlugin(
     name="udp_backup",
     service_name="UDP host %s",
+    check_ruleset_name="arcserve_udp_backup",
     sections=["udp_backup"],
     check_default_parameters={
-        "levels": (30, 40),
-        "levels_lower": (5, 1),
+        "levels": ("fixed", (36, 72)),
+        "levels_lower": ("fixed", (5, 1)),
     },
     discovery_function=discovery_udp_backup,
     check_function=check_udp_backup,
-    check_ruleset_name="arcserve_udp_backup",
 )
