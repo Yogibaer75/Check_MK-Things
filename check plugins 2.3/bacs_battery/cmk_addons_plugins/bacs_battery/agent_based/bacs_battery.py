@@ -4,23 +4,21 @@
 
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 # License: GNU General Public License v2
-from typing import Mapping, Any, List
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    startswith,
-    register,
-    Service,
-    SNMPTree,
-    get_value_store,
-    check_levels,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+from typing import Any, List, Mapping
+
+from cmk.agent_based.v2 import (
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
+    Service,
+    SimpleSNMPSection,
+    SNMPTree,
     StringTable,
+    check_levels,
+    get_value_store,
+    startswith,
 )
-from cmk.base.plugins.agent_based.utils.temperature import (
-    check_temperature,
-)
+from cmk.plugins.lib.temperature import check_temperature
 
 bacs_battery_default_levels = {
     "levels": (55, 60),
@@ -59,7 +57,7 @@ def parse_bacs_battery(string_table: List[StringTable]) -> Section:
     return parsed
 
 
-register.snmp_section(
+snmp_section_bacs_battery = SimpleSNMPSection(
     name="bacs_battery",
     detect=startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.2.1.33"),
     parse_function=parse_bacs_battery,
@@ -137,7 +135,7 @@ def check_bacs_battery(item: str, params, section: Section) -> CheckResult:
     )
 
 
-register.check_plugin(
+check_plugin_bacs_battery = CheckPlugin(
     name="bacs_battery",
     check_function=check_bacs_battery,
     discovery_function=inventory_bacs_battery,

@@ -5,21 +5,21 @@
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 # License: GNU General Public License v2
 
-from typing import Mapping, Any
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    startswith,
-    register,
+from typing import Any, Mapping
+
+from cmk.agent_based.v2 import (
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
     Metric,
     Result,
     Service,
+    SimpleSNMPSection,
     SNMPTree,
     State,
-    check_levels,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
-    CheckResult,
-    DiscoveryResult,
     StringTable,
+    check_levels,
+    startswith,
 )
 
 bacs_string_default_levels = {
@@ -47,7 +47,7 @@ def parse_bacs_string(string_table: StringTable) -> Section:
     return parsed
 
 
-register.snmp_section(
+snmp_section_bacs_string = SimpleSNMPSection(
     name="bacs_string",
     detect=startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.2.1.33"),
     parse_function=parse_bacs_string,
@@ -98,7 +98,7 @@ def check_bacs_string(item: str, params, section: Section) -> CheckResult:
     yield Metric("avg_volt", float(average))
 
 
-register.check_plugin(
+check_plugin_bacs_string = CheckPlugin(
     name="bacs_string",
     check_function=check_bacs_string,
     discovery_function=inventory_bacs_string,
