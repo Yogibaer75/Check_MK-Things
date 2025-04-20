@@ -4,26 +4,24 @@
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 # License: GNU General Public License v2
 
-from typing import Optional, Dict, Any
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
-    DiscoveryResult,
+from typing import Any, Dict, Optional
+
+from cmk.agent_based.v2 import (
+    CheckPlugin,
     CheckResult,
-    StringTable,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    get_value_store,
-    register,
+    DiscoveryResult,
+    OIDEnd,
     Result,
     Service,
+    SimpleSNMPSection,
     SNMPTree,
     State,
-    OIDEnd,
+    StringTable,
+    get_value_store,
 )
-from cmk.base.plugins.agent_based.utils.temperature import (
-    check_temperature,
-    TempParamDict,
-)
-from .utils.aruba_cx import DETECT_ARUBA_CX
+from cmk.plugins.lib.temperature import TempParamDict, check_temperature
+
+from ..aruba_cx import DETECT_ARUBA_CX
 
 Section = Dict[str, Any]
 
@@ -65,7 +63,7 @@ def check_arbua_cx_temp(item, params: TempParamDict, section: Section) -> CheckR
         )
 
 
-register.snmp_section(
+snmp_section_aruba_cx_temp = SimpleSNMPSection(
     name="arbua_cx_temp",
     parse_function=parse_arbua_cx_temp,
     fetch=SNMPTree(
@@ -80,7 +78,7 @@ register.snmp_section(
     detect=DETECT_ARUBA_CX,
 )
 
-register.check_plugin(
+check_plugin_aruba_cx_temp = CheckPlugin(
     name="arbua_cx_temp",
     service_name="Temperature %s",
     discovery_function=discovery_arbua_cx_temp,

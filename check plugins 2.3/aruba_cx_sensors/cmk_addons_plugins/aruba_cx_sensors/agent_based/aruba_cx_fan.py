@@ -5,21 +5,22 @@
 # License: GNU General Public License v2
 
 from typing import Any, Dict, Optional
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
+
+from cmk.agent_based.v2 import (
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
     Metric,
     OIDEnd,
     Result,
     Service,
+    SimpleSNMPSection,
     SNMPTree,
     State,
-    register,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
-    CheckResult,
-    DiscoveryResult,
     StringTable,
 )
-from .utils.aruba_cx import DETECT_ARUBA_CX
+
+from ..aruba_cx import DETECT_ARUBA_CX
 
 Section = Dict[str, Any]
 
@@ -56,7 +57,7 @@ def check_arbua_cx_fan(item, section: Section) -> CheckResult:
         yield Metric(name="rpm", value=data.get("rpm", 0))
 
 
-register.snmp_section(
+snmp_section_aruba_cx_fan = SimpleSNMPSection(
     name="arbua_cx_fan",
     parse_function=parse_arbua_cx_fan,
     fetch=SNMPTree(
@@ -71,7 +72,7 @@ register.snmp_section(
     detect=DETECT_ARUBA_CX,
 )
 
-register.check_plugin(
+check_plugin_aruba_cx_fan = CheckPlugin(
     name="arbua_cx_fan",
     service_name="Fan %s",
     discovery_function=discovery_arbua_cx_fan,
