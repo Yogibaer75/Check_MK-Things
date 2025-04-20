@@ -6,25 +6,24 @@
 
 # License: GNU General Public License v2
 
-from typing import Dict, NamedTuple
+from typing import NamedTuple
 import time
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    register,
+from cmk.agent_based.v2 import (
+    CheckPlugin,
+    CheckResult,
+    check_levels,
+    DiscoveryResult,
+    get_value_store,
     Result,
     Service,
+    SimpleSNMPSection,
     SNMPTree,
     State,
-    startswith,
-    get_value_store,
-    check_levels,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
-    CheckResult,
-    DiscoveryResult,
     StringTable,
+    startswith,
 )
 from cmk.plugins.lib import uptime
-from cmk.base.plugins.agent_based.utils.cpu_util import check_cpu_util
+from cmk.plugins.lib.cpu_util import check_cpu_util
 
 
 class WLCAp(NamedTuple):
@@ -41,7 +40,7 @@ class WLCAp(NamedTuple):
     cpuutil: int
 
 
-Section = Dict[str, WLCAp]
+Section = dict[str, WLCAp]
 
 
 def parse_aruba_instant_wlc_aps(string_table: StringTable) -> Section:
@@ -73,7 +72,7 @@ def parse_aruba_instant_wlc_aps(string_table: StringTable) -> Section:
     }
 
 
-register.snmp_section(
+snmp_section_aruba_instant_wlc_aps = SimpleSNMPSection(
     name="aruba_instant_wlc_aps",
     parse_function=parse_aruba_instant_wlc_aps,
     detect=startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.111"),
@@ -141,7 +140,7 @@ def check_aruba_instant_wlc_aps(item: str, section: Section) -> CheckResult:
         )
 
 
-register.check_plugin(
+check_plugin_aruba_instant_wlc_aps = CheckPlugin(
     name="aruba_instant_wlc_aps",
     service_name="AP %s",
     discovery_function=discover_aruba_instant_wlc_aps,

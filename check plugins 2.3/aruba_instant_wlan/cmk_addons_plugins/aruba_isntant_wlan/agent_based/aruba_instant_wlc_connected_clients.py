@@ -8,43 +8,40 @@
 
 from typing import List
 
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    register,
-    SNMPTree,
-    startswith,
-    Result,
-    Service,
-    State,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
-    StringTable,
+from cmk.agent_based.v2 import (
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
+    Result,
+    Service,
+    SimpleSNMPSection,
+    SNMPTree,
+    State,
+    StringTable,
+    startswith,
 )
 
 
 def parse_aruba_instant_wlc_connected_clients(string_table: List[StringTable]):
     """parse wlc connected clients"""
     section = {}
-    for client_mac, client_name in string_table[0]:
+    for client_mac, client_name in string_table:
         mac_string = ":".join("%02x" % ord(b) for b in client_mac)
         section.setdefault(mac_string, client_name)
     return section
 
 
-register.snmp_section(
+snmp_section_aruba_instant_wlc_connected_clients = SimpleSNMPSection(
     name="aruba_instant_wlc_connected_clients",
     detect=startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.111"),
     parse_function=parse_aruba_instant_wlc_connected_clients,
-    fetch=[
-        SNMPTree(
+    fetch=SNMPTree(
             base=".1.3.6.1.4.1.14823.2.3.3.1.2.4.1",
             oids=[
                 "1",  # Client MAC
                 "5",  # Client Name
             ],
-        )
-    ],
+    ),
 )
 
 
@@ -70,7 +67,7 @@ def check_aruba_instant_wlc_connected_clients(section) -> CheckResult:
         yield Result(state=State(0), notice=notice)
 
 
-register.check_plugin(
+check_plugin_aruba_instant_wlc_connected_clients = CheckPlugin(
     name="aruba_instant_wlc_connected_clients",
     service_name="Connected Clients",
     discovery_function=discover_aruba_instant_wlc_connected_clients,
