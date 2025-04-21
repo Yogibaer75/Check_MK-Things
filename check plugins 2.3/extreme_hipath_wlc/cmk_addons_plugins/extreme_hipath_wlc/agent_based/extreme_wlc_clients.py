@@ -6,14 +6,14 @@
 
 from typing import List
 
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    startswith,
-    register,
-    SNMPTree,
+from cmk.agent_based.v2 import (
     OIDEnd,
+    SNMPSection,
+    SNMPTree,
+    StringTable,
     any_of,
+    startswith,
 )
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import StringTable
 from cmk.plugins.lib.wlc_clients import WlcClientsSection, ClientsPerInterface
 
 
@@ -44,7 +44,7 @@ DETECT_EXTREM_WLC = any_of(
 )
 
 
-register.snmp_section(
+snmp_section_extreme_wlc_clients = SNMPSection(
     name="extreme_wlc_clients",
     parsed_section_name="wlc_clients",
     detect=DETECT_EXTREM_WLC,

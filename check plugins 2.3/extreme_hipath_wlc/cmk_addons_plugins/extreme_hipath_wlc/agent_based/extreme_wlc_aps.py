@@ -4,23 +4,23 @@
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 # License: GNU General Public License v2
 
-from typing import Dict, NamedTuple, Mapping, List, Optional, Any
+from typing import Any, Dict, List, Mapping, NamedTuple, Optional
 
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    register,
-    Result,
-    Service,
-    SNMPTree,
-    State,
-    TableRow,
-    startswith,
-    any_of,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+from cmk.agent_based.v2 import (
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
+    InventoryPlugin,
     InventoryResult,
+    Result,
+    Service,
+    SNMPSection,
+    SNMPTree,
+    State,
     StringTable,
+    TableRow,
+    any_of,
+    startswith,
 )
 
 
@@ -86,7 +86,7 @@ DETECT_EXTREM_WLC = any_of(
 )
 
 
-register.snmp_section(
+snmp_section_extreme_wlc_aps = SNMPSection(
     name="extreme_wlc_aps",
     parse_function=parse_extreme_wlc_aps,
     detect=DETECT_EXTREM_WLC,
@@ -128,7 +128,11 @@ register.snmp_section(
 # AP Zone       .1.3.6.1.4.1.4329.15.3.5.1.2.1.33
 # AP SecureTun  .1.3.6.1.4.1.4329.15.3.5.1.2.1.41
 # AP SSH enab   .1.3.6.1.4.1.4329.15.3.5.1.2.1.43
-
+translate_ap_state = {
+    "state_1": (0, "up"),
+    "state_2": (2, "down"),
+    "state_3": (3, "ignore"),
+}
 
 def discover_extreme_wlc_aps(section: Section) -> DiscoveryResult:
     """generate one service for every AP in section"""
@@ -140,7 +144,7 @@ def check_extreme_wlc_aps(item: str, params: Mapping[str, Any], section: Optiona
     """check the state of a single AP"""
     if not section:
         return
-    wanted_state = params.get("state", 1)
+    wanted_state, _wanted_state_text = translate_ap_state.get(params.get("state", "state_1"), (0, "up"))
     ap_data = section.get(item)
     if not ap_data:
         return
@@ -198,7 +202,7 @@ def cluster_check_extreme_wlc_aps(
         yield Result(state=best_state, summary=f"associated on: {best_running_on}")
 
 
-register.check_plugin(
+check_plugin_extreme_wlc_aps = CheckPlugin(
     name="extreme_wlc_aps",
     service_name="AP %s",
     discovery_function=discover_extreme_wlc_aps,
@@ -206,7 +210,7 @@ register.check_plugin(
     cluster_check_function=cluster_check_extreme_wlc_aps,
     check_ruleset_name="extreme_wlc_aps",
     check_default_parameters={
-        "state": 1,
+        "state": "state_1",
         "location": "both",
     }
 )
@@ -229,7 +233,7 @@ def inventory_extreme_wlc_aps(section: Section) -> InventoryResult:
         )
 
 
-register.inventory_plugin(
+inventory_plugin_extreme_wlc_aps = InventoryPlugin(
     name="extreme_wlc_aps",
     inventory_function=inventory_extreme_wlc_aps,
 )
