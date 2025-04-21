@@ -5,22 +5,19 @@
 # License: GNU General Public License v2
 
 
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+from cmk.agent_based.v2 import (
+    AgentSection,
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
-)
-
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    check_levels,
-    register,
     Result,
-    State,
     Service,
+    State,
+    check_levels,
 )
+from cmk_addons.plugins.dell_powervault_me4.lib import parse_dell_powervault_me4
 
-from .utils.dell_powervault_me4 import parse_dell_powervault_me4
-
-register.agent_section(
+agent_section_dell_powervault_me4_fans = AgentSection(
     name="dell_powervault_me4_fans",
     parse_function=parse_dell_powervault_me4,
 )
@@ -63,14 +60,14 @@ def check_dell_powervault_me4_fans(item: str, params, section) -> CheckResult:
     )
 
 
-register.check_plugin(
+check_plugin_dell_powervault_me4_fans = CheckPlugin(
     name="dell_powervault_me4_fans",
     service_name="Fan %s",
     sections=["dell_powervault_me4_fans"],
     check_default_parameters={
         "fan_state": 0,
-        "levels": (8000, 9000),
-        "levels_lower": (1500, 1000),
+        "levels": ("fixed", (8000, 9000)),
+        "levels_lower": ("fixed", (1500, 1000)),
     },
     discovery_function=discovery_dell_powervault_me4_fans,
     check_function=check_dell_powervault_me4_fans,

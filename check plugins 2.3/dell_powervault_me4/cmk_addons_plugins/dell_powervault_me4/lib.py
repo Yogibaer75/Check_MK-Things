@@ -7,7 +7,7 @@
 from collections.abc import Mapping
 import json
 from typing import Any
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import StringTable
+from cmk.agent_based.v2 import StringTable
 
 Section = Mapping[str, Any]
 

@@ -5,21 +5,18 @@
 # License: GNU General Public License v2
 
 
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+from cmk.agent_based.v2 import (
+    AgentSection,
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
-)
-
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    register,
     Result,
-    State,
     Service,
+    State,
 )
+from cmk_addons.plugins.dell_powervault_me4.lib import parse_dell_powervault_me4
 
-from .utils.dell_powervault_me4 import parse_dell_powervault_me4
-
-register.agent_section(
+agent_section_dell_powervault_me4_pools = AgentSection(
     name="dell_powervault_me4_pools",
     parse_function=parse_dell_powervault_me4,
 )
@@ -52,7 +49,7 @@ def check_dell_powervault_me4_pools(item: str, params, section) -> CheckResult:
     yield Result(state=State(status_num), summary=message)
 
 
-register.check_plugin(
+check_plugin_dell_powervault_me4_pools = CheckPlugin(
     name="dell_powervault_me4_pools",
     service_name="Pool %s",
     sections=["dell_powervault_me4_pools"],

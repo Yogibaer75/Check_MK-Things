@@ -6,23 +6,20 @@
 
 from typing import Any, Mapping
 
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+from cmk.agent_based.v2 import (
+    AgentSection,
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
-)
-
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    render,
-    register,
-    Result,
-    State,
-    Service,
     Metric,
+    Result,
+    Service,
+    State,
+    render,
 )
+from cmk_addons.plugins.dell_powervault_me4.lib import parse_dell_powervault_me4
 
-from .utils.dell_powervault_me4 import parse_dell_powervault_me4
-
-register.agent_section(
+agent_section_dell_powervault_me4_controller_statistics = AgentSection(
     name="dell_powervault_me4_controller_statistics",
     parse_function=parse_dell_powervault_me4,
 )
@@ -52,7 +49,7 @@ def check_dell_powervault_me4_controller_statistics(
     yield Result(state=State(0), summary=message)
 
 
-register.check_plugin(
+check_plugin_dell_powervault_me4_controller_statistics = CheckPlugin(
     name="dell_powervault_me4_controller_statistics",
     service_name="Controller Stats %s",
     sections=["dell_powervault_me4_controller_statistics"],
