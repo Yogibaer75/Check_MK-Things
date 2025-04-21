@@ -8,17 +8,15 @@
 
 from typing import NamedTuple, List
 
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+from cmk.agent_based.v2 import (
+    AgentSection,
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
-    StringTable,
-)
-
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    register,
     Result,
-    State,
     Service,
+    State,
+    StringTable,
 )
 
 
@@ -42,7 +40,7 @@ def parse_macmon_unauth(string_table: StringTable) -> Section:
     ]
 
 
-register.agent_section(
+agent_section_macmon_unauth = AgentSection(
     name="macmon_unauth",
     parse_function=parse_macmon_unauth,
 )
@@ -81,7 +79,7 @@ def check_macmon_unauth(section: Section) -> CheckResult:
     yield Result(state=State(status), summary=messagetext, details="".join(detailstext))
 
 
-register.check_plugin(
+check_plugin_macmon_unauth = CheckPlugin(
     name="macmon_unauth",
     service_name="Unauthorized Devices",
     discovery_function=discover_macmon_unauth,

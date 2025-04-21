@@ -8,6 +8,7 @@
 
 import base64
 import csv
+from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 from urllib.request import Request, build_opener
 
@@ -21,6 +22,7 @@ from cmk.special_agents.v0_unstable.request_helper import (
     HTTPSConfigurableConnection,
     Requester,
 )
+from cmk.utils import password_store
 
 StringMap = Dict[str, str]  # should be Mapping[] but we're not ready yet..
 
@@ -89,12 +91,14 @@ def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
 
 def agent_macmon_main(args: Args) -> None:
     """agent function"""
+    pw_id, pw_path = args.password.split(":")
+    password = password_store.lookup(Path(pw_path), pw_id)
     requester = HTTPSAuthRequester(
         args.server,
         args.port,
         "api/v1.1/reports",
         args.username,
-        args.password,
+        password,
     )
 
     result = requester.get(
