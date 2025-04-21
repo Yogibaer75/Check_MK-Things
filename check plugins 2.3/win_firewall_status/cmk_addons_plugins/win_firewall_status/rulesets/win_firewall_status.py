@@ -30,66 +30,66 @@ def _parameter_valuespec_win_firewall_status():
                     element_template=Dictionary(
                         elements={
                             "profile": DictElement(
-                            parameter_form=String(
-                                title=Title("Profile name"),
-                                custom_validate=(
-                                    validators.LengthInRange(min_value=1),
+                                parameter_form=String(
+                                    title=Title("Profile name"),
+                                    custom_validate=(
+                                        validators.LengthInRange(min_value=1),
+                                    ),
+                                    help_text=Help("Name of the firewall profile."),
                                 ),
-                                help_text=Help("Name of the firewall profile."),
                             ),
-                        ),
                             "state": DictElement(
-                            parameter_form=SingleChoice(
-                                title=Title("State"),
-                                help_text=Help("Profile state enabled or disabled"),
-                                elements=[
-                                    SingleChoiceElement(
-                                        name="Enabled",
-                                        title=Title("Enabled"),
-                                    ),
-                                    SingleChoiceElement(
-                                        name="Disabled",
-                                        title=Title("Disabled"),
-                                    ),
-                                ],
+                                parameter_form=SingleChoice(
+                                    title=Title("State"),
+                                    help_text=Help("Profile state enabled or disabled"),
+                                    elements=[
+                                        SingleChoiceElement(
+                                            name="Enabled",
+                                            title=Title("Enabled"),
+                                        ),
+                                        SingleChoiceElement(
+                                            name="Disabled",
+                                            title=Title("Disabled"),
+                                        ),
+                                    ],
+                                ),
                             ),
-                        ),
                             "incomming_action": DictElement(
-                            parameter_form=SingleChoice(
-                                title=Title("Incomming Action"),
-                                help_text=Help(
-                                    "Default behaviour for incomming traffic."
+                                parameter_form=SingleChoice(
+                                    title=Title("Incomming Action"),
+                                    help_text=Help(
+                                        "Default behaviour for incomming traffic."
+                                    ),
+                                    elements=[
+                                        SingleChoiceElement(
+                                            name="Block",
+                                            title=Title("Block"),
+                                        ),
+                                        SingleChoiceElement(
+                                            name="Allow",
+                                            title=Title("Allow"),
+                                        ),
+                                    ],
                                 ),
-                                elements=[
-                                    SingleChoiceElement(
-                                        name="Block",
-                                        title=Title("Block"),
-                                    ),
-                                    SingleChoiceElement(
-                                        name="Allow",
-                                        title=Title("Allow"),
-                                    ),
-                                ],
                             ),
-                        ),
                             "outgoing_action": DictElement(
-                            parameter_form=SingleChoice(
-                                title=Title("Outgoing Action"),
-                                help_text=Help(
-                                    "Default behaviour for outgoing traffic."
+                                parameter_form=SingleChoice(
+                                    title=Title("Outgoing Action"),
+                                    help_text=Help(
+                                        "Default behaviour for outgoing traffic."
+                                    ),
+                                    elements=[
+                                        SingleChoiceElement(
+                                            name="Block",
+                                            title=Title("Block"),
+                                        ),
+                                        SingleChoiceElement(
+                                            name="Allow",
+                                            title=Title("Allow"),
+                                        ),
+                                    ],
                                 ),
-                                elements=[
-                                    SingleChoiceElement(
-                                        name="Block",
-                                        title=Title("Block"),
-                                    ),
-                                    SingleChoiceElement(
-                                        name="Allow",
-                                        title=Title("Allow"),
-                                    ),
-                                ],
                             ),
-                        ),
                         },
                     ),
                 ),
