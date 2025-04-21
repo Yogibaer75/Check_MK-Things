@@ -6,20 +6,20 @@
 # License: GNU General Public License v2
 
 from typing import Dict, Optional
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    all_of,
-    exists,
-    register,
-    startswith,
-    Result,
-    Service,
-    SNMPTree,
-    State,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+
+from cmk.agent_based.v2 import (
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
+    Result,
+    Service,
+    SimpleSNMPSection,
+    SNMPTree,
+    State,
     StringTable,
+    all_of,
+    exists,
+    startswith,
 )
 
 Section = Dict[str, str]
@@ -44,7 +44,7 @@ def parse_sophosxg_version(string_table: StringTable) -> Optional[Section]:
         return {}
 
 
-register.snmp_section(
+snmp_section_sophosxg_version = SimpleSNMPSection(
     name="sophosxg_version",
     parse_function=parse_sophosxg_version,
     fetch=SNMPTree(
@@ -99,7 +99,7 @@ def check_sophosxg_version(params: Dict[str, str], section: Section) -> CheckRes
     yield Result(state=State.OK, notice="More Info in details", details=summarydetails)
 
 
-register.check_plugin(
+check_plugin_sophosxg_version = CheckPlugin(
     name="sophosxg_version",
     service_name="Sophos Version",
     discovery_function=discover_sophosxg_version,

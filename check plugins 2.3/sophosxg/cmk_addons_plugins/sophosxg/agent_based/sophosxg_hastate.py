@@ -6,20 +6,20 @@
 # License: GNU General Public License v2
 
 from typing import Dict, Optional
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    all_of,
-    exists,
-    register,
-    startswith,
-    Result,
-    Service,
-    SNMPTree,
-    State,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+
+from cmk.agent_based.v2 import (
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
+    Result,
+    Service,
+    SimpleSNMPSection,
+    SNMPTree,
+    State,
     StringTable,
+    all_of,
+    exists,
+    startswith,
 )
 
 Section = Dict[str, str]
@@ -46,7 +46,7 @@ def parse_sophosxg_hastate(string_table: StringTable) -> Optional[Section]:
         return {}
 
 
-register.snmp_section(
+snmp_section_sophosxg_hastate = SimpleSNMPSection(
     name="sophosxg_hastate",
     parse_function=parse_sophosxg_hastate,
     fetch=SNMPTree(
@@ -101,7 +101,7 @@ def check_sophosxg_hastate(section: Section) -> CheckResult:
     yield Result(state=State(state), summary=summarytext)
 
 
-register.check_plugin(
+check_plugin_sophosxg_hastate = CheckPlugin(
     name="sophosxg_hastate",
     sections=["sophosxg_hastate"],
     service_name="HA State",

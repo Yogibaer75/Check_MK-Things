@@ -6,20 +6,20 @@
 # License: GNU General Public License v2
 
 from typing import Dict, Optional
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    all_of,
-    exists,
-    register,
-    startswith,
-    Result,
-    Service,
-    SNMPTree,
-    State,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
+
+from cmk.agent_based.v2 import (
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
+    Result,
+    Service,
+    SimpleSNMPSection,
+    SNMPTree,
+    State,
     StringTable,
+    all_of,
+    exists,
+    startswith,
 )
 
 Section = Dict[str, Dict[str, str]]
@@ -59,7 +59,7 @@ def parse_sophosxg_srv(string_table: StringTable) -> Optional[Section]:
         return {}
 
 
-register.snmp_section(
+snmp_section_sophosxg_srv = SimpleSNMPSection(
     name="sophosxg_srv",
     parse_function=parse_sophosxg_srv,
     fetch=SNMPTree(
@@ -101,7 +101,19 @@ def check_sophosxg_srv(
         "99": ("unknown", 3),
     }
 
-    wanted_state = params.get("state", "99")
+    rule_state = {
+        "untouched": "0",
+        "stopped": "1",
+        "initializing": "2",
+        "running": "3",
+        "exiting": "4",
+        "dead": "5",
+        "frozen": "6",
+        "unregistered": "7",
+        "unknown": "99",
+    }
+
+    wanted_state = rule_state.get(params.get("state", "unknown"), "99")
 
     srvtext, srvstate = srv_state.get(data.get("state", "99"), ("unknown", 3))
 
@@ -124,13 +136,13 @@ def check_sophosxg_srv(
             )
 
 
-register.check_plugin(
+check_plugin_sophosxg_srv = CheckPlugin(
     name="sophosxg_srv",
     service_name="Service %s",
     discovery_function=discover_sophosxg_srv,
     check_function=check_sophosxg_srv,
     check_default_parameters={
-        "state": "3",
+        "state": "running",
     },
     check_ruleset_name="sophosxg_srv",
 )

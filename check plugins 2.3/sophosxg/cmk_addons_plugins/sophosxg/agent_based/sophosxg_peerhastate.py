@@ -6,15 +6,14 @@
 # License: GNU General Public License v2
 
 from typing import Dict
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    register,
+
+from cmk.agent_based.v2 import (
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
     Result,
     Service,
     State,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
-    CheckResult,
-    DiscoveryResult,
 )
 
 Section = Dict[str, str]
@@ -52,7 +51,7 @@ def check_sophosxg_peerhastate(section: Section) -> CheckResult:
     yield Result(state=State(state), summary=summarytext)
 
 
-register.check_plugin(
+check_plugin_sophosxg_peerhastate = CheckPlugin(
     name="sophosxg_peerhastate",
     sections=["sophosxg_hastate"],
     service_name="HA Peer State",

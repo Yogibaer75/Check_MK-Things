@@ -5,23 +5,23 @@
 # (c) Andreas Doehler 'andreas.doehler@bechtle.com'
 # License: GNU General Public License v2
 
-from typing import Any, Dict, Optional
 from datetime import datetime
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
+from typing import Any, Dict, Optional
+
+from cmk.agent_based.v2 import (
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
+    Result,
+    Service,
+    SimpleSNMPSection,
+    SNMPTree,
+    State,
+    StringTable,
     all_of,
     check_levels,
     exists,
-    register,
     startswith,
-    Result,
-    Service,
-    SNMPTree,
-    State,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
-    CheckResult,
-    DiscoveryResult,
-    StringTable,
 )
 
 Section = Dict[str, Dict[str, str]]
@@ -51,7 +51,7 @@ def parse_sophosxg_lic(string_table: StringTable) -> Optional[Section]:
         return {}
 
 
-register.snmp_section(
+snmp_section_sophosxg_lic = SimpleSNMPSection(
     name="sophosxg_lic",
     parse_function=parse_sophosxg_lic,
     fetch=SNMPTree(
@@ -99,8 +99,17 @@ def check_sophosxg_lic(
         "99": ("unknown", 3),
     }
 
-    warn, crit = params.get("levels", (40, 30))
-    wanted_state = params.get("state", "99")
+    rule_state = {
+        "none": "0",
+        "evaluating": "1",
+        "not_subscribed": "2",
+        "subscribed": "3",
+        "expired": "4",
+        "deactivated": "5",
+        "ignored": "99",
+    }
+    print(params)
+    wanted_state = rule_state.get(params.get("state", "ignored"))
 
     lictext, licstate = lic_state.get(data.get("state", "99"), ("unknown", 3))
     licexpire = data.get("date", "unknown")
@@ -117,8 +126,8 @@ def check_sophosxg_lic(
         if wanted_state != "99":
             yield Result(
                 state=State(licstate),
-                summary=f"Current state is {lictext} - wanted state was \
-                          {lic_state.get(wanted_state, ('unknown', 3))[0]}",
+                summary=(f"Current state is {lictext} - wanted state was "
+                         f"{lic_state.get(wanted_state, ('unknown', 3))[0]}"),
             )
         else:
             yield Result(
@@ -129,21 +138,21 @@ def check_sophosxg_lic(
     if days_left < 9999999 and data.get("state") in ["1", "3"]:
         yield from check_levels(
             value=days_left,
-            levels_lower=(warn, crit),
+            levels_lower=params.get("levels", ("fixed", (40, 30))),
             metric_name="days",
             label="Days left",
             render_func=lambda x: f"{x:0.0f}",
         )
 
 
-register.check_plugin(
+check_plugin_sophosxg_lic = CheckPlugin(
     name="sophosxg_lic",
     service_name="License %s",
     discovery_function=discover_sophosxg_lic,
     check_function=check_sophosxg_lic,
     check_default_parameters={
-        "levels": (40, 30),
-        "state": "3",
+        "levels": ("fixed", (40, 30)),
+        "state": "subscribed",
     },
     check_ruleset_name="sophosxg_lic",
 )
