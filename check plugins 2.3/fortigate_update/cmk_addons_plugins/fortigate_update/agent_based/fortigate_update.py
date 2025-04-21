@@ -5,19 +5,19 @@
 # License: GNU General Public License v2
 
 import time
-from typing import Optional, Dict, Any
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
-    DiscoveryResult,
+from typing import Any, Dict, Optional
+
+from cmk.agent_based.v2 import (
+    CheckPlugin,
     CheckResult,
-    StringTable,
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    render,
-    register,
+    DiscoveryResult,
     Result,
     Service,
+    SimpleSNMPSection,
     SNMPTree,
     State,
+    StringTable,
+    render,
     startswith,
 )
 
@@ -66,7 +66,7 @@ def check_fortigate_update(item, params, section: Section) -> CheckResult:
     if not data:
         return
 
-    warn, crit = params["levels"]
+    level_type, (warn, crit) = params["levels"]
     update, _update_age = parse_date(data["last_update"])
     message = f"Last update {render.date(update)}"
     contact, contact_diff = parse_date(data["last_contact"])
@@ -78,7 +78,7 @@ def check_fortigate_update(item, params, section: Section) -> CheckResult:
     addon_msg = (f" Update typ: {update_typ} - Version: {data['version']} - "
                  f"Last contact: {render.date(contact)} - Last result: {data['last_result']}")
 
-    if params.get("no_levels"):
+    if level_type == "no_levels":
         yield Result(state=State.OK, summary= message + " no Levels (!)" + addon_msg)
     elif contact_diff > crit * 3600 * 24:
         message += (f" (Warn/Crit: {render.timespan(warn * 3600 * 24)}"
@@ -94,7 +94,7 @@ def check_fortigate_update(item, params, section: Section) -> CheckResult:
         yield Result(state=State.OK, summary= message + addon_msg)
 
 
-register.snmp_section(
+snmp_section_fortigate_update = SimpleSNMPSection(
     name="fortigate_update",
     parse_function=parse_fortigate_update,
     fetch=SNMPTree(
@@ -112,11 +112,11 @@ register.snmp_section(
     detect=startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.12356.101.1")
 )
 
-register.check_plugin(
+check_plugin_fortigate_update = CheckPlugin(
     name="fortigate_update",
     service_name="Component %s",
     discovery_function=discover_fortigate_update,
     check_function=check_fortigate_update,
-    check_default_parameters={"levels": (30, 90)},
+    check_default_parameters={"levels": ("fixed", (30, 90))},
     check_ruleset_name="fortigate_update",
 )
