@@ -1,3 +1,11 @@
+# Contact
+
+Business
+andreas.doehler@bechtle.com
+
+Pull requests and CMK forum related
+andreas.doehler@gmail.com
+
 # Redfish internet resources
 
 DMTF
