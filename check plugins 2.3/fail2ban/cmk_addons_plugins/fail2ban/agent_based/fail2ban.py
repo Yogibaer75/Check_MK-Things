@@ -45,7 +45,13 @@ from cmk.agent_based.v2 import (
     StringTable,
     check_levels,
 )
-from more_itertools import first
+
+
+def first(iterable, default=None):
+    """
+    Return the first item from an iterable or a default value.
+    """
+    return next(iter(iterable), default)
 
 
 def parse_fail2ban(string_table: StringTable) -> Mapping[str, Any]:
