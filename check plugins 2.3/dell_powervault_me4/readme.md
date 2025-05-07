@@ -12,3 +12,4 @@ Changelog:
 - 3.3.1 - writing json data fixed in special agent
 - 3.3.2 - added option for certificate verification
 - 3.4.0 - ported to CMK 2.3 API
+- 3.4.3 - bug fix for passwords from password store - thx aeckstein

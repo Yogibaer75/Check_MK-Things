@@ -7,15 +7,16 @@
 import argparse
 import hashlib
 import sys
+from pathlib import Path
 
-import cmk.utils.password_store
 import requests
 import urllib3
 from cmk.special_agents.v0_unstable.agent_common import SectionWriter
+from cmk.utils import password_store
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-cmk.utils.password_store.replace_passwords()
+password_store.replace_passwords()
 
 commands = (
     "controllers",
@@ -49,8 +50,14 @@ def parse_arguments(argv):
 
     parser.add_argument("hostaddress", help="DELL EMC PowerVault host name")
     parser.add_argument("-u", "--username", required=True, help="DELL EMC user name")
-    parser.add_argument(
-        "-p", "--password", required=True, help="DELL EMC user password"
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        "-p", "--password", help="DELL EMC user password from CMK password store"
+    )
+    group.add_argument(
+        "-s",
+        "--secret",
+        help="DELL EMC user password manually entered",
     )
     parser.add_argument(
         "--verify-cert",
@@ -71,9 +78,15 @@ def main(argv=None):
     """parse arguments and retrieve data from the device"""
     args = parse_arguments(argv or sys.argv[1:])
 
+    if args.password:
+        pw_id, pw_path = args.password.split(":")
+        password = password_store.lookup(Path(pw_path), pw_id)
+    else:
+        password = args.secret
+
     url = "https://" + args.hostaddress
     auth_string = hashlib.sha256(
-        f"{args.username}_{args.password}".encode("utf-8")
+        f"{args.username}_{password}".encode("utf-8")
     ).hexdigest()
 
     verify = False
