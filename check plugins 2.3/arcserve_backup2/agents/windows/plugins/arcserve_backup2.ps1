@@ -38,7 +38,7 @@ $sqlCmd = New-Object System.Data.SqlClient.SqlCommand
 $sqlCmd.Connection = $sqlConnection
 
 $result1 = Backup($sqlCmd)
-write-host("<<<arcserver_backup2:sep(124)>>>")
+write-host("<<<arcserve_backup2:sep(124)>>>")
 ($result1.Tables[0].Columns | Select-Object -ExpandProperty ColumnName) -join '|'
 foreach ($Row in $result1.Tables[0].Rows) {
     if (-not [string]::IsNullOrEmpty($Row)) {

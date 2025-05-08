@@ -6,3 +6,4 @@ Changelog:
 - 1.0.1 - changed parsing of agent data
 - 1.0.2 - parsing problem with empty lists solved
 - 1.1.0 - CMK 2.3 API migration + bakery plugin
+- 1.1.1 - typo in agent ps1 script
