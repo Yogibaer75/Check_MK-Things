@@ -9,3 +9,4 @@ Changelog:
 - 1.2.0 - migrated to CMK 2.3 API
 - 1.2.1 - typo
 - 1.2.2 - fixed levels bug
+- 1.2.3 - add new OIDs for detection

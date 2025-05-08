@@ -10,6 +10,7 @@ from cmk.agent_based.v2 import (
     SimpleSNMPSection,
     SNMPTree,
     StringTable,
+    any_of,
     startswith,
 )
 from cmk.plugins.lib.wlc_clients import ClientsTotal, WlcClientsSection
@@ -34,7 +35,11 @@ def parse_aruba_instant_wlc_clients(
 snmp_section_aruba_instant_wlc_clients = SimpleSNMPSection(
     name="aruba_instant_wlc_clients",
     parsed_section_name="wlc_clients",
-    detect=startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.111"),
+    detect=any_of(
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.111"),
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.71"),
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.137"),
+    ),
     parse_function=parse_aruba_instant_wlc_clients,
     fetch=SNMPTree(
         base=".1.3.6.1.4.1.14823.2.3.3.1.1.7.1",

@@ -1,25 +1,27 @@
 #!/usr/bin/env python3
-'''Aruba instant WLC AP check'''
+"""Aruba instant WLC AP check"""
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 
 # License: GNU General Public License v2
 
-from typing import NamedTuple
 import time
+from typing import NamedTuple
+
 from cmk.agent_based.v2 import (
     CheckPlugin,
     CheckResult,
-    check_levels,
     DiscoveryResult,
-    get_value_store,
     Result,
     Service,
     SimpleSNMPSection,
     SNMPTree,
     State,
     StringTable,
+    any_of,
+    check_levels,
+    get_value_store,
     startswith,
 )
 from cmk.plugins.lib import uptime
@@ -75,7 +77,11 @@ def parse_aruba_instant_wlc_aps(string_table: StringTable) -> Section:
 snmp_section_aruba_instant_wlc_aps = SimpleSNMPSection(
     name="aruba_instant_wlc_aps",
     parse_function=parse_aruba_instant_wlc_aps,
-    detect=startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.111"),
+    detect=any_of(
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.111"),
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.71"),
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.137"),
+    ),
     fetch=SNMPTree(
         base=".1.3.6.1.4.1.14823.2.3.3.1.2.1.1",
         oids=[

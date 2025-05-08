@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-'''Aruba instant WLC connected clients'''
+"""Aruba instant WLC connected clients"""
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
@@ -18,6 +18,7 @@ from cmk.agent_based.v2 import (
     SNMPTree,
     State,
     StringTable,
+    any_of,
     startswith,
 )
 
@@ -33,14 +34,18 @@ def parse_aruba_instant_wlc_connected_clients(string_table: List[StringTable]):
 
 snmp_section_aruba_instant_wlc_connected_clients = SimpleSNMPSection(
     name="aruba_instant_wlc_connected_clients",
-    detect=startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.111"),
+    detect=any_of(
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.111"),
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.71"),
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.137"),
+    ),
     parse_function=parse_aruba_instant_wlc_connected_clients,
     fetch=SNMPTree(
-            base=".1.3.6.1.4.1.14823.2.3.3.1.2.4.1",
-            oids=[
-                "1",  # Client MAC
-                "5",  # Client Name
-            ],
+        base=".1.3.6.1.4.1.14823.2.3.3.1.2.4.1",
+        oids=[
+            "1",  # Client MAC
+            "5",  # Client Name
+        ],
     ),
 )
 
