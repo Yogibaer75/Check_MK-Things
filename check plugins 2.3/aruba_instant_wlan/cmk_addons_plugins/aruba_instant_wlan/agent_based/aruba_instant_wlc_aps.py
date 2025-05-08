@@ -132,10 +132,10 @@ def check_aruba_instant_wlc_aps(item: str, section: Section) -> CheckResult:
         memused = 100 - (ap_data.memfree / (ap_data.memtotal / 100))
         yield from check_levels(
             memused,
-            levels_upper=(90.0, 95.0),
+            levels_upper=("fixed", (90.0, 95.0)),
             metric_name="perc",
             label="Memory used",
-            render_func=lambda v: "%.1f%%" % v,
+            render_func=lambda v: f"{v:.1f}%",
             boundaries=(0, 100),
         )
 
