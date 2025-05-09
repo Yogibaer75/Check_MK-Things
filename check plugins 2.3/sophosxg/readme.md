@@ -8,3 +8,4 @@ ChangeLog:
 - 1.3.1 - header cleanup
 - 2.3.0 - CMK 2.3 ready
 - 2.4.0 - ported to CMK 2.3 API - Attention: all rules must be recreated as the new API does not provide the same functions as before.
+- 2.4.1 - removed debug print

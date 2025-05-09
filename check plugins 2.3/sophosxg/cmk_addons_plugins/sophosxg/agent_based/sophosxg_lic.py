@@ -108,7 +108,7 @@ def check_sophosxg_lic(
         "deactivated": "5",
         "ignored": "99",
     }
-    print(params)
+
     wanted_state = rule_state.get(params.get("state", "ignored"))
 
     lictext, licstate = lic_state.get(data.get("state", "99"), ("unknown", 3))
