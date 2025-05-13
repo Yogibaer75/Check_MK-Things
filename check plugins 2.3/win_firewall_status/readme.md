@@ -10,3 +10,4 @@ Changelog:
 - 2.3.2 - fix typo in rule
 - 2.4.0 - migrated to CMK 2.3 API - Attention - incompatible change - rules needed to be created new
 - 2.4.1 - small formatting issues
+- 2.4.2 - migrate function for old rules

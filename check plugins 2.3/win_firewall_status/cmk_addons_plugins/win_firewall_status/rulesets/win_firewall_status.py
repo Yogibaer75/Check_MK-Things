@@ -17,6 +17,30 @@ from cmk.rulesets.v1.form_specs import (
 from cmk.rulesets.v1.rule_specs import CheckParameters, HostCondition, Topic
 
 
+def _migrate_tuple(value) -> dict:
+    if isinstance(value, list):
+        if all(isinstance(item, dict) for item in value):
+            return value
+        rule = []
+        for item in value:
+            if isinstance(item, tuple) and len(item) == 4:
+                state = item[1]
+                if state:
+                    state = "Enabled"
+                else:
+                    state = "Disabled"
+
+                entry = {
+                    "profile": item[0],
+                    "state": state,
+                    "incomming_action": item[2],
+                    "outgoing_action": item[3],
+                }
+                rule.append(entry)
+        return rule
+    return value
+
+
 def _parameter_valuespec_win_firewall_status():
     return Dictionary(
         elements={
@@ -27,6 +51,7 @@ def _parameter_valuespec_win_firewall_status():
                     add_element_label=Label("Add profile"),
                     remove_element_label=Label("Remove profile"),
                     no_element_label=Label("No profile selected"),
+                    migrate=_migrate_tuple,
                     element_template=Dictionary(
                         elements={
                             "profile": DictElement(
