@@ -11,7 +11,7 @@ from cmk.agent_based.v2 import (
     CheckResult,
     DiscoveryResult,
     Service,
-    SimpleSNMPSection,
+    SNMPSection,
     SNMPTree,
     StringTable,
     check_levels,
@@ -57,7 +57,7 @@ def parse_bacs_battery(string_table: List[StringTable]) -> Section:
     return parsed
 
 
-snmp_section_bacs_battery = SimpleSNMPSection(
+snmp_section_bacs_battery = SNMPSection(
     name="bacs_battery",
     detect=startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.2.1.33"),
     parse_function=parse_bacs_battery,
