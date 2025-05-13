@@ -13,3 +13,4 @@ Changelog:
 - 3.3.1 - fixed params handling
 - 3.3.2 - typo in check function
 - 3.3.3 - some spelling corrected
+- 3.3.5 - naming error in bakery rule

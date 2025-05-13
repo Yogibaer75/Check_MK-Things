@@ -20,6 +20,6 @@ def get_hyperv_vms_guestinfos_files(conf: Dict[str, Any]) -> FileGenerator:
 
 
 register.bakery_plugin(
-    name="hyperv_vms_guestinfos",
+    name="hyperv_vm_info",
     files_function=get_hyperv_vms_guestinfos_files,
 )
