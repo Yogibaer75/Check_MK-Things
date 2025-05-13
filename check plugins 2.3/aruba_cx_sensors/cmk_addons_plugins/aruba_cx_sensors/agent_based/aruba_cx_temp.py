@@ -20,8 +20,7 @@ from cmk.agent_based.v2 import (
     get_value_store,
 )
 from cmk.plugins.lib.temperature import TempParamDict, check_temperature
-
-from ..aruba_cx import DETECT_ARUBA_CX
+from cmk_addons.plugins.aruba_cx_sensors.lib import DETECT_ARUBA_CX
 
 Section = Dict[str, Any]
 

@@ -11,3 +11,6 @@ Changelog:
 - 1.1.0 - detect all CX series switches
 - 2.3.0 - CMK 2.3 ready
 - 2.4.0 - migrated to CMK 2.3 check API
+- 2.4.1 - wrong import in utils fixed
+- 2.4.2 - cleaned relative imports
+- 2.4.3 - wrong levels check fixed

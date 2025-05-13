@@ -20,7 +20,7 @@ from cmk.agent_based.v2 import (
     check_levels,
 )
 
-from ..aruba_cx import DETECT_ARUBA_CX
+from cmk_addons.plugins.aruba_cx_sensors.lib import DETECT_ARUBA_CX
 
 Section = Dict[str, Any]
 
@@ -58,7 +58,7 @@ def check_arbua_cx_psu(item, section: Section) -> CheckResult:
     if data.get("watt") != 0:
         yield from check_levels(
             value=data.get("watt"),
-            levels_upper=(data.get("maxp"), data.get("maxp")),
+            levels_upper=("fixed", (data.get("maxp"), data.get("maxp"))),
             metric_name="power",
             label="Wattage",
             render_func=lambda x: f"{x:.2f}W",
