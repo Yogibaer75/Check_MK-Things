@@ -66,7 +66,7 @@ def check_fortigate_update(item, params, section: Section) -> CheckResult:
     if not data:
         return
 
-    if isinstance(params[1], tuple):
+    if isinstance(params["levels"][1], tuple):
         level_type, (warn, crit) = params["levels"]
     else:
         level_type = "fixed"
