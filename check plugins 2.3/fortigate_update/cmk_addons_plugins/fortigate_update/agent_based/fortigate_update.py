@@ -66,7 +66,11 @@ def check_fortigate_update(item, params, section: Section) -> CheckResult:
     if not data:
         return
 
-    level_type, (warn, crit) = params["levels"]
+    if isinstance(params[1], tuple):
+        level_type, (warn, crit) = params["levels"]
+    else:
+        level_type = "fixed"
+        warn, crit = params["levels"]
     update, _update_age = parse_date(data["last_update"])
     message = f"Last update {render.date(update)}"
     contact, contact_diff = parse_date(data["last_contact"])
