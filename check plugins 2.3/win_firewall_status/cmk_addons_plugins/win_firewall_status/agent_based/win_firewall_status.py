@@ -12,7 +12,7 @@
 # Private|True|Block|Allow
 # Public|True|Block|Allow
 
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 
 from cmk.agent_based.v2 import (
     AgentSection,
@@ -51,14 +51,19 @@ def discovery_win_firewall_status(section: Section) -> DiscoveryResult:
         yield Service()
 
 
-def _get_params(params: Dict[str, Any], profile) -> Tuple:
+def _get_params(params: Dict[str, Any], profile) -> Dict[str, Any]:
     """get the profile parameters from params"""
     for element in params.get("profiles", []):
         if not element:
             continue
         if element.get("profile") == profile:
             return element
-    return { "profile": None, "state": None, "incomming_action": None, "outgoing_action": None }
+    return {
+        "profile": None,
+        "state": None,
+        "incomming_action": None,
+        "outgoing_action": None,
+    }
 
 
 def check_win_firewall_status(params: Dict[str, Any], section: Section) -> CheckResult:
@@ -70,6 +75,10 @@ def check_win_firewall_status(params: Dict[str, Any], section: Section) -> Check
         inbound_active = data.get("Inbound")
         outbound_active = data.get("Outbound")
         status = profile_params.get("state")
+        if status == "Enabled":
+            status = "True"
+        elif status == "Disabled":
+            status = "False"
         inbound = profile_params.get("incomming_action")
         outbound = profile_params.get("outgoing_action")
 
