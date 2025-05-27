@@ -26,7 +26,6 @@ from cmk.agent_based.v2 import (
 from cmk.plugins.lib.temperature import (
     TempParamDict,
     check_temperature,
-    parse_levels,
 )
 from cmk_addons.plugins.oracle_ilom.lib import process_oracle_ilom_perfdata
 from typing_extensions import TypedDict
@@ -77,7 +76,7 @@ oracle_ilom_map_state = {
 }
 
 LevelModes = str
-TwoLevelsType = tuple[float | None, float | None]
+TwoLevelsType = tuple[str, tuple[float | None, float | None]]
 
 
 class ILOMSens(NamedTuple):
@@ -199,6 +198,24 @@ snmp_section_oracle_ilom = SNMPSection(
 )
 
 
+def _parse_levels(
+    levels: tuple[ str, tuple[float | None, float | None] ]| tuple[ str, None ]| None = None,
+) -> tuple[float, float] | None:
+    if levels is None:
+        return None
+
+    if isinstance(levels[0], str):
+        if levels[0] == "no_levels":
+            return None
+        if levels[0] == "fixed":
+            warn, crit = levels[1]
+
+    if warn is None or crit is None:
+        return None
+
+    return warn, crit
+
+
 def discover_oracle_ilom(params, section: Dict[str, ILOMSens]) -> DiscoveryResult:
     """for every sensor one service is discovered"""
     for key, values in section.items():
@@ -217,8 +234,8 @@ def check_oracle_ilom(
         )
         unit = data.sensor_unit
         perfdata = process_oracle_ilom_perfdata(data)
-        usr_levels_upper = parse_levels(params.get("levels"))
-        usr_levels_lower = parse_levels(params.get("levels_lower"))
+        usr_levels_upper = _parse_levels(params.get("levels", ('no_levels', None)))
+        usr_levels_lower = _parse_levels(params.get("levels_lower", ('no_levels', None)))
         device_levels_handling = params.get("device_levels_handling", "usrdefault")
         if device_levels_handling == "usrdefault":
             levels_upper = (
@@ -268,8 +285,8 @@ def check_oracle_ilom(
         yield from check_levels(
             perfdata.value,
             metric_name=oracle_ilom_unit_perf.get(data.sensor_unit, "other"),
-            levels_upper=levels_upper,
-            levels_lower=levels_lower,
+            levels_upper=("fixed", levels_upper) if levels_upper else ("no_levels", None),
+            levels_lower=("fixed", levels_lower) if levels_lower else ("no_levels", None),
             render_func=lambda v: f"{v:.2f} {unit}",
         )
         yield Result(state=State(state), summary=infotext)

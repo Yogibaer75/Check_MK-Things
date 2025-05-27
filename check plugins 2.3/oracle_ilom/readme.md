@@ -18,3 +18,4 @@ Changelog:
 - 2.1.1 - added parameters for other sensors than temperature
 - 2.2.0 - ported to CMK 2.3 API
 - 2.2.1 - fixed levels parameter bug
+- 2.3.0 - rework level handling
