@@ -152,6 +152,7 @@ def check_extreme_wlc_aps(item: str, params: Mapping[str, Any], section: Optiona
     map_state = {
         1: (0, "up"),
         2: (2, "down"),
+        3: (3, "ignore"),
     }
     map_home = {
         "1": "local",
@@ -159,19 +160,19 @@ def check_extreme_wlc_aps(item: str, params: Mapping[str, Any], section: Optiona
     }
     ap_state = max(int(ap_data.status), wanted_state)
     state, state_readable = map_state[ap_state]
-    if int(ap_data.status) == wanted_state:
+    if int(ap_data.status) == wanted_state or wanted_state == 3:
         state = 0
     yield Result(state=State(state), summary=f"Status: {state_readable}")
 
     if ap_data.clients:
-        yield Result(state=State(0), summary=f", Clients: {ap_data.clients}")
+        yield Result(state=State(0), summary=f"Clients: {ap_data.clients}")
     if ap_data.zone:
-        yield Result(state=State(0), summary=f", Zone: {ap_data.zone}")
+        yield Result(state=State(0), summary=f"Zone: {ap_data.zone}")
     if ap_data.location:
-        yield Result(state=State(0), summary=f", System location: {ap_data.location}")
+        yield Result(state=State(0), summary=f"System location: {ap_data.location}")
     if ap_data.home_state:
-        yield Result(state=State(0), summary=f", Home state: {map_home[ap_data.home_state]}")
-    if ap_data.registration == "2":
+        yield Result(state=State(0), summary=f"Home state: {map_home[ap_data.home_state]}")
+    if ap_data.registration == "2" and wanted_state != 3:
         yield Result(
             state=State.WARN,
             summary="Registration pending: yes",

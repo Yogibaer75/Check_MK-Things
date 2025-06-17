@@ -9,3 +9,4 @@ Changelog:
 - 2.3.1 - parameter for up/down and location added
 - 2.4.0 - migrated to CMK 2.3 API
 - 2.4.4 - ruleset migration problems
+- 2.4.5 - ignore state bug fixed
