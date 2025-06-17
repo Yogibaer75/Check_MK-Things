@@ -39,6 +39,8 @@ def parse_arbua_cx_fan(string_table: StringTable) -> Optional[Section]:
 def discovery_arbua_cx_fan(section: Section) -> DiscoveryResult:
     """every key of the parsed data is found as a service"""
     for key in section.keys():
+        if section[key].get("state") == "empty":
+            continue
         yield Service(item=key)
 
 

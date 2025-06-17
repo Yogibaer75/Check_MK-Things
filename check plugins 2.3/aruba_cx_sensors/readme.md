@@ -14,3 +14,4 @@ Changelog:
 - 2.4.1 - wrong import in utils fixed
 - 2.4.2 - cleaned relative imports
 - 2.4.3 - wrong levels check fixed
+- 2.4.4 - don't discover empty fans
