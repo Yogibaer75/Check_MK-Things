@@ -51,36 +51,22 @@ def parse_3par_ld(string_table: StringTable) -> Section:
     parsed: dict[str, ThreeParLD] = {}
     for line in string_table:
         if len(line) == 12 and line[0].isdigit():
-            for (
-                ld_id,
-                name,
-                raid,
-                state,
-                owner,
-                size_mb,
-                used_mb,
-                useing,
-                lgct,
-                lgid,
-                wthru,
-                mapv,
-            ) in line:
-                parsed.setdefault(
-                    ld_id,
-                    ThreeParLD(
-                        name,
-                        raid,
-                        state,
-                        owner,
-                        size_mb,
-                        used_mb,
-                        useing,
-                        lgct,
-                        lgid,
-                        wthru,
-                        mapv,
-                    ),
-                )
+            parsed.setdefault(
+                line[0],
+                ThreeParLD(
+                        line[1],
+                        line[2],
+                        line[3],
+                        line[4],
+                        line[5],
+                        line[6],
+                        line[7],
+                        line[8],
+                        line[9],
+                        line[10],
+                        line[11],
+                ),
+            )
     return parsed
 
 
@@ -104,7 +90,7 @@ def check_3par_ld(item: str, section: Section) -> CheckResult:
     if not data:
         return
 
-    message = f"LD {data.ld_id.zfill(3)}/{data.name} ({data.size_mb} MB) RAID {data.raid} \
+    message = f"LD {item.zfill(3)}/{data.name} ({data.size_mb} MB) RAID {data.raid} \
         with status {data.state} is owned by {data.owner}"
     if data.state == "normal":
         yield Result(state=State.OK, summary=message)

@@ -52,32 +52,21 @@ def parse_3par_pd(string_table: StringTable) -> Section:
     parsed: dict[str, ThreeParPD] = {}
     for line in string_table:
         if len(line) == 10 and line[0].isdigit():
-            for (
-                disk_id,
-                position,
-                con_type,
-                rpm,
-                state,
-                size_mb,
-                free_mb,
-                port_a,
-                port_b,
-                capacity,
-            ) in line:
-                parsed.setdefault(
-                    disk_id.zfill(3),
-                    ThreeParPD(
-                        position,
-                        con_type,
-                        rpm,
-                        state,
-                        size_mb,
-                        free_mb,
-                        port_a,
-                        port_b,
-                        capacity,
-                    ),
-                )
+            parsed.setdefault(
+                line[0].zfill(3),
+                ThreeParPD(
+                    line[0],
+                    line[1],
+                    line[2],
+                    line[3],
+                    line[4],
+                    line[5],
+                    line[6],
+                    line[7],
+                    line[8],
+                    line[9]
+                ),
+            )
     return parsed
 
 

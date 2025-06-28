@@ -51,32 +51,21 @@ def parse_3par_node(string_table: StringTable) -> Section:
     parsed: dict[str, ThreeParNode] = {}
     for line in string_table:
         if len(line) == 10 and line[0].isdigit():
-            for (
-                node_id,
-                name,
-                state,
-                master,
-                cluster,
-                service_led,
-                master_led,
-                control_mem,
-                data_mem,
-                cache,
-            ) in line:
-                parsed.setdefault(
-                    node_id,
+            parsed.setdefault(
+                    line[0],
                     ThreeParNode(
-                        name,
-                        state,
-                        master,
-                        cluster,
-                        service_led,
-                        master_led,
-                        control_mem,
-                        data_mem,
-                        cache,
+                        line[0],
+                        line[1],
+                        line[2],
+                        line[3],
+                        line[4],
+                        line[5],
+                        line[6],
+                        line[7],
+                        line[8],
+                        line[9],
                     ),
-                )
+            )
     return parsed
 
 

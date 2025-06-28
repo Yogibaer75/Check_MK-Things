@@ -10,3 +10,4 @@ Changelog:
 - 2.3.0 - fully converted to CMK 2.3 API
 - 2.3.1 - moved to new path
 - 2.3.2 - fix for wrong import path after change of plugin location
+- 2.3.3 - fixed parse function for some checks

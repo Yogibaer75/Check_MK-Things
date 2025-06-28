@@ -58,36 +58,23 @@ def parse_3par_cage(string_table: StringTable) -> Section:
     parsed: dict[str, ThreeParCage] = {}
     for line in string_table:
         if len(line) == 12 and line[0].isdigit():
-            for (
-                cage_id,
-                name,
-                loopa,
-                posa,
-                loopb,
-                posb,
-                drives,
-                temp,
-                reva,
-                revb,
-                model,
-                side,
-            ) in line:
-                parsed.setdefault(
-                    cage_id,
-                    ThreeParCage(
-                        name,
-                        loopa,
-                        posa,
-                        loopb,
-                        posb,
-                        drives,
-                        temp,
-                        reva,
-                        revb,
-                        model,
-                        side,
-                    ),
-                )
+            #for cage_id, name, loopa, posa, loopb, posb, drives, temp, reva, revb, model, side in line:
+            parsed.setdefault(
+                line[0],
+                ThreeParCage(
+                        line[1],
+                        line[2],
+                        line[3],
+                        line[4],
+                        line[5],
+                        line[6],
+                        line[7],
+                        line[8],
+                        line[9],
+                        line[10],
+                        line[11]
+                ),
+            )
     return parsed
 
 
@@ -111,15 +98,15 @@ def check_3par_cage(item: str, params: TempParamDict, section: Section) -> Check
     if not data:
         return
 
-    temperatures = data.get("temp").split("-")
+    temperatures = data.temp.split("-")
     yield from check_temperature(
-        temperatures[1],
+        float(temperatures[1]),
         params,
         unique_name=f"3par_cage_temp_{item}",
         value_store=get_value_store(),
     )
     message = (
-        f"Cage {data.get('cage_id')} with {data.get('drives')} Drives is Available"
+        f"Cage {item} with {data.drives} Drives is Available"
     )
     yield Result(state=State.OK, summary=message)
 
