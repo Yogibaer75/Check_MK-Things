@@ -18,3 +18,4 @@ This plugin will read the patch history and shows installed patches for a given 
 - 2.3.3 - plugin can handle empty output from agent
 - 2.3.4 - rule text and help modification
 - 2.3.5 - bugfix for parse function if no updates present
+- 2.3.6 - small fix for empty history count
