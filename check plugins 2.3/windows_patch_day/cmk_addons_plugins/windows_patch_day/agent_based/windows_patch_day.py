@@ -38,9 +38,14 @@ Section = List[WinPatchday]
 
 def parse_windows_patch_day(string_table: StringTable) -> Section:
     """parse raw data into list of named tuples"""
+    updates: Section = []
     if string_table[0][0] == "No updates found":
         return [WinPatchday("No Updates found", "01/01/2024", "2")]
-    return [WinPatchday(name, date, result) for name, date, result in string_table]
+    for name, date, result in string_table:
+        if name == "" or date == "" or result == "":
+            return [WinPatchday("No Updates found", "01/01/2024", "2")]
+        updates.append(WinPatchday(name, date, result))
+    return updates
 
 
 agent_section_windows_patch_day = AgentSection(
