@@ -13,8 +13,8 @@ $Splat = @{
 
 $customobjects = @()
 
-Get-Counter @Splat | ForEach {
-    $_.CounterSamples | ForEach {
+Get-Counter @Splat | ForEach-Object {
+    $_.CounterSamples | ForEach-Object {
         $customobjects += [pscustomobject]@{
             Path = $_.Path
             Value = $_.CookedValue
@@ -62,11 +62,11 @@ foreach ( $volume in $counts) {
 
 $hostname = $env:COMPUTERNAME.ToLower()
 
-$resultlist | select Path, Value | % {
+$resultlist | Select-Object Path, Value | ForEach-Object {
     $_.Path = [regex]::Replace($_.Path, "\\\\$hostname\\physicaldisk\([0-9]+\)","");
     $_.Value = $_.Value;
     return $_;
-} | ft -HideTableHeaders
+} | Format-Table -HideTableHeaders
 
 '<<<hyperv_host_io_remote>>>'
 
@@ -82,4 +82,4 @@ foreach ( $volume in $remotecounts) {
     }
 }
 
-$resultlist | ft -HideTableHeaders
+$resultlist | Format-Table -HideTableHeaders

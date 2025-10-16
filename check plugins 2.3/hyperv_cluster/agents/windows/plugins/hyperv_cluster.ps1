@@ -92,7 +92,7 @@ foreach ($CSV in $clusterSharedVolume)
   foreach ($CSVInfo in $CSV.SharedVolumeInfo)
   {
     Write-Host 'cluster.csv.volume' ($CSVInfo.FriendlyVolumeName)
-    $CSVVolume = Get-ClusterSharedVolume -Name $CSV.Name | select -Expand SharedVolumeInfo | select -Expand Partition
+    $CSVVolume = Get-ClusterSharedVolume -Name $CSV.Name | Select-Object -Expand SharedVolumeInfo | Select-Object -Expand Partition
     Write-Host 'cluster.csv.size' ($CSVVolume.Size)
     Write-Host 'cluster.csv.free_space' ($CSVVolume.FreeSpace)
     Write-Host 'cluster.csv.used_space' ($CSVVolume.UsedSpace)
