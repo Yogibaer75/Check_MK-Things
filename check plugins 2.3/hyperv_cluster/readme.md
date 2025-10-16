@@ -14,3 +14,8 @@ Changelog:
 - 3.3.2 - typo in check function
 - 3.3.3 - some spelling corrected
 - 3.3.5 - naming error in bakery rule
+- 3.3.6 - changed plugin folder name
+- 3.3.7 - default parameter problem with vm integration
+- 3.3.8 - modified deployment rule for cluster plugin
+- 3.3.10 - typo
+- 3.3.11 - HyperV roles cluster check function added

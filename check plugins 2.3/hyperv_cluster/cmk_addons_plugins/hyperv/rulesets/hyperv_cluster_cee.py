@@ -27,6 +27,12 @@ def _valuespec_agent_config_hyperv_cluster():
                 ),
                 required=True,
             ),
+            "deploy_csv": DictElement(
+                parameter_form=BooleanChoice(
+                    title=Title("Cluster shared volume plugin"),
+                    label=Label("Deploy Cluster shared volume plugin for Hyper-V - Not for S2D Clusters"),
+                ),
+            ),
         },
     )
 

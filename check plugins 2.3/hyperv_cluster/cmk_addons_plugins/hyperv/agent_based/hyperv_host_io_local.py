@@ -15,7 +15,7 @@ from cmk.agent_based.v2 import (
     get_value_store,
 )
 from cmk.plugins.lib.diskstat import check_diskstat_dict
-from cmk_addons.plugins.hyperv_cluster.lib import parse_hyperv_io
+from cmk_addons.plugins.hyperv.lib import parse_hyperv_io
 
 Section = Dict[str, Mapping[str, Any]]
 

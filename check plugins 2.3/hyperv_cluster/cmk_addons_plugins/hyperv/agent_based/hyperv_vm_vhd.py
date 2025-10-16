@@ -18,7 +18,7 @@ from cmk.agent_based.v2 import (
     get_value_store,
 )
 from cmk.plugins.lib.df import FILESYSTEM_DEFAULT_PARAMS, df_check_filesystem_single
-from cmk_addons.plugins.hyperv_cluster.lib import parse_hyperv
+from cmk_addons.plugins.hyperv.lib import parse_hyperv
 
 Section = Dict[str, Mapping[str, Any]]
 

@@ -13,7 +13,7 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
-from cmk_addons.plugins.hyperv_cluster.lib import parse_hyperv
+from cmk_addons.plugins.hyperv.lib import parse_hyperv
 
 Section = Dict[str, Mapping[str, Any]]
 
