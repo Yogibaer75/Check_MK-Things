@@ -33,6 +33,9 @@ def check_hyperv_vm_checkpoints(
         last_checkpoint = float("inf")
         last_checkpoint_name = ""
         oldest_checkpoint = 0
+        if section.get("no_checkpoints"):
+            yield Result(state=State(0), summary="No checkpoints existing")
+            return
 
         for checkpoint in section:
             checkpoint_date = section[checkpoint].get("checkpoint.created")
@@ -85,9 +88,6 @@ def check_hyperv_vm_checkpoints(
             name="age_last",
             value=last_checkpoint,
         )
-
-    else:
-        yield Result(state=State(0), summary="No Checkpoints existing")
 
 
 agent_section_hyperv_vm_checkpoints = AgentSection(

@@ -13,7 +13,7 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
-from cmk_addons.plugins.hyperv.lib import parse_hyperv
+from cmk_addons.plugins.hyperv.lib import parse_hyperv_nic
 
 Section = Dict[str, Mapping[str, Any]]
 
@@ -21,32 +21,39 @@ Section = Dict[str, Mapping[str, Any]]
 def discovery_hyperv_vm_nic(section) -> DiscoveryResult:
     for key, values in section.items():
         if "nic.connectionstate" in values:
-            yield Service(item=key)
+            yield Service(item=values['nic.name'], parameters={"state": values['nic.connectionstate']})
 
 
-def check_hyperv_vm_nic(item: str, section: Section) -> CheckResult:
-    data = section.get(item)
+def check_hyperv_vm_nic(item: str, params, section: Section) -> CheckResult:
+    data = {}
+    for key, values in section.items():
+        if values.get('nic.name') == item:
+            data = values
 
     if not data:
         yield Result(state=State(0), summary="NIC information is missing")
         return
 
-    connection_state = data.get("nic.connectionstate", False)
+    discover_state = params.get("state")
+    connection_state = data.get("nic.connectionstate", "False")
     vswitch = data.get("nic.vswitch", "no vSwitch")
     vlan_id = data.get("nic.VLAN.id", 0)
     # vlan_mode = data.get("nic.VLAN.mode", "Access")
 
-    if connection_state == "True":
+    if connection_state == discover_state and connection_state == "True":
         message = f"{item} connected to {vswitch} with VLAN ID {vlan_id}"
         yield Result(state=State(0), summary=message)
-    else:
+    elif connection_state == discover_state and connection_state == "False":
         message = f"{item} disconnected"
+        yield Result(state=State(0), summary=message)
+    else:
+        message = f"{item} changed state"
         yield Result(state=State(1), summary=message)
 
 
 agent_section_hyperv_vm_nic = AgentSection(
     name="hyperv_vm_nic",
-    parse_function=parse_hyperv,
+    parse_function=parse_hyperv_nic,
 )
 
 check_plugin_hyperv_vm_nic = CheckPlugin(
@@ -55,4 +62,5 @@ check_plugin_hyperv_vm_nic = CheckPlugin(
     sections=["hyperv_vm_nic"],
     discovery_function=discovery_hyperv_vm_nic,
     check_function=check_hyperv_vm_nic,
+    check_default_parameters={},
 )

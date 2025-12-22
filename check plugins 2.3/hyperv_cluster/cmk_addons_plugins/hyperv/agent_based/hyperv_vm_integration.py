@@ -19,7 +19,9 @@ Section = Dict[str, Mapping[str, Any]]
 
 hyperv_vm_integration_default_levels = {
     "default_status": "active",
-    "match_services": [{"Guest Service Interface", "inactive"}],
+    "match_services": [
+        {"service_name": "Guest Service Interface", "state": "inactive"}
+    ],
 }
 
 
@@ -38,7 +40,9 @@ def check_hyperv_vm_integration(
     for key in section:
         if key.startswith("guest.tools.service"):
             service = key.replace("guest.tools.service.", "").replace("_", " ")
-            if service in (item.get("service_name") for item in params["match_services"]):
+            if service in (
+                item.get("service_name") for item in params["match_services"]
+            ):
                 serv_params = ""
                 for element in params["match_services"]:
                     if element.get("service_name") == service:
