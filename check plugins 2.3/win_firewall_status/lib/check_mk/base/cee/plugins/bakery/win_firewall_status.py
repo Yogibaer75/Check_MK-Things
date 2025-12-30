@@ -7,7 +7,7 @@
 from typing import Any, Dict
 from pathlib import Path
 
-from cmk.base.cee.plugins.bakery.bakery_api.v1 import (
+from cmk.base.plugins.bakery.bakery_api.v1 import (
     FileGenerator,
     OS,
     Plugin,
