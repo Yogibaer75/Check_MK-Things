@@ -46,7 +46,7 @@ Write-Host('<<<windows_patch_day:sep(124)>>>')
 $Searcher = (New-Object -ComObject Microsoft.Update.Session).CreateUpdateSearcher()
 $HistoryCount = $Searcher.GetTotalHistoryCount()
 if ($HistoryCount -eq 0) {
-    Write-Host('No updates found')
+    write-host('No updates found')
     exit 0
 }
 $result = @{}

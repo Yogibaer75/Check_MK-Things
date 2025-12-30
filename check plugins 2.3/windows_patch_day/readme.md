@@ -20,3 +20,4 @@ This plugin will read the patch history and shows installed patches for a given 
 - 2.3.5 - bugfix for parse function if no updates present
 - 2.3.6 - small fix for empty history count
 - 2.3.7 - another small parsing problem with empty lines
+- 2.3.8 - small agent plugin fix for no updates existing in history
