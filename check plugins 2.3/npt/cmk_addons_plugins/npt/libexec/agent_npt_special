@@ -1,0 +1,258 @@
+#!/usr/bin/env python3
+import asyncio
+import getopt
+import os
+import sys
+
+from pysnmp.hlapi.asyncio import SnmpEngine, UdpTransportTarget, ContextData
+from pysnmp.hlapi.asyncio import (
+    UsmUserData,
+    usmHMACSHAAuthProtocol,
+    usmAesCfb128Protocol,
+)
+from pysnmp.hlapi.asyncio import ObjectType, ObjectIdentity
+from pysnmp.hlapi.asyncio import getCmd, walkCmd
+
+slot_map = {
+    "6": "M01",
+    "8": "T01",
+    "9": "T02",
+    "10": "T03",
+    "11": "T04",
+    "12": "T05",
+    "13": "T06",
+    "14": "T07",
+    "30": "A01",
+    "31": "B01",
+}
+
+
+def usage():
+    sys.stderr.write(
+        """ECI NPT Agent
+
+USAGE: agent_npt_special [OPTIONS] HOST
+       agent_npt_special -h
+
+ARGUMENTS:
+  HOST                          Host name or IP address of your NPT
+
+OPTIONS:
+  -h, --help                    Show this help message and exit
+  -t, --timeout SEC             Set the network timeout to <SEC> seconds.
+                                Default is 10 seconds. Note: the timeout is not
+                                applied to the whole check, instead it is used for
+                                each API query.
+  --debug                       Debug mode: let Python exceptions come through
+"""
+    )
+
+
+async def main():
+    short_options = "h:t:d"
+    long_options = ["help", "timeout=", "debug"]
+
+    host_address = None
+    opt_timeout = 10
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], short_options, long_options)
+    except getopt.GetoptError as err:
+        sys.stderr.write(f"{err}\n")
+        sys.exit(1)
+
+    for o, a in opts:
+        if o in ["-t", "--timeout"]:
+            opt_timeout = int(a)
+        elif o in ["-h", "--help"]:
+            usage()
+            sys.exit(0)
+
+    if len(args) == 1:
+        host_address = args[0]
+    elif not args:
+        sys.stderr.write("ERROR: No host given.\n")
+        sys.exit(1)
+    else:
+        sys.stderr.write("ERROR: Please specify exactly one host.\n")
+        sys.exit(1)
+
+    # Use 'ping -n 1' on Windows, 'ping -c 1' on Linux
+    ping_param = "-n" if sys.platform.lower().startswith("win") else "-c"
+    if sys.platform.lower().startswith("win"):
+        result = os.system(f"ping {ping_param} 1 -w 1000 {host_address} > NUL 2>&1")
+    else:
+        result = os.system(f"ping -c 1 -W 1 {host_address} > /dev/null 2>&1")
+
+    if result != 0:
+        sys.stderr.write("ERROR: host offline.\n")
+        sys.exit(1)
+
+    sys.stdout.write("<<<npt_special>>>\n")
+
+    snmpEngine = SnmpEngine()
+    authData = UsmUserData(
+        "authuser",
+        authKey="authkey123",
+        privKey="privkey12345",
+        authProtocol=usmHMACSHAAuthProtocol,
+        privProtocol=usmAesCfb128Protocol,
+    )
+
+    transportTarget = UdpTransportTarget(
+        (host_address, 161), timeout=opt_timeout, retries=3
+    )
+
+    # Initial walkCmd calls (seem to be used for discovery/caching in original script?)
+    # Lines 82-95
+    iterator = walkCmd(
+        snmpEngine,
+        authData,
+        transportTarget,
+        ContextData(),
+        ObjectType(ObjectIdentity("1.3.6.1.2.1.31")),
+        ObjectType(ObjectIdentity("1.3.6.1.2.1.2.2.1.2")),
+        lexicographicMode=False,
+        maxCalls=100,  # Safety limit
+    )
+    async for errorIndication, errorStatus, errorIndex, varBinds in iterator:
+        if errorIndication or errorStatus:
+            break
+
+    # Line 97-109
+    errorIndication, errorStatus, errorIndex, varBinds = await getCmd(
+        snmpEngine,
+        authData,
+        transportTarget,
+        ContextData(),
+        ObjectType(ObjectIdentity("1.3.6.1.2.1.31.1.1.1.6")),
+    )
+
+    # Line 111-124
+    errorIndication, errorStatus, errorIndex, varBinds = await getCmd(
+        snmpEngine,
+        authData,
+        transportTarget,
+        ContextData(),
+        ObjectType(ObjectIdentity("1.3.6.1.2.1.1.1.0")),
+        ObjectType(ObjectIdentity("1.3.6.1.2.1.1.2.0")),
+        ObjectType(ObjectIdentity("1.3.6.1.2.1.1.3.0")),
+    )
+
+    if errorIndication:
+        print(errorIndication)
+        sys.exit(3)
+    elif errorStatus:
+        print(
+            f"{errorStatus.prettyPrint()} at {errorIndex and varBinds[int(errorIndex) - 1][0] or '?'}"
+        )
+    else:
+        for name, val in varBinds:
+            if str(name) == "1.3.6.1.2.1.1.1.0":
+                print(f"Type : {val}")
+            if str(name) == "1.3.6.1.2.1.1.2.0":
+                print(f"Sys : {val}")
+            if str(name) == "1.3.6.1.2.1.1.3.0":
+                print(f"Uptime : {val}")
+
+    # Line 148-160
+    # Collect all rows from walkCmd for 1.3.6.1.2.1.2.2.1.2
+    varBindTable = []
+    iterator = walkCmd(
+        snmpEngine,
+        authData,
+        transportTarget,
+        ContextData(),
+        ObjectType(ObjectIdentity("1.3.6.1.2.1.2.2.1.2")),
+        lexicographicMode=False,
+    )
+    async for errorIndication, errorStatus, errorIndex, varBinds in iterator:
+        if errorIndication:
+            print(errorIndication)
+            return
+        if errorStatus:
+            print(
+                f"{errorStatus.prettyPrint()} at {errorIndex and varBinds[int(errorIndex) - 1][0] or '?'}"
+            )
+            return
+        varBindTable.append(varBinds)
+
+    for varBindTableRow in varBindTable:
+        for name, val in varBindTableRow:
+            if not val or len(val) == 0:
+                continue
+            ifname = str(val)
+            if ifname.split(None, 1)[0] != "MO_FEMPORTID":
+                continue
+            nagios_illegal_chars = "`;~!$%^&*|'\"<>?,()="
+            ifname = "".join(
+                [c for c in ifname if c not in nagios_illegal_chars + chr(0)]
+            ).strip()
+            ifnamelist = ifname.split()
+            try:
+                slotindex = ifnamelist.index("Slot")
+                port_val = "".join(ifnamelist[1:slotindex]).lstrip("#")
+                port_val = str(int(port_val) + 1).zfill(2)
+                slot = "".join(ifnamelist[slotindex + 1: len(ifnamelist) - 1]).lstrip(
+                    "#"
+                )
+                slotname = slot_map.get(slot)
+                if not slotname:
+                    continue
+                interfacename = f"Slot {slotname} Port {port_val} {ifnamelist[-1]}"
+
+                suffix = str(name).rpartition(".")[2]
+                output = f"Interface {interfacename} : {suffix}---"
+
+                # Sub-queries
+                oids_to_fetch = [
+                    f"1.3.6.1.2.1.31.1.1.1.6.{suffix}",
+                    f"1.3.6.1.2.1.31.1.1.1.10.{suffix}",
+                    f"1.3.6.1.2.1.2.2.1.14.{suffix}",
+                    f"1.3.6.1.2.1.31.1.1.1.7.{suffix}",
+                ]
+
+                for i, oid in enumerate(oids_to_fetch):
+                    ei, es, ex, vb = await getCmd(
+                        snmpEngine,
+                        authData,
+                        transportTarget,
+                        ContextData(),
+                        ObjectType(ObjectIdentity(oid)),
+                    )
+                    if ei:
+                        print(ei)
+                        continue
+                    if es:
+                        print(
+                            "%s at %s"
+                            % (es.prettyPrint(), ex and vb[int(ex) - 1][0] or "?")
+                        )
+                        continue
+
+                    for _n1, v1 in vb:
+                        val_to_add = v1
+                        if val_to_add == "":
+                            val_to_add = 0
+
+                        # Special case for the 3rd OID (1.3.6.1.2.1.2.2.1.14)
+                        if i == 2 and val_to_add == 4294967295:
+                            val_to_add = 0
+
+                        output += str(val_to_add)
+                        if i < len(oids_to_fetch) - 1:
+                            output += "---"
+                print(output)
+            except (ValueError, IndexError):
+                continue
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        if "--debug" in sys.argv:
+            raise
+        sys.stderr.write(f"ERROR: {e}\n")
+        sys.exit(1)
