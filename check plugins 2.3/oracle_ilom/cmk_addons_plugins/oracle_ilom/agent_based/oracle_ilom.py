@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Oracle ILOM sensor checks"""
+"""Oracle ILOM sensor and problem checks"""
 # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 
 # License: GNU General Public License v2
 
-from typing import Dict, List, NamedTuple
+from typing import Any, Dict, List, NamedTuple
 
 from cmk.agent_based.v2 import (
     CheckPlugin,
@@ -27,7 +27,10 @@ from cmk.plugins.lib.temperature import (
     TempParamDict,
     check_temperature,
 )
-from cmk_addons.plugins.oracle_ilom.lib import process_oracle_ilom_perfdata
+from cmk_addons.plugins.oracle_ilom.lib import (
+    process_oracle_ilom_perfdata,
+    convert_date_and_time,
+)
 from typing_extensions import TypedDict
 
 oracle_ilom_map_unit = {
@@ -75,6 +78,37 @@ oracle_ilom_map_state = {
     "7": (0, "Cleared"),
 }
 
+oracle_ilom_map_subsystem = {
+    "1": "None",
+    "2": "Cooling",
+    "3": "Processors",
+    "4": "Memory",
+    "5": "Power",
+    "6": "Storage",
+    "7": "Network",
+    "8": "IOModule",
+    "9": "Blade",
+    "10": "DCU",
+    "11": "CPUModule",
+    "12": "PCIDevices",
+    "13": "ORD",
+    "99": "Unknown",
+}
+
+# Subsystems to create dedicated checks for
+DEDICATED_SUBSYSTEMS = {
+    "3": "Processors",
+    "4": "Memory",
+    "5": "Power",
+    "2": "Cooling",
+    "6": "Storage",
+    "7": "Network",
+}
+
+# Reverse mapping for subsystem name to code
+SUBSYSTEM_NAME_TO_CODE = {v: k for k, v in DEDICATED_SUBSYSTEMS.items()}
+SUBSYSTEM_NAME_TO_CODE["Others"] = "others"
+
 LevelModes = str
 TwoLevelsType = tuple[str, tuple[float | None, float | None]]
 
@@ -104,14 +138,14 @@ class IlomParamDict(TypedDict, total=False):
     device_levels_handling: LevelModes
 
 
-Section = Dict[str, ILOMSens]
+Section = Dict[str, Any]
 
 
 def parse_oracle_ilom(string_table: List[StringTable]) -> Section:
     """parse data into dictionary"""
     parsed = {}
     entities = {}
-    sensors, entity, types = string_table
+    sensors, entity, types, problems_count, problems_table = string_table
 
     for entity_id, entity_state, entity_alarm, entity_name in entity:
         entities[entity_id] = {
@@ -154,6 +188,25 @@ def parse_oracle_ilom(string_table: List[StringTable]) -> Section:
             sensor_lower_fatal_value=sensor_lower_fatal_value,
             sensor_upper_fatal_value=sensor_upper_fatal_value,
         )
+
+    # Parse open problems count
+    if problems_count:
+        parsed["open_problems_count"] = int(problems_count[0][0])
+
+    # Parse open problems
+    problems_by_subsystem = {}
+    for entry in problems_table:
+        if len(entry) >= 5:
+            index, timestamp, subsystem, location, description = entry[:5]
+            if subsystem not in problems_by_subsystem:
+                problems_by_subsystem[subsystem] = []
+            problems_by_subsystem[subsystem].append({
+                'timestamp': convert_date_and_time(timestamp),
+                'location': location,
+                'description': description,
+            })
+    parsed["open_problems"] = problems_by_subsystem
+
     return parsed
 
 
@@ -191,7 +244,23 @@ snmp_section_oracle_ilom = SNMPSection(
             base=".1.3.6.1.4.1.42.2.70.101.1.1.6.1",
             oids=[
                 OIDEnd(),
-                "2",  # sunPlatEquipmentLocationName
+                "2",  # sunPlatSensorType
+            ],
+        ),
+        SNMPTree(
+            base=".1.3.6.1.4.1.42.2.2.6.4.1.1",
+            oids=[
+                "2.0",  # ilomSystemOpenProblemsCount
+            ],
+        ),
+        SNMPTree(
+            base=".1.3.6.1.4.1.42.2.2.6.4.1.1.10.1",
+            oids=[
+                OIDEnd(),
+                "2",  # ilomSystemOpenProblemTimestamp
+                "3",  # ilomSystemOpenProblemSubsystem
+                "4",  # ilomSystemOpenProblemLocation
+                "5",  # ilomSystemOpenProblemDescription
             ],
         ),
     ],
@@ -216,15 +285,15 @@ def _parse_levels(
     return warn, crit
 
 
-def discover_oracle_ilom(params, section: Dict[str, ILOMSens]) -> DiscoveryResult:
+def discover_oracle_ilom(params, section: Section) -> DiscoveryResult:
     """for every sensor one service is discovered"""
     for key, values in section.items():
-        if values.availability == "2" and values.sensor_type == params.get("value"):
+        if isinstance(values, ILOMSens) and values.availability == "2" and values.sensor_type == params.get("value"):
             yield Service(item=key, parameters={})
 
 
 def check_oracle_ilom(
-    item: str, params: IlomParamDict, section: Dict[str, ILOMSens]
+    item: str, params: IlomParamDict, section: Section
 ) -> CheckResult:
     """check the state of a non temperature sensor"""
     data = section.get(item)
@@ -293,7 +362,7 @@ def check_oracle_ilom(
 
 
 def check_oracle_ilom_temp(
-    item: str, params: TempParamDict, section: Dict[str, ILOMSens]
+    item: str, params: TempParamDict, section: Section
 ) -> CheckResult:
     """check the state of a temperature sensor"""
     data = section.get(item)
@@ -322,6 +391,99 @@ def check_oracle_ilom_temp(
             dev_status=state,
             dev_status_name=state_readable,
         )
+
+
+def discover_oracle_ilom_processors_status(section: Section) -> DiscoveryResult:
+    """Discover Processors status service"""
+    if "open_problems_count" in section:
+        yield Service(item="Subsystem Processors Status")
+
+
+def discover_oracle_ilom_memory_status(section: Section) -> DiscoveryResult:
+    """Discover Memory status service"""
+    if "open_problems_count" in section:
+        yield Service(item="Subsystem Memory Status")
+
+
+def discover_oracle_ilom_power_status(section: Section) -> DiscoveryResult:
+    """Discover Power status service"""
+    if "open_problems_count" in section:
+        yield Service(item="Subsystem Power Status")
+
+
+def discover_oracle_ilom_cooling_status(section: Section) -> DiscoveryResult:
+    """Discover Cooling status service"""
+    if "open_problems_count" in section:
+        yield Service(item="Subsystem Cooling Status")
+
+
+def discover_oracle_ilom_storage_status(section: Section) -> DiscoveryResult:
+    """Discover Storage status service"""
+    if "open_problems_count" in section:
+        yield Service(item="Subsystem Storage Status")
+
+
+def discover_oracle_ilom_network_status(section: Section) -> DiscoveryResult:
+    """Discover Network status service"""
+    if "open_problems_count" in section:
+        yield Service(item="Subsystem Network Status")
+
+
+def discover_oracle_ilom_others_status(section: Section) -> DiscoveryResult:
+    """Discover Others status service"""
+    if "open_problems_count" in section:
+        yield Service(item="Subsystem Others Status")
+
+
+def check_oracle_ilom_status(
+    item: str, section: Section
+) -> CheckResult:
+    """Check status of a specific subsystem"""
+    open_problems = section.get("open_problems", {})
+    
+    # Extract subsystem name from item (e.g., "Subsystem Processors Status" -> "Processors")
+    subsystem_name = item.replace("Subsystem ", "").replace(" Status", "")
+    
+    if subsystem_name == "Others":
+        # Others contains all non-dedicated subsystems
+        subsystems_to_check = {
+            code: open_problems.get(code, [])
+            for code in open_problems.keys()
+            if code not in DEDICATED_SUBSYSTEMS
+        }
+    else:
+        # Dedicated subsystem
+        subsystem_code = SUBSYSTEM_NAME_TO_CODE.get(subsystem_name)
+        if not subsystem_code:
+            yield Result(state=State.UNKNOWN, summary=f"Unknown subsystem: {subsystem_name}")
+            return
+        subsystems_to_check = {
+            subsystem_code: open_problems.get(subsystem_code, [])
+        }
+    
+    # Count total problems in this subsystem(s)
+    total_problems = sum(len(problems) for problems in subsystems_to_check.values())
+    
+    if total_problems > 0:
+        summary_parts = []
+        details = ""
+        
+        for subsystem_code, problems in subsystems_to_check.items():
+            if problems:
+                subsys_name = oracle_ilom_map_subsystem.get(subsystem_code, f"Subsystem {subsystem_code}")
+                summary_parts.append(f"{subsys_name}: {len(problems)}")
+                details += f"[{subsys_name}]:\n"
+                for problem in problems:
+                    details += f"{problem['timestamp']} - {problem['location']} - {problem['description']}\n"
+        
+        summary = ", ".join(summary_parts) if summary_parts else ""
+        yield Result(
+            state=State.CRIT,
+            summary=f"Open problems: {total_problems}" + (f" ({summary})" if summary else ""),
+            details=details.strip()
+        )
+    else:
+        yield Result(state=State.OK, summary=f"OK - No open problem")
 
 
 check_plugin_oracle_ilom_temp = CheckPlugin(
@@ -370,4 +532,60 @@ check_plugin_oracle_ilom_other = CheckPlugin(
     check_function=check_oracle_ilom,
     check_default_parameters={},
     check_ruleset_name="ilom_sensor",
+)
+
+check_plugin_oracle_ilom_processors_status = CheckPlugin(
+    name="oracle_ilom_processors_status",
+    sections=["oracle_ilom"],
+    service_name="%s",
+    discovery_function=discover_oracle_ilom_processors_status,
+    check_function=check_oracle_ilom_status,
+)
+
+check_plugin_oracle_ilom_memory_status = CheckPlugin(
+    name="oracle_ilom_memory_status",
+    sections=["oracle_ilom"],
+    service_name="%s",
+    discovery_function=discover_oracle_ilom_memory_status,
+    check_function=check_oracle_ilom_status,
+)
+
+check_plugin_oracle_ilom_power_status = CheckPlugin(
+    name="oracle_ilom_power_status",
+    sections=["oracle_ilom"],
+    service_name="%s",
+    discovery_function=discover_oracle_ilom_power_status,
+    check_function=check_oracle_ilom_status,
+)
+
+check_plugin_oracle_ilom_cooling_status = CheckPlugin(
+    name="oracle_ilom_cooling_status",
+    sections=["oracle_ilom"],
+    service_name="%s",
+    discovery_function=discover_oracle_ilom_cooling_status,
+    check_function=check_oracle_ilom_status,
+)
+
+check_plugin_oracle_ilom_storage_status = CheckPlugin(
+    name="oracle_ilom_storage_status",
+    sections=["oracle_ilom"],
+    service_name="%s",
+    discovery_function=discover_oracle_ilom_storage_status,
+    check_function=check_oracle_ilom_status,
+)
+
+check_plugin_oracle_ilom_network_status = CheckPlugin(
+    name="oracle_ilom_network_status",
+    sections=["oracle_ilom"],
+    service_name="%s",
+    discovery_function=discover_oracle_ilom_network_status,
+    check_function=check_oracle_ilom_status,
+)
+
+check_plugin_oracle_ilom_others_status = CheckPlugin(
+    name="oracle_ilom_others_status",
+    sections=["oracle_ilom"],
+    service_name="%s",
+    discovery_function=discover_oracle_ilom_others_status,
+    check_function=check_oracle_ilom_status,
 )
