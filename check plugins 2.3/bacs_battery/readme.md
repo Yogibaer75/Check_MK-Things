@@ -8,3 +8,4 @@ Changelog:
 - 2.1.3 - check_levels for sub values in bacs_string
 - 2.2.0 - migrated to CMK 2.3 API
 - 2.2.1 - fixed snmp section in bacs battery
+- 2.3.0 - fixed old level params

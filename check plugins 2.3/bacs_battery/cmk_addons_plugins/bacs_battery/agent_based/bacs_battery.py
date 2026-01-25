@@ -15,18 +15,15 @@ from cmk.agent_based.v2 import (
     SNMPTree,
     StringTable,
     check_levels,
-    get_value_store,
     startswith,
 )
-from cmk.plugins.lib.temperature import check_temperature
 
 bacs_battery_default_levels = {
-    "levels": (55, 60),
-    "voltage": (14, 15),
-    "voltage_lower": (10, 9),
-    "temp": (40, 50),
-    "temp_lower": (10, 5),
-    "resistance": (15, 18),
+    "voltage": ("fixed", (14, 15)),
+    "voltage_lower": ("fixed", (10, 9)),
+    "temp": ("fixed", (40, 50)),
+    "temp_lower": ("fixed", (10, 5)),
+    "resistance": ("fixed", (15, 18)),
 }
 
 Section = Mapping[str, Any]
@@ -94,32 +91,24 @@ def check_bacs_battery(item: str, params, section: Section) -> CheckResult:
     if not data:
         return
 
-    if isinstance(params, tuple):
-        params = {"levels": params}
-
-    params_temp = {}
-    if "temp" in params:
-        params_temp["levels"] = params["temp"]
-    if "levels" in params:
-        params_temp["levels"] = params["levels"]
-    if "temp_lower" in params:
-        params_temp["levels_lower"] = params["temp_lower"]
+    for key in bacs_battery_default_levels:
+        if isinstance(params.get(key), tuple) and not isinstance(params.get(key)[0], str):
+            params[key] = ("fixed", params[key])
 
     bat_volt, bat_temp, bat_res, _bat_status = data
-    res_warn, res_crit = params["resistance"]
-    volt_warn, volt_crit = params["voltage"]
-    volt_warn_lower, volt_crit_lower = params["voltage_lower"]
 
-    yield from check_temperature(
+    yield from check_levels(
         bat_temp,
-        params_temp,
-        unique_name=f"bacs_temperature_{item}",
-        value_store=get_value_store(),
+        levels_lower=params.get("temp_lower", ("no_levels", None)),
+        levels_upper=params.get("temp", ("no_levels", None)),
+        metric_name="temp",
+        label="Temperature",
+        render_func=lambda v: f"{v:.1f}°C",
     )
 
     yield from check_levels(
         bat_res,
-        levels_upper=(res_warn, res_crit),
+        levels_upper=params.get("resistance", ("no_levels", None)),
         metric_name="resistance",
         label="Resistance",
         render_func=lambda v: f"{v:.2f}mOhm",
@@ -127,8 +116,8 @@ def check_bacs_battery(item: str, params, section: Section) -> CheckResult:
 
     yield from check_levels(
         bat_volt,
-        levels_upper=(volt_warn, volt_crit),
-        levels_lower=(volt_warn_lower, volt_crit_lower),
+        levels_upper=params.get("voltage", ("no_levels", None)),
+        levels_lower=params.get("voltage_lower", ("no_levels", None)),
         metric_name="voltage",
         label="Voltage",
         render_func=lambda v: f"{v:.2f}V",

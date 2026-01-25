@@ -23,12 +23,11 @@ from cmk.agent_based.v2 import (
 )
 
 bacs_string_default_levels = {
-    "levels": (55, 60),
-    "voltage": (440, 445),
-    "voltage_lower": (435, 430),
-    "temp": (40, 50),
-    "temp_lower": (10, 5),
-    "resistance": (15, 18),
+    "voltage": ("fixed", (440, 445)),
+    "voltage_lower": ("fixed", (435, 430)),
+    "temp": ("fixed", (40, 50)),
+    "temp_lower": ("fixed", (10, 5)),
+    "resistance": ("fixed", (15, 18)),
 }
 
 Section = Mapping[str, Any]
@@ -82,8 +81,8 @@ def check_bacs_string(item: str, params, section: Section) -> CheckResult:
     )
     yield from check_levels(
         float(data.get("overall", 0)),
-        levels_upper=params["voltage"],
-        levels_lower=params["voltage_lower"],
+        levels_upper=params.get("voltage", ("no_levels", None)),
+        levels_lower=params.get("voltage_lower", ("no_levels", None)),
         metric_name="voltage",
         label="Overall Voltage",
         render_func=lambda v: f"{v:.2f}V",
