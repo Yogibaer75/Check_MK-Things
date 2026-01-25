@@ -11,22 +11,21 @@
 # 2|server2||||
 #
 
-from typing import Mapping, Any
+import datetime as dt
+from typing import Any, Mapping
 
 from cmk.agent_based.v2 import (
     AgentSection,
     CheckPlugin,
     CheckResult,
     DiscoveryResult,
-    render,
     Result,
     Service,
     State,
     StringTable,
     check_levels,
+    render,
 )
-
-import datetime as dt
 
 
 def parse_udp_jobs(string_table: StringTable) -> Mapping[str, Mapping[str, Any]]:
@@ -59,6 +58,7 @@ agent_section_udp_jobs = AgentSection(
     name="udp_jobs",
     parse_function=parse_udp_jobs,
 )
+
 
 def _udp_job_age(timedelta):
     return timedelta.days * 24 + int(timedelta.seconds / 3600)
@@ -99,9 +99,9 @@ def check_udp_jobs(item: str, params: Mapping[str, Any], section) -> CheckResult
         "10000": (1, "Missed"),
     }
 
-    if type(params) is tuple:
-        params = {"levels": ("fixed",params)}
-    warn, crit = params["levels"][1]
+    if isinstance(params, tuple):
+        params = {"levels": ("fixed", params)}
+    _params_type, (warn, crit) = params["levels"]
 
     no_backup_state = params.get("no_backup", None)
 
@@ -115,11 +115,13 @@ def check_udp_jobs(item: str, params: Mapping[str, Any], section) -> CheckResult
 
         if last_backup == "":
             if no_backup_state is not None:
-                yield Result(state=State(no_backup_state), summary="No UDP job until now")
+                yield Result(
+                    state=State(no_backup_state), summary="No UDP job until now"
+                )
             else:
                 yield Result(state=State.WARN, summary="No UDP job until now")
         else:
-            msgtext += "Last job %s," % last_backup
+            msgtext += f"Last job {last_backup},"
             failed = False
             try:
                 last_backup = dt.datetime.strptime(last_backup, "%d.%m.%Y %H:%M:%S")
@@ -141,8 +143,8 @@ def check_udp_jobs(item: str, params: Mapping[str, Any], section) -> CheckResult
 
             backup_age = _udp_job_age(backup_age)
             status, name = udp_job_status.get(job_status, (3, "Unknown"))
-            msgtext += " with state %s" % (name)
-            method = udp_job_method.get(job_method, "unknown (!!!) id %s" % job_method)
+            msgtext += f" with state {name}"
+            method = udp_job_method.get(job_method, f"unknown (!!!) id {job_method}")
             yield Result(state=State(status), summary=msgtext)
 
             yield from check_levels(
@@ -154,10 +156,7 @@ def check_udp_jobs(item: str, params: Mapping[str, Any], section) -> CheckResult
                 label="backup age",
             )
 
-            msgtext = "backup size %s and backup method was %s" % (
-                render.bytes(int(size)),
-                method,
-            )
+            msgtext = f"backup size {render.bytes(int(size))} and backup method was {method}"
             yield Result(state=State.OK, summary=msgtext)
 
 

@@ -82,14 +82,12 @@ def check_udp_backup(item: str, params: Mapping[str, Any], section) -> CheckResu
         "3": (2, "Error", "(!!)"),
     }
 
-    if type(params) is tuple:
+    if isinstance(params, tuple):
         params = {"levels": ("fixed", params)}
-    warn_upper, crit_upper = params.get("levels", ("fixed", (None, None)))[1]
-    warn_lower, crit_lower = params.get("levels_lower", ("fixed", (None, None)))[1]
 
     no_backup_state = params.get("no_backup", None)
 
-    if (data:=section.get(item)) is not None:
+    if (data := section.get(item)) is not None:
         print(data)
         status = 0
         msgtext = ""
@@ -100,27 +98,29 @@ def check_udp_backup(item: str, params: Mapping[str, Any], section) -> CheckResu
 
         if last_backup == "":
             if no_backup_state is not None:
-                yield Result(state=State(no_backup_state), summary="No D2D Backup until now")
+                yield Result(
+                    state=State(no_backup_state), summary="No D2D Backup until now"
+                )
             else:
                 yield Result(state=State.WARN, summary="No D2D Backup until now")
         else:
-            msgtext += "Last backup %s," % last_backup
+            msgtext += f"Last backup {last_backup},"
             state, name, state_str = udp_recpoint_status.get(
                 rec_status, (3, "Unknown", "(!!!)")
             )
-            msgtext += " %s restore points with state %s%s," % (recpoints, name, state_str)
+            msgtext += f" {recpoints} restore points with state {name}{state_str},"
             state, name = udp_backup_status.get(last_backup_status, (3, "unknown"))
             status = max(status, state)
-            msgtext += " last backup state %s" % name
+            msgtext += f" last backup state {name}"
             yield Result(state=State(status), summary=msgtext)
 
             yield from check_levels(
                 int(recpoints),
-                levels_upper=("fixed", (warn_upper, crit_upper)),
-                levels_lower=("fixed", (warn_lower, crit_lower)),
+                levels_upper=params.get("levels", ("no_levels", None)),
+                levels_lower=params.get("levels_lower", ("no_levels", None)),
                 metric_name="restorepoint",
                 notice_only=True,
-                label="restore points"
+                label="restore points",
             )
 
 

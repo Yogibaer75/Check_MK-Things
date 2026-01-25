@@ -11,3 +11,4 @@ Changelog:
 - 2.2.0 - moved files to correct location for CMK 2.3/2.4
 - 2.2.1 - migrated rulesets and checks to new API
 - 2.2.2 - small migration bugs fixed
+- 2.2.3 - formatting and params cleanup

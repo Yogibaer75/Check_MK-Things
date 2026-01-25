@@ -18,7 +18,13 @@ from cmk.rulesets.v1.form_specs import (
     SimpleLevels,
     String,
 )
-from cmk.rulesets.v1.rule_specs import CheckParameters, Topic, HostAndItemCondition, LengthInRange, Help
+from cmk.rulesets.v1.rule_specs import (
+    CheckParameters,
+    Topic,
+    HostAndItemCondition,
+    LengthInRange,
+    Help,
+)
 
 
 def _parameter_valuespec_arcserve_udp_jobs():
@@ -52,7 +58,7 @@ rule_spec_arcserve_udp_jobs = CheckParameters(
     topic=Topic.APPLICATIONS,
     condition=HostAndItemCondition(
         item_title=Title("Servername"),
-        item_form=String(custom_validate=(LengthInRange(min_value=1), )),
+        item_form=String(custom_validate=(LengthInRange(min_value=1),)),
     ),
     parameter_form=_parameter_valuespec_arcserve_udp_jobs,
 )
@@ -101,7 +107,7 @@ rule_spec_arcserve_udp_backup = CheckParameters(
     topic=Topic.APPLICATIONS,
     condition=HostAndItemCondition(
         item_title=Title("Servername"),
-        item_form=String(custom_validate=(LengthInRange(min_value=1), )),
+        item_form=String(custom_validate=(LengthInRange(min_value=1),)),
     ),
     parameter_form=_parameter_valuespec_arcserve_udp_backup,
 )
