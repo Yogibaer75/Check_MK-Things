@@ -15,3 +15,4 @@ Changelog:
 - 2.4.2 - cleaned relative imports
 - 2.4.3 - wrong levels check fixed
 - 2.4.4 - don't discover empty fans
+- 2.4.5 - removed temperature check as it is included with CMK 2.4
