@@ -29,8 +29,9 @@ function Backup($sqlCmd) {
 
     return $dataSet
 }
+$hostname = $env:COMPUTERNAME
 $sqlConnection = New-Object System.Data.SqlClient.SqlConnection
-$sqlConnection.ConnectionString = 'Server=back02\ARCSERVE_DB;Integrated Security=True;Database=aslog'
+$sqlConnection.ConnectionString = "Server=$hostname\ARCSERVE_DB;Integrated Security=True;Database=aslog"
 $sqlConnection.Open()
 
 # Create a command object
