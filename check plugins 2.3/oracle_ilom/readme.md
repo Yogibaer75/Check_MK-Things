@@ -6,6 +6,7 @@ Basic Oracle ILOM checks for
 - fan
 - voltage
 - other sensors
+- problems
 
 At the moment own parameters can only be defined for the temperature check.
 The other checks can only use the parameters from the device.
@@ -19,3 +20,4 @@ Changelog:
 - 2.2.0 - ported to CMK 2.3 API
 - 2.2.1 - fixed levels parameter bug
 - 2.3.0 - rework level handling
+- 2.4.0 - add problems per subsystem

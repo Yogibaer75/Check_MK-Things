@@ -7,6 +7,7 @@
 # License: GNU General Public License v2
 
 from typing import Any, Dict, NamedTuple, Optional, Tuple
+from datetime import datetime, timedelta, timezone
 
 
 Levels = Optional[Tuple[float, float]]
@@ -87,3 +88,33 @@ def process_oracle_ilom_perfdata(entry: Dict[str, Any]):
         levels_upper=optional_tuple(upper_warn, upper_crit),
         levels_lower=optional_tuple(min_warn, min_crit),
     )
+
+def convert_date_and_time(dt_str):
+    """Parse SNMP DateAndTime OCTET STRING to human readable format"""
+    try:
+        data = dt_str.encode('latin-1')
+        # Parse DateAndTime bytes
+        year = int.from_bytes(data[0:2], 'big')
+        month = data[2]
+        day = data[3]
+        hour = data[4]
+        minute = data[5]
+        second = data[6]
+        decisecond = data[7]
+        
+        # Default: no timezone
+        tz = None
+        if len(data) == 11:
+            direction = data[8]
+            tz_hours = data[9]
+            tz_minutes = data[10]
+            offset = timedelta(hours=tz_hours, minutes=tz_minutes)
+            if direction == 0x2D:  # '-'
+                offset = -offset
+            tz = timezone(offset)
+        
+        micro = decisecond * 100_000
+        dt = datetime(year, month, day, hour, minute, second, micro, tzinfo=tz)
+        return dt.isoformat()
+    except (ValueError, IndexError):
+        return dt_str
