@@ -3,6 +3,20 @@
 This is the frist version of an universal Redfish agent.
 With CMK 2.3 the extra installation of Python module is not needed anymore.
 The Redfish library is already existing inside CMK.
+With CMK 2.4 the plugin is also integrated with CMK directly.
+For CMK 2.4 i have made an extension package with the following additional features:
+
+Extensions to the current Redfish checks (CMK 2.4.0p18)
+
+- Inventory data
+- PDU status
+- Power consumption & redundancy
+- modifications to special agents for the new checks
+- HW/SW inventory same path for firmware and hardware components
+- checks of storage controllers can be configured to be full or rollup only
+- ignore some stupid device levels of 0 degrees on some HPE temp sensors
+
+Changelog for CMK 2.3 version:
 
 - 2.3.20 - fast alles nach 2.3 migriert
 - 2.3.21 - small API changes
