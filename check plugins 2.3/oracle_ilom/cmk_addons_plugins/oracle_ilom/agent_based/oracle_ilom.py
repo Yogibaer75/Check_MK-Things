@@ -6,7 +6,7 @@
 
 # License: GNU General Public License v2
 
-from typing import Any, Dict, List, NamedTuple
+from typing import Dict, List, NamedTuple
 
 from cmk.agent_based.v2 import (
     CheckPlugin,
@@ -27,9 +27,7 @@ from cmk.plugins.lib.temperature import (
     TempParamDict,
     check_temperature,
 )
-from cmk_addons.plugins.oracle_ilom.lib import (
-    process_oracle_ilom_perfdata,
-)
+from cmk_addons.plugins.oracle_ilom.lib import process_oracle_ilom_perfdata
 from typing_extensions import TypedDict
 
 oracle_ilom_map_unit = {
@@ -77,8 +75,6 @@ oracle_ilom_map_state = {
     "7": (0, "Cleared"),
 }
 
-
-
 LevelModes = str
 TwoLevelsType = tuple[str, tuple[float | None, float | None]]
 
@@ -108,7 +104,7 @@ class IlomParamDict(TypedDict, total=False):
     device_levels_handling: LevelModes
 
 
-Section = Dict[str, Any]
+Section = Dict[str, ILOMSens]
 
 
 def parse_oracle_ilom(string_table: List[StringTable]) -> Section:
@@ -158,7 +154,6 @@ def parse_oracle_ilom(string_table: List[StringTable]) -> Section:
             sensor_lower_fatal_value=sensor_lower_fatal_value,
             sensor_upper_fatal_value=sensor_upper_fatal_value,
         )
-
     return parsed
 
 
@@ -221,15 +216,15 @@ def _parse_levels(
     return warn, crit
 
 
-def discover_oracle_ilom(params, section: Section) -> DiscoveryResult:
+def discover_oracle_ilom(params, section: Dict[str, ILOMSens]) -> DiscoveryResult:
     """for every sensor one service is discovered"""
     for key, values in section.items():
-        if isinstance(values, ILOMSens) and values.availability == "2" and values.sensor_type == params.get("value"):
+        if values.availability == "2" and values.sensor_type == params.get("value"):
             yield Service(item=key, parameters={})
 
 
 def check_oracle_ilom(
-    item: str, params: IlomParamDict, section: Section
+    item: str, params: IlomParamDict, section: Dict[str, ILOMSens]
 ) -> CheckResult:
     """check the state of a non temperature sensor"""
     data = section.get(item)
@@ -298,7 +293,7 @@ def check_oracle_ilom(
 
 
 def check_oracle_ilom_temp(
-    item: str, params: TempParamDict, section: Section
+    item: str, params: TempParamDict, section: Dict[str, ILOMSens]
 ) -> CheckResult:
     """check the state of a temperature sensor"""
     data = section.get(item)
@@ -327,7 +322,6 @@ def check_oracle_ilom_temp(
             dev_status=state,
             dev_status_name=state_readable,
         )
-
 
 
 check_plugin_oracle_ilom_temp = CheckPlugin(
