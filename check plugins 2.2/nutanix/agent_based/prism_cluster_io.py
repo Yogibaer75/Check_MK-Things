@@ -13,15 +13,8 @@
 # Boston, MA 02110-1301 USA.
 from typing import Any, Dict, Mapping
 
-from cmk.base.plugins.agent_based.agent_based_api.v1 import (
-    check_levels,
-    register,
-    Service
-)
-from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
-    CheckResult,
-    DiscoveryResult
-)
+from cmk.base.plugins.agent_based.agent_based_api.v1 import check_levels, register, Service
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import CheckResult, DiscoveryResult
 
 Section = Dict[str, Mapping[str, Any]]
 
