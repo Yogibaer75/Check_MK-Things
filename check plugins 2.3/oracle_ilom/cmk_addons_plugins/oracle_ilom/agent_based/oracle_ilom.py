@@ -199,11 +199,14 @@ snmp_section_oracle_ilom = SNMPSection(
 
 
 def _parse_levels(
-    levels: tuple[ str, tuple[float | None, float | None] ]| tuple[ str, None ]| None = None,
+    levels: (
+        tuple[str, tuple[float | None, float | None]] | tuple[str, None] | None
+    ) = None,
 ) -> tuple[float, float] | None:
     if levels is None:
         return None
-
+    warn = None
+    crit = None
     if isinstance(levels[0], str):
         if levels[0] == "no_levels":
             return None
@@ -233,9 +236,13 @@ def check_oracle_ilom(
             data.sensor_state, (3, "unknown")
         )
         unit = data.sensor_unit
+        levels_upper = None
+        levels_lower = None
         perfdata = process_oracle_ilom_perfdata(data)
-        usr_levels_upper = _parse_levels(params.get("levels", ('no_levels', None)))
-        usr_levels_lower = _parse_levels(params.get("levels_lower", ('no_levels', None)))
+        usr_levels_upper = _parse_levels(params.get("levels", ("no_levels", None)))
+        usr_levels_lower = _parse_levels(
+            params.get("levels_lower", ("no_levels", None))
+        )
         device_levels_handling = params.get("device_levels_handling", "usrdefault")
         if device_levels_handling == "usrdefault":
             levels_upper = (
@@ -285,8 +292,12 @@ def check_oracle_ilom(
         yield from check_levels(
             perfdata.value,
             metric_name=oracle_ilom_unit_perf.get(data.sensor_unit, "other"),
-            levels_upper=("fixed", levels_upper) if levels_upper else ("no_levels", None),
-            levels_lower=("fixed", levels_lower) if levels_lower else ("no_levels", None),
+            levels_upper=(
+                ("fixed", levels_upper) if levels_upper else ("no_levels", None)
+            ),
+            levels_lower=(
+                ("fixed", levels_lower) if levels_lower else ("no_levels", None)
+            ),
             render_func=lambda v: f"{v:.2f} {unit}",
         )
         yield Result(state=State(state), summary=infotext)

@@ -89,6 +89,7 @@ def process_oracle_ilom_perfdata(entry: Dict[str, Any]):
         levels_lower=optional_tuple(min_warn, min_crit),
     )
 
+
 def convert_date_and_time(dt_str):
     """Parse SNMP DateAndTime OCTET STRING to human readable format"""
     try:
@@ -101,7 +102,7 @@ def convert_date_and_time(dt_str):
         minute = data[5]
         second = data[6]
         decisecond = data[7]
-        
+
         # Default: no timezone
         tz = None
         if len(data) == 11:
@@ -112,7 +113,7 @@ def convert_date_and_time(dt_str):
             if direction == 0x2D:  # '-'
                 offset = -offset
             tz = timezone(offset)
-        
+
         micro = decisecond * 100_000
         dt = datetime(year, month, day, hour, minute, second, micro, tzinfo=tz)
         return dt.isoformat()
