@@ -191,7 +191,7 @@ snmp_section_oracle_ilom = SNMPSection(
             base=".1.3.6.1.4.1.42.2.70.101.1.1.6.1",
             oids=[
                 OIDEnd(),
-                "2",  # sunPlatEquipmentLocationName
+                "2",  # sunPlatSensorType
             ],
         ),
     ],
