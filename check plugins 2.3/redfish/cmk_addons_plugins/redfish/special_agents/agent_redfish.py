@@ -261,9 +261,12 @@ def fetch_sections(redfishobj, fetching_sections, sections, data):
             continue
         if section not in data.keys():
             continue
-        section_data = fetch_data(
-            redfishobj, data.get(section).get("@odata.id"), section
-        )
+        if data.get(section, {}):
+            section_data = fetch_data(
+                redfishobj, data.get(section, {}).get("@odata.id"), section
+            )
+        else:
+            continue
         if section_data.get("Members@odata.count") == 0:
             continue
         if "Collection" in section_data.get("@odata.type", {}):

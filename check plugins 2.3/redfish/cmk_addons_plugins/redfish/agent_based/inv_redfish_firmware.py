@@ -33,17 +33,17 @@ agent_section_redfish_firmware = AgentSection(
 
 def _item_name(item_data, padding):
     """build item name for inventory entry"""
-    if not item_data.get('Id'):
-        if item_data.get('Name'):
-            item_name = item_data.get('Name')
+    if not item_data.get("Id"):
+        if item_data.get("Name"):
+            item_name = item_data.get("Name")
         else:
             return None
-    elif item_data.get('Id').isdigit():
+    elif item_data.get("Id").isdigit():
         item_name = f"{item_data.get('Id').zfill(padding)}-{item_data.get('Name')}"
-    elif item_data.get('Id') == item_data.get('Name'):
-        item_name = item_data.get('Name')
-    elif item_data.get('Description') == "Represents Firmware Inventory":
-        prefix = item_data.get('Id').split("-")[0]
+    elif item_data.get("Id") == item_data.get("Name"):
+        item_name = item_data.get("Name")
+    elif item_data.get("Description") == "Represents Firmware Inventory":
+        prefix = item_data.get("Id").split("-")[0]
         item_name = f"{prefix}-{item_data.get('Name')}"
     else:
         item_name = f"{item_data.get('Id')}-{item_data.get('Name')}"
@@ -52,7 +52,7 @@ def _item_name(item_data, padding):
 
 def inventory_redfish_firmware(section: RedfishAPIData) -> InventoryResult:
     """create inventory table for firmware"""
-    path = ["hardware", "firmware", "redfish"]
+    path = ["hardware", "firmware"]
     if section.get("FirmwareInventory", {}).get("Current"):
         data = section.get("FirmwareInventory", {}).get("Current")
         padding = len(str(len(data)))
@@ -75,10 +75,10 @@ def inventory_redfish_firmware(section: RedfishAPIData) -> InventoryResult:
             item_name = _item_name(entry, padding)
             if not item_name:
                 continue
-            if entry.get('Description') == "Represents Firmware Inventory":
-                description = entry.get('Id')
+            if entry.get("Description") == "Represents Firmware Inventory":
+                description = entry.get("Id")
             else:
-                description = entry.get('Description')
+                description = entry.get("Description")
             yield TableRow(
                 path=path,
                 key_columns={
@@ -104,6 +104,8 @@ def discovery_redfish_firmware(section: RedfishAPIData) -> DiscoveryResult:
         yield Service()
 
 
+# TODO: this outputs html
+# TODO: for manpage: which agents generate this?
 def check_redfish_firmware(section: RedfishAPIData) -> CheckResult:
     """check the health state of the firmware"""
 
@@ -117,16 +119,12 @@ def check_redfish_firmware(section: RedfishAPIData) -> CheckResult:
             continue
         component_name = _item_name(entry, padding)
         comp_state, comp_msg = redfish_health_state(entry.get("Status", {}))
-        if entry.get("Status", {}).get("State", "UNKNOWN") == "StandbyOffline":
-            comp_state = 0
-        if entry.get("Status", {}).get("State", "UNKNOWN") == "Disabled":
+        if entry.get("Status", {}).get("State", "UNKNOWN") in ["StandbyOffline", "Disabled"]:
             comp_state = 0
         overall_state = max(overall_state, comp_state)
         if comp_state != 0:
             msg_text += f"{component_name} - {comp_msg} - "
-        info_list.append(
-            [component_name, comp_msg, entry.get("Version"), entry.get("Updateable")]
-        )
+        info_list.append([component_name, comp_msg, entry.get("Version"), entry.get("Updateable")])
 
     if not msg_text:
         msg_text = "All firmware in optimal state"

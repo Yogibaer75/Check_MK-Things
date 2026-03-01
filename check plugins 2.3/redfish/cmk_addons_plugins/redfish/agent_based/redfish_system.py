@@ -5,8 +5,9 @@
 # (c) Andre Eckstein <andre.eckstein@bechtle.com>
 
 # License: GNU General Public License v2
-
+import json
 from typing import Any, Dict, Mapping
+
 from cmk.agent_based.v2 import (
     AgentSection,
     CheckPlugin,
@@ -15,57 +16,66 @@ from cmk.agent_based.v2 import (
     Result,
     Service,
     State,
+    StringTable,
 )
-from cmk_addons.plugins.redfish.lib import RedfishAPIData, parse_redfish, redfish_health_state
+from cmk_addons.plugins.redfish.lib import (
+    RedfishAPIData,
+    redfish_health_state,
+)
 
 Section = Dict[str, Mapping[str, Any]]
 
 
-agent_section_apt = AgentSection(
+def parse_redfish_system(string_table: StringTable) -> Section | None:
+    if not string_table:
+        return None
+
+    raw = json.loads(string_table[0][0])
+    return {
+        str(entry.get("Id", "0")): {str(k): v for k, v in entry.items()}
+        for entry in raw
+    }
+
+
+agent_section_redfish_system = AgentSection(
     name="redfish_system",
-    parse_function=parse_redfish,
+    parse_function=parse_redfish_system,
     parsed_section_name="redfish_system",
 )
 
 
 def discover_redfish_system(section: RedfishAPIData) -> DiscoveryResult:
-    if not section:
-        return
-    if len(section) == 1:
-        yield Service(item="state")
-    else:
-        for element in section:
-            item = f"state {element.get('Id', '0')}"
-            yield Service(item=item)
+    yield from (Service(item=item) for item in section)
 
 
 def check_redfish_system(item: str, section: RedfishAPIData) -> CheckResult:
-    if not section:
+    if not (data := section.get(item)):
         return
-    data = None
-    if len(section) == 1:
-        data = section[0]
+
+    if serial := data.get("SerialNumber"):
+        yield Result(state=State(0), summary=f"Serial Number: {serial}")
+
+    details = []
+    if sku_data := data.get("SKU"):
+        details.append(f"SKU: {sku_data}")
+
+    if dell_data := (data.get("Oem") or {}).get("Dell", {}).get("DellSystem", {}):
+        for key in dell_data.keys():
+            if "Rollup" in key or "Tag" in key or "Code" in key:
+                key_name = (
+                    key.replace("Rollup", " Rollup")
+                    .replace("Status", " Status")
+                    .strip()
+                )
+                details.append(f"{key_name}: {dell_data[key]}")
+
+    if details:
+        details_msg = "\n".join(details)
     else:
-        for element in section:
-            if f"state {element.get('Id')}" == item:
-                data = element
-                break
+        details_msg = "No additional details available."
 
-    if not data:
-        return
-
-    state = data.get("Status", {"Health": "Unknown"})
-    result_state, state_text = redfish_health_state(state)
-    message = (
-        f"System with SerialNr: {data.get('SerialNumber')}, has State: {state_text}"
-    )
-
-    yield Result(state=State(result_state), summary=message)
-    try:
-        service_tag = data.get("Oem", {}).get("Dell", {}).get("DellSystem", {}).get("ChassisServiceTag")
-        yield Result(state=State(0), notice="placeholder text", details=f"Service Tag: {service_tag}")
-    except AttributeError:
-        pass
+    dev_state, dev_msg = redfish_health_state(data.get("Status", {}))
+    yield Result(state=State(dev_state), summary=dev_msg, details=details_msg)
 
 
 check_plugin_redfish_system = CheckPlugin(

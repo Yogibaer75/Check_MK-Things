@@ -76,3 +76,13 @@ Changelog for CMK 2.3 version:
 - 2.3.75 - firmware state disabled is ok
 - 2.3.76 - fixed bug for HPE devices without manager in data
 - 2.3.77 - fixed bug if voltages gone missing
+- 2.3.78 - I think last version for CMK 2.3 - backported all changes/fixes from 2.4 version
+  - Inventory data
+  - PDU status
+  - Power consumption & redundancy
+  - modifications to special agents for the new checks
+  - HW/SW inventory same path for firmware and hardware components
+  - checks of storage controllers can be configured to be full or rollup only
+  - ignore some stupid device levels of 0 degrees on some HPE temp sensors
+  - same output for SSD utilization and SSD wear level --> Media Life Left
+  - Link state discovery for ethernet interfaces from @Ma7h1

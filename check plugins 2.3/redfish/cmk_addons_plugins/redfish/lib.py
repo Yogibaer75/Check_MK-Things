@@ -6,7 +6,7 @@
 # License: GNU General Public License v2
 
 import json
-from typing import Any, Dict, NamedTuple, Optional, Tuple
+from typing import Any, Dict, NamedTuple, Optional, Tuple, Mapping
 from cmk.agent_based.v2 import DiscoveryResult, Service, StringTable
 
 
@@ -39,7 +39,7 @@ def parse_redfish_multiple(string_table: StringTable) -> RedfishAPIData:
         "SmartStorageLogicalDrive",
     ]
 
-    parsed = {}
+    parsed: Mapping[str, Any] = {}
     for line in string_table:
         entry = json.loads(line[0])
         # error entry
@@ -206,8 +206,10 @@ def process_redfish_perfdata(entry: Dict[str, Any]):
     if upper_warn is not None and upper_crit is None:
         upper_crit = float("inf")
 
-    def optional_tuple(warn: Optional[float], crit: Optional[float]) -> Levels:
+    def optional_tuple(warn: Optional[float], crit: Optional[float]) -> Levels | None:
         assert (warn is None) == (crit is None)
+        if warn == 0 and crit == 0:
+            return None
         if warn is not None and crit is not None:
             return ("fixed", (warn, crit))
         return None

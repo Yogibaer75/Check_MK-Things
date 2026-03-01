@@ -22,9 +22,6 @@ from cmk.special_agents.v0_unstable.argument_parsing import (
 )
 from cmk.utils import password_store
 from redfish.rest.v1 import RetriesExhaustedError, ServerDownOrUnreachableError, JsonDecodingError
-from cmk_addons.plugins.redfish.tools import (
-    verify_response
-)
 
 
 def parse_arguments(argv: Sequence[str] | None) -> Args:
@@ -378,13 +375,14 @@ def detect_vendor(root_data):
 
 def get_information(redfishobj):
     """get a the information from the Redfish management interface"""
-    sections = ["PowerEquipment", "RackPDUs"]
+    sections = ["PowerEquipment", "RackPDUs", "Sensors", "Mains"]
     base_data = fetch_data(redfishobj, "/redfish/v1", "Base")
 
     vendor_data = detect_vendor(base_data)
 
     manager_url = base_data.get("Managers", {}).get("@odata.id")
     systems_url = base_data.get("PowerEquipment", {}).get("@odata.id")
+    chasis_url = base_data.get("Chassis", {}).get("@odata.id")
 
     manager_data = False
 
@@ -400,6 +398,19 @@ def get_information(redfishobj):
     with SectionWriter("check_mk", " ") as w:
         w.append("Version: 2.0")
         w.append(f"AgentOS: {vendor_data.version} - {vendor_data.firmware_version}")
+
+    if chasis_url:
+        chasis_col = fetch_data(redfishobj, chasis_url, "Chassis")
+        chasis_data = fetch_collection(redfishobj, chasis_col, "Chassis")
+        with SectionWriter("redfish_chassis") as w:
+            w.append_json(chasis_data)
+        chassis_sections = [
+            "Sensors",
+        ]
+        resulting_sections = list(set(chassis_sections).intersection(sections))
+        for chassis in chasis_data:
+            result = fetch_sections(redfishobj, resulting_sections, sections, chassis)
+            process_result(result)
 
     # fetch systems
     systems_data = list([fetch_data(redfishobj, systems_url, "PowerEquipment")])

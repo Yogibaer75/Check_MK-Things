@@ -21,35 +21,29 @@ from cmk_addons.plugins.redfish.lib import (
 
 def discover_redfish_memory_summary(section: RedfishAPIData) -> DiscoveryResult:
     if len(section) == 1:
-        for element in section:
-            if "MemorySummary" in element.keys():
-                yield Service(item="Summary")
+        if not list(section.values())[0].get("MemorySummary", {}):
+            return
+        yield Service(item="Summary")
     else:
-        for element in section:
-            if "MemorySummary" in element.keys():
-                item = f"Summary {element.get('Id', '0')}"
-                yield Service(item=item)
+        for item, data in section.items():
+            if not data.get("MemorySummary", {}):
+                continue
+            yield Service(item=f"Summary {item}")
 
 
 def check_redfish_memory_summary(item: str, section: RedfishAPIData) -> CheckResult:
-    result = None
+    result = {}
     if len(section) == 1:
-        result = section[0].get("MemorySummary")
+        result = list(section.values())[0].get("MemorySummary", {})
     else:
-        for element in section:
-            if "MemorySummary" in element.keys():
-                if item == f"Summary {element.get('Id', '0')}":
-                    result = element.get("MemorySummary")
-                    break
-
+        systemid = item.split(" ")[-1]
+        result = section.get(systemid, {}).get("MemorySummary", {})
     if not result:
         return
 
     state = result.get("Status", {"Health": "Unknown"})
     result_state, state_text = redfish_health_state(state)
-    message = (
-        f"Capacity: {result.get('TotalSystemMemoryGiB')}GB, with State: {state_text}"
-    )
+    message = f"Capacity: {result.get('TotalSystemMemoryGiB')}GB, with State: {state_text}"
 
     yield Result(state=State(result_state), summary=message)
 

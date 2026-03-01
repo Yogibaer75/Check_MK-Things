@@ -36,10 +36,26 @@ def discovery_redfish_storage(section: RedfishAPIData) -> DiscoveryResult:
         yield Service(item=section[key]["Id"])
 
 
-def check_redfish_storage(item: str, section: RedfishAPIData) -> CheckResult:
+def discovery_redfish_storage_battery(section: RedfishAPIData) -> DiscoveryResult:
+    """Discover single controller batteries"""
+    for key in section.keys():
+        if section[key].get("Status", {}).get("State") == "UnavailableOffline":
+            continue
+        if (section[key].get("Oem") or {}).get("Dell", {}).get(
+            "DellControllerBattery", None
+        ) is not None:
+            yield Service(item=section[key]["Id"])
+
+
+def check_redfish_storage(item: str, params: dict, section: RedfishAPIData) -> CheckResult:
     """Check single Controller state"""
     data = section.get(item, None)
     if data is None:
+        return
+
+    if params.get("check_type", "full") == "rollup":
+        dev_state, dev_msg = redfish_health_state(data.get("Status", {}))
+        yield Result(state=State(dev_state), summary=dev_msg)
         return
 
     controller_list = data.get("StorageControllers", [])
@@ -80,4 +96,39 @@ check_plugin_redfish_storate = CheckPlugin(
     sections=["redfish_storage"],
     discovery_function=discovery_redfish_storage,
     check_function=check_redfish_storage,
+    check_default_parameters={},
+    check_ruleset_name="redfish_storage",
+)
+
+
+def check_redfish_storage_battery(item: str, section: RedfishAPIData) -> CheckResult:
+    """Check single Controller battery state"""
+    data = section.get(item, None)
+    if data is None:
+        return
+
+    battery_data = (
+        data.get("Oem", {}).get("Dell", {}).get("DellControllerBattery", None)
+    )
+    if not battery_data:
+        return
+
+    batt_name = battery_data.get("Name", "Controller Battery")
+    batt_state = battery_data.get("PrimaryStatus", "Unknown")
+    batt_raid_state = battery_data.get("RAIDState", "Unknown")
+    state = 0
+    if batt_state != "OK":
+        state = 2
+    yield Result(
+        state=State(state),
+        summary=f"{batt_name} state: {batt_state}, RAID Status: {batt_raid_state}",
+    )
+
+
+check_plugin_redfish_storate_battery = CheckPlugin(
+    name="redfish_storage_battery",
+    service_name="Storage controller %s battery",
+    sections=["redfish_storage"],
+    discovery_function=discovery_redfish_storage_battery,
+    check_function=check_redfish_storage_battery,
 )
