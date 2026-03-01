@@ -85,4 +85,4 @@ Changelog for CMK 2.3 version:
   - checks of storage controllers can be configured to be full or rollup only
   - ignore some stupid device levels of 0 degrees on some HPE temp sensors
   - same output for SSD utilization and SSD wear level --> Media Life Left
-  - Link state discovery for ethernet interfaces from @Ma7h1
+  - Link state discovery for ethernet interfaces from [@Ma7h1](https://github.com/Ma7h1)
