@@ -86,3 +86,4 @@ Changelog for CMK 2.3 version:
   - ignore some stupid device levels of 0 degrees on some HPE temp sensors
   - same output for SSD utilization and SSD wear level --> Media Life Left
   - Link state discovery for ethernet interfaces from [@Ma7h1](https://github.com/Ma7h1)
+- 2.3.79 - discovery option for drive item names
