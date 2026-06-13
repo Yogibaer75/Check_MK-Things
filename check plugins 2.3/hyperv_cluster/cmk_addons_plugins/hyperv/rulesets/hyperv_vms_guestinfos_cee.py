@@ -1,17 +1,16 @@
 #!/usr/bin/python
 '''Deployment rule for Hyper-V VMs GuestInfos plugin'''
-# -*- encoding: utf-8; py-indent-offst: 4 -*-
-
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
 # License: GNU General Public License v2
 
-from cmk.rulesets.v1 import Title, Label, Help
-from cmk.rulesets.v1.form_specs import (
+from cmk.rulesets.v1 import Help, Label, Title  # type: ignore[import]
+from cmk.rulesets.v1.form_specs import (  # type: ignore[import]
     BooleanChoice,
     DictElement,
     Dictionary,
 )
-from cmk.rulesets.v1.rule_specs import AgentConfig, Topic
+from cmk.rulesets.v1.rule_specs import AgentConfig, Topic  # type: ignore[import]
 
 
 def _valuespec_agent_config_hyperv_hyperv_vm_info():

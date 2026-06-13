@@ -1,7 +1,12 @@
 #!/usr/bin/python
-# # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
-from cmk.agent_based.v2 import (
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# License: GNU General Public License v2
+
+from cmk_addons.plugins.hyperv.lib import parse_hyperv
+
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -10,7 +15,6 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
-from cmk_addons.plugins.hyperv.lib import parse_hyperv
 
 
 def discovery_hyperv_cluster_disks(section) -> DiscoveryResult:
@@ -29,10 +33,9 @@ def check_hyperv_cluster_disks(item: str, section) -> CheckResult:
     state = 0
     if disk["cluster.disk.state"] != "Online":
         state = 3
-    message = "is %s, with owner %s and group %s." % (
-        disk["cluster.disk.state"],
-        disk["cluster.disk.owner_node"],
-        disk["cluster.disk.owner_group"],
+    message = (
+        f"is {disk['cluster.disk.state']}, with owner {disk['cluster.disk.owner_node']}"
+        f"and group {disk['cluster.disk.owner_group']}."
     )
     yield Result(state=State(state), summary=message)
 

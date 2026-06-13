@@ -19,3 +19,7 @@ Changelog:
 - 3.3.8 - modified deployment rule for cluster plugin
 - 3.3.10 - typo
 - 3.3.11 - HyperV roles cluster check function added
+- 3.3.15 - wrong default params fixed
+- 3.3.16 - second fix for default params
+- 3.3.17 - make mypy happy
+- 3.3.19 - same patchlevel as CMK2.5 version

@@ -1,10 +1,15 @@
 #!/usr/bin/python
-# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# License: GNU General Public License v2
 
 from collections.abc import Mapping
-from typing import Any, Dict
+from typing import Any
 
-from cmk.agent_based.v2 import (
+from cmk_addons.plugins.hyperv.lib import parse_hyperv_nic
+
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -13,21 +18,22 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
-from cmk_addons.plugins.hyperv.lib import parse_hyperv_nic
 
-Section = Dict[str, Mapping[str, Any]]
+Section = dict[str, Mapping[str, Any]]
 
 
 def discovery_hyperv_vm_nic(section) -> DiscoveryResult:
     for key, values in section.items():
         if "nic.connectionstate" in values:
-            yield Service(item=values['nic.name'], parameters={"state": values['nic.connectionstate']})
+            yield Service(
+                item=values["nic.name"], parameters={"state": values["nic.connectionstate"]}
+            )
 
 
 def check_hyperv_vm_nic(item: str, params, section: Section) -> CheckResult:
-    data = {}
+    data: Mapping[str, Any] = {}
     for key, values in section.items():
-        if values.get('nic.name') == item:
+        if values.get("nic.name") == item:
             data = values
 
     if not data:

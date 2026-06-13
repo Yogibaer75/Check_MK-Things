@@ -1,24 +1,31 @@
 #!/usr/bin/python
-# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# License: GNU General Public License v2
 
 from collections.abc import Mapping
-from typing import Any, Dict
+from typing import Any
 
-from cmk.agent_based.v2 import (
+from cmk_addons.plugins.hyperv.lib import parse_hyperv
+
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
     DiscoveryResult,
+    get_value_store,
+    render,
     Result,
     Service,
     State,
-    get_value_store,
-    render,
 )
-from cmk.plugins.lib.df import FILESYSTEM_DEFAULT_PARAMS, df_check_filesystem_single
-from cmk_addons.plugins.hyperv.lib import parse_hyperv
+from cmk.plugins.lib.df import (  # type: ignore[import]
+    df_check_filesystem_single,
+    FILESYSTEM_DEFAULT_PARAMS,
+)
 
-Section = Dict[str, Mapping[str, Any]]
+Section = dict[str, dict[str, Any]]
 
 
 def discovery_hyperv_cluster_csv(section: Section) -> DiscoveryResult:
@@ -26,19 +33,17 @@ def discovery_hyperv_cluster_csv(section: Section) -> DiscoveryResult:
         yield Service(item=csv)
 
 
-def check_hyperv_cluster_csv(
-    item: str, params: Mapping[str, Any], section: Section
-) -> CheckResult:
+def check_hyperv_cluster_csv(item: str, params: Mapping[str, Any], section: Section) -> CheckResult:
     value_store = get_value_store()
-    csv = section.get(item, "")
+    csv = section.get(item, {})
 
     if not csv:
         yield Result(state=State(3), summary="CSV not found in agent output")
         return
 
     mega = 1024.0 * 1024.0
-    size_total = int(csv.get("cluster.csv.size")) / mega
-    size_avail = int(csv.get("cluster.csv.free_space")) / mega
+    size_total = int(csv.get("cluster.csv.size") or 0) / mega
+    size_avail = int(csv.get("cluster.csv.free_space") or 0) / mega
 
     if section.get("ignore_levels"):
         message = f"Total size: {render.bytes(size_total)}, Used space is ignored"

@@ -1,23 +1,28 @@
 #!/usr/bin/python
-# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# License: GNU General Public License v2
+
 import time
 from collections.abc import Mapping
-from typing import Any, Dict
+from typing import Any
 
-from cmk.agent_based.v2 import (
+from cmk_addons.plugins.hyperv.lib import parse_hyperv_io
+
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
     DiscoveryResult,
+    get_value_store,
     Result,
     Service,
     State,
-    get_value_store,
 )
-from cmk.plugins.lib.diskstat import check_diskstat_dict
-from cmk_addons.plugins.hyperv.lib import parse_hyperv_io
+from cmk.plugins.lib.diskstat import check_diskstat_dict  # type: ignore[import]
 
-Section = Dict[str, Mapping[str, Any]]
+Section = dict[str, dict[str, Any]]
 
 
 def discovery_hyperv_host_io_local(section: Section) -> DiscoveryResult:
@@ -29,7 +34,7 @@ def check_hyperv_host_io_local(
     item: str, params: Mapping[str, Any], section: Section
 ) -> CheckResult:
 
-    lun = section.get(item, "")
+    lun = section.get(item, {})
 
     if not lun:
         yield Result(state=State(3), summary="CSV not found in agent output")

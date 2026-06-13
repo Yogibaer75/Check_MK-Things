@@ -1,10 +1,15 @@
 #!/usr/bin/python
-# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# License: GNU General Public License v2
 
 from collections.abc import Mapping
-from typing import Any, Dict
+from typing import Any
 
-from cmk.agent_based.v2 import (
+from cmk_addons.plugins.hyperv.lib import hyperv_vm_convert
+
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -13,9 +18,8 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
-from cmk_addons.plugins.hyperv.lib import hyperv_vm_convert
 
-Section = Dict[str, Mapping[str, Any]]
+Section = dict[str, Mapping[str, Any]]
 
 
 def discovery_hyperv_vm_ram(section) -> DiscoveryResult:
@@ -29,16 +33,13 @@ def check_hyperv_vm_ram(section: Section) -> CheckResult:
 
     elif section.get("config.hardware.RAMType") == "Dynamic Memory":
         message = (
-            "Dynamic Memory configured with %s MB minimum and %s MB maximum - start %s MB"
-            % (
-                section.get("config.hardware.MinRAM", "missing"),
-                section.get("config.hardware.MaxRAM", "missing"),
-                section.get("config.hardware.StartRAM", "missing"),
-            )
+            f"Dynamic Memory configured with {section.get('config.hardware.MinRAM', 'missing')} MB"
+            f" minimum and {section.get('config.hardware.MaxRAM', 'missing')} MB maximum"
+            f" - start {section.get('config.hardware.StartRAM', 'missing')} MB"
         )
     else:
-        message = "Static Memory configured with %s MB" % section.get(
-            "config.hardware.RAM", "missing"
+        message = (
+            f"Static Memory configured with {section.get('config.hardware.RAM', 'missing')} MB"
         )
 
     yield Result(state=State(0), summary=message)

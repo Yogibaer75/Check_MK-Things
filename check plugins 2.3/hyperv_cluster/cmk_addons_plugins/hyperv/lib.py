@@ -1,5 +1,12 @@
 #!/usr/bin/python
-# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+from collections.abc import Mapping
+
+from cmk.agent_based.v2 import (  # type: ignore[import]
+    StringTable,
+)
+
+Section = Mapping[str, Mapping[str, str]]
 
 def hyperv_vm_general(string_table):
     parsed = {}
@@ -30,8 +37,8 @@ def hyperv_vm_convert(string_table):
 
 
 counter_translation = {
-    "durchschnittl. warteschlangenlänge der datenträger-lesevorgänge": "avg. disk read queue length",
-    "durchschnittl. warteschlangenlänge der datenträger-schreibvorgänge": "avg. disk write queue length",
+    "durchschnittl. warteschlangenlänge der datenträger-lesevorgänge": "avg. disk read queue length", # NOQA: E501
+    "durchschnittl. warteschlangenlänge der datenträger-schreibvorgänge": "avg. disk write queue length", # NOQA: E501
     "mittlere sek./lesevorgänge": "avg. disk sec/read",
     "mittlere sek./schreibvorgänge": "avg. disk sec/write",
     "lesevorgänge/s": "disk reads/sec",
@@ -40,13 +47,23 @@ counter_translation = {
     "bytes geschrieben/s": "disk write bytes/sec",
 }
 
+HYPERV_IO_SPLIT_SIMPLE = 2
+HYPERV_IO_SPLIT_EXTENDED = 5
 
-def parse_hyperv_io(string_table):
-    parsed = {}
+
+def parse_hyperv_io(string_table: StringTable) -> Section:
+    parsed: dict[str, dict[str, str]] = {}
     for line in string_table:
         value = line[-1]
         data = " ".join(line[:-1])
-        _empty, _empty2, host, lun, name = data.split('\\', 4)
+        splitted_data = data.split("\\", 4)
+        if len(splitted_data) == HYPERV_IO_SPLIT_SIMPLE:
+            lun, name = splitted_data
+            host = ""
+        elif len(splitted_data) == HYPERV_IO_SPLIT_EXTENDED:
+            _empty, _empty2, host, lun, name = splitted_data
+        else:
+            continue
         if name in counter_translation.keys():
             name = counter_translation[name]
         if lun not in parsed:
@@ -58,15 +75,15 @@ def parse_hyperv_io(string_table):
 
 def parse_hyperv(string_table):
     datatypes = {
-        "vhd" : "vhd.name",
-        "nic" : "nic.name",
-        "checkpoints" : "checkpoint.name",
-        "cluster.number_of_nodes" : "cluster.node.name",
-        "cluster.number_of_csv" : "cluster.csv.name",
-        "cluster.number_of_disks" : "cluster.disk.name",
-        "cluster.number_of_vms" : "cluster.vm.name",
-        "cluster.number_of_roles" : "cluster.role.name",
-        "cluster.number_of_networks" : "cluster.network.name",
+        "vhd": "vhd.name",
+        "nic": "nic.name",
+        "checkpoints": "checkpoint.name",
+        "cluster.number_of_nodes": "cluster.node.name",
+        "cluster.number_of_csv": "cluster.csv.name",
+        "cluster.number_of_disks": "cluster.disk.name",
+        "cluster.number_of_vms": "cluster.vm.name",
+        "cluster.number_of_roles": "cluster.role.name",
+        "cluster.number_of_networks": "cluster.network.name",
     }
 
     parsed = {}
@@ -77,20 +94,20 @@ def parse_hyperv(string_table):
     datatype_name = string_table[0][0]
     element = ""
     start = False
-    count = int(string_table[0][1])
+    _count = int(string_table[0][1])
     counter = 1
     for line in string_table:
-        if line[0] == datatype:
+        if line[0].lower() == datatype:
             if start is True:
                 counter += 1
             else:
                 start = True
             if datatype == "nic.name":
-                element = " ".join(line[1:]) + " %s" % counter
+                element = " ".join(line[1:]) + f" {counter}"
             else:
                 element = " ".join(line[1:])
             parsed[element] = {}
-        elif start == True:
+        elif start:
             parsed[element][line[0]] = " ".join(line[1:])
 
     if datatype_name == "checkpoints" and parsed == {}:
@@ -103,7 +120,7 @@ def parse_hyperv_nic(string_table):
     if len(string_table) == 0:
         return parsed
 
-    number_of_nics = int(string_table[0][1])
+    _number_of_nics = int(string_table[0][1])
     counter = 1
     start = False
     nic_id = ""

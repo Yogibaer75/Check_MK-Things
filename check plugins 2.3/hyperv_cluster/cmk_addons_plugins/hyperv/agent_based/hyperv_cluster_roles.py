@@ -1,10 +1,15 @@
 #!/usr/bin/python
-# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# License: GNU General Public License v2
 
 from collections.abc import Mapping
-from typing import Any, Dict, Optional
+from typing import Any
 
-from cmk.agent_based.v2 import (
+from cmk_addons.plugins.hyperv.lib import parse_hyperv
+
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -13,18 +18,20 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
-from cmk_addons.plugins.hyperv.lib import parse_hyperv
 
-Section = Dict[str, Mapping[str, Any]]
+Section = dict[str, dict[str, Any]]
 
 
 hyperv_cluster_roles_default_levels = {
-    "states": {
-        "active": 0,
-        "inactive": 1,
-        "Online": 0,
-        "Offline": 1,
-    }
+    "default_status": "active",
+    "match_services": [],
+}
+
+states = {
+    "active": 0,
+    "inactive": 1,
+    "Online": 0,
+    "Offline": 1,
 }
 
 
@@ -38,7 +45,7 @@ def check_hyperv_cluster_roles(
     item: str, params: Mapping[str, Any], section: Section
 ) -> CheckResult:
     """Check function"""
-    vm = section.get(item, "")
+    vm = section.get(item, {})
 
     translate_state = {
         "active": "Online",
@@ -46,9 +53,6 @@ def check_hyperv_cluster_roles(
     }
 
     if not vm:
-        # yield Result(state=State(0), summary="VM not found in agent output")
-        # yield removed as in cluster situations we need no output from nodes without this VM
-        # cluster check function added below
         return
 
     state = 0
@@ -72,12 +76,10 @@ def check_hyperv_cluster_roles(
             message = f"power state: {vm.get("cluster.vm.state")} - wanted state: {wanted_state}"
             yield Result(state=State(state), summary=message)
     else:
-        if params.get("states") == "ignore":
+        if params.get("default_status") == "ignore":
             state = 0
         else:
-            state = hyperv_cluster_roles_default_levels.get("states", {}).get(
-                vm.get("cluster.vm.state"), 3
-            )
+            state = states.get(vm.get("cluster.vm.state") or "Unknown", 3)
         message = f"power state: {vm.get("cluster.vm.state")}"
         yield Result(state=State(state), summary=message)
 
@@ -91,11 +93,13 @@ def check_hyperv_cluster_roles(
 
 
 def cluster_check_hyperv_cluster_roles(
-    item: str, params: Mapping[str, Any], section: Mapping[str, Optional[Section]]
+    item: str, params: Mapping[str, Any], section: Mapping[str, Section | None]
 ) -> CheckResult:
     """Cluster check function"""
     found = []
     for node, node_section in section.items():
+        if not node_section:
+            continue
         results = list(check_hyperv_cluster_roles(item, params, node_section))
         if results:
             found.append((node, results[0]))

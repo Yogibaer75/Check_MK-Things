@@ -1,8 +1,11 @@
 #!/usr/bin/python
-# -*- encoding: utf-8; py-indent-offset: 4 -*-
 
-from cmk.rulesets.v1 import Title
-from cmk.rulesets.v1.form_specs import (
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# License: GNU General Public License v2
+
+from cmk.rulesets.v1 import Title  # type: ignore[import]
+from cmk.rulesets.v1.form_specs import (  # type: ignore[import]
     DefaultValue,
     DictElement,
     Dictionary,
@@ -11,7 +14,7 @@ from cmk.rulesets.v1.form_specs import (
     SingleChoiceElement,
     String,
 )
-from cmk.rulesets.v1.rule_specs import (
+from cmk.rulesets.v1.rule_specs import (  # type: ignore[import]
     CheckParameters,
     HostCondition,
     LengthInRange,
@@ -19,20 +22,21 @@ from cmk.rulesets.v1.rule_specs import (
 )
 
 
-def _migrate_tuple(value) -> dict:
+def _migrate_tuple(value) -> list[dict[str, str]]:
     """
     Convert a list of tuple to a list of dictionary with keys 'service_name' and 'state'.
     """
     if isinstance(value, list):
         if all(isinstance(item, dict) for item in value):
             return value
+        ITEMLENGTH = 2
         return [
             {
                 "service_name": item[0],
                 "state": item[1],
             }
             for item in value
-            if isinstance(item, tuple) and len(item) == 2
+            if isinstance(item, tuple) and len(item) == ITEMLENGTH
         ]
     return value
 

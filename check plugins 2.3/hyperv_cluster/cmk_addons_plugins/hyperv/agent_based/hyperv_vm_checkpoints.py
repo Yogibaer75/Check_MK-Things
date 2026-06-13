@@ -1,24 +1,28 @@
 #!/usr/bin/python
-# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# License: GNU General Public License v2
 
 import time
 from collections.abc import Mapping
-from typing import Any, Dict
+from typing import Any
 
-from cmk.agent_based.v2 import (
+from cmk_addons.plugins.hyperv.lib import parse_hyperv
+
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
     DiscoveryResult,
     Metric,
+    render,
     Result,
     Service,
     State,
-    render,
 )
-from cmk_addons.plugins.hyperv.lib import parse_hyperv
 
-Section = Dict[str, Mapping[str, Any]]
+Section = dict[str, Mapping[str, Any]]
 
 
 def discovery_hyperv_vm_checkpoints(section) -> DiscoveryResult:
@@ -26,24 +30,22 @@ def discovery_hyperv_vm_checkpoints(section) -> DiscoveryResult:
         yield Service()
 
 
-def check_hyperv_vm_checkpoints(
-    params: Mapping[str, Any], section: Section
-) -> CheckResult:
+def check_hyperv_vm_checkpoints(params: Mapping[str, Any], section: Section) -> CheckResult:
     if len(section) > 0:
         last_checkpoint = float("inf")
         last_checkpoint_name = ""
-        oldest_checkpoint = 0
+        oldest_checkpoint: float = 0
         if section.get("no_checkpoints"):
             yield Result(state=State(0), summary="No checkpoints existing")
             return
 
         for checkpoint in section:
-            checkpoint_date = section[checkpoint].get("checkpoint.created")
+            checkpoint_date = section[checkpoint].get("checkpoint.created") or ""
             checkpoint_time = time.strptime(checkpoint_date, "%d.%m.%Y %H:%M:%S")
             checkpoint_age = time.time() - time.mktime(checkpoint_time)
             if checkpoint_age > oldest_checkpoint:
                 oldest_checkpoint = checkpoint_age
-                oldest_checkpoint_name = checkpoint
+                _oldest_checkpoint_name = checkpoint
             if checkpoint_age < last_checkpoint:
                 last_checkpoint = checkpoint_age
                 last_checkpoint_name = checkpoint
@@ -69,7 +71,7 @@ def check_hyperv_vm_checkpoints(
             if crit < warn:
                 crit = float("inf")
             if last_checkpoint > crit:
-                message = f"Last Checkpoint is older than { render.timespan(crit)}"
+                message = f"Last Checkpoint is older than {render.timespan(crit)}"
                 yield Result(state=State(2), summary=message)
             elif last_checkpoint > warn:
                 message = f"Last Checkpoint is older than {render.timespan(warn)}"
@@ -80,7 +82,9 @@ def check_hyperv_vm_checkpoints(
                     levels=(warn, crit),
                 )
         else:
-            message = f"Last Checkpoint: {last_checkpoint_name} is {render.timespan(last_checkpoint)} old"
+            message = (
+                f"Last Checkpoint: {last_checkpoint_name} is {render.timespan(last_checkpoint)} old"
+            )
 
         yield Result(state=State(0), summary=message)
 

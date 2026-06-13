@@ -1,4 +1,22 @@
-"<<<hyperv_host_io_local>>>"
+### common powershell header for all checkmk windows agents plugins
+
+$pshost = Get-Host              # Get the PowerShell Host.
+$pswindow = $pshost.UI.RawUI    # Get the PowerShell Host's UI.
+
+$newsize = $pswindow.BufferSize # Get the UI's current Buffer Size.
+$newsize.height = 300          # Set the new buffer's heigt to 300 lines.
+$newsize.width = 200            # Set the new buffer's width to 200 columns.
+$pswindow.buffersize = $newsize # Set the new Buffer Size as active.
+
+$newsize = $pswindow.windowsize # Get the UI's current Window Size.
+$newsize.width = 200            # Set the new Window Width to 200 columns.
+$pswindow.windowsize = $newsize # Set the new Window Size as active.
+
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($true)
+
+###
+
+Write-Host("<<<hyperv_host_io_local>>>")
 
 $MaxSamples = 1
 $Interval = 1
@@ -13,8 +31,8 @@ $Splat = @{
 
 $customobjects = @()
 
-Get-Counter @Splat | ForEach-Object {
-    $_.CounterSamples | ForEach-Object {
+Get-Counter @Splat | ForEach {
+    $_.CounterSamples | ForEach {
         $customobjects += [pscustomobject]@{
             Path = $_.Path
             Value = $_.CookedValue
@@ -62,13 +80,13 @@ foreach ( $volume in $counts) {
 
 $hostname = $env:COMPUTERNAME.ToLower()
 
-$resultlist | Select-Object Path, Value | ForEach-Object {
+$resultlist | select Path, Value | % {
     $_.Path = [regex]::Replace($_.Path, "\\\\$hostname\\physicaldisk\([0-9]+\)","");
     $_.Value = $_.Value;
     return $_;
 } | Format-Table -HideTableHeaders
 
-'<<<hyperv_host_io_remote>>>'
+Write-Host("<<<hyperv_host_io_remote>>>")
 
 $resultlist = @()
 

@@ -1,10 +1,14 @@
 #!/usr/bin/python
-# # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
-from collections.abc import Mapping
-from typing import Any, Dict
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 
-from cmk.agent_based.v2 import (
+# License: GNU General Public License v2
+
+from typing import Any
+
+from cmk_addons.plugins.hyperv.lib import parse_hyperv
+
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -13,9 +17,8 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
-from cmk_addons.plugins.hyperv.lib import parse_hyperv
 
-Section = Dict[str, Mapping[str, Any]]
+Section = dict[str, dict[str, Any]]
 
 
 def discovery_hyperv_cluster_network(section) -> DiscoveryResult:
@@ -25,15 +28,19 @@ def discovery_hyperv_cluster_network(section) -> DiscoveryResult:
 
 def check_hyperv_cluster_network(item: str, section: Section) -> CheckResult:
 
-    network = section.get(item, "")
+    network = section.get(item, {})
 
     if not network:
         yield Result(state=State(3), summary="Network not found in agent output")
 
     state = 0
-    if network["cluster.network.state"] != "Up":
+    if network.get("cluster.network.state") != "Up":
         state = 3
-    message = f"is {network['cluster.network.state']}, has address {network['cluster.network.ip']} and role {network['cluster.network.role']}."
+    message = (
+        f"is {network.get('cluster.network.state')}, "
+        f"has address {network.get('cluster.network.ip')} and "
+        f"role {network.get('cluster.network.role')}."
+    )
     yield Result(state=State(state), summary=message)
 
 

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# License: GNU General Public License v2
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
-from cmk.base.cee.plugins.bakery.bakery_api.v1 import (
+from cmk.base.cee.plugins.bakery.bakery_api.v1 import (  # type: ignore[import]
     FileGenerator,
     OS,
     Plugin,
@@ -12,7 +15,7 @@ from cmk.base.cee.plugins.bakery.bakery_api.v1 import (
 )
 
 
-def get_hyperv_vms_guestinfos_files(conf: Dict[str, Any]) -> FileGenerator:
+def get_hyperv_vms_guestinfos_files(conf: dict[str, Any]) -> FileGenerator:
     if not conf.get("deploy"):
         return
 

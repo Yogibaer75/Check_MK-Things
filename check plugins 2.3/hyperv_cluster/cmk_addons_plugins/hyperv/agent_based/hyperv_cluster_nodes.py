@@ -1,10 +1,14 @@
 #!/usr/bin/python
-# # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
-from collections.abc import Mapping
-from typing import Any, Dict
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
 
-from cmk.agent_based.v2 import (
+# License: GNU General Public License v2
+
+from typing import Any
+
+from cmk_addons.plugins.hyperv.lib import parse_hyperv
+
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -13,9 +17,8 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
-from cmk_addons.plugins.hyperv.lib import parse_hyperv
 
-Section = Dict[str, Mapping[str, Any]]
+Section = dict[str, dict[str, Any]]
 
 
 def discovery_hyperv_cluster_nodes(section) -> DiscoveryResult:
@@ -25,15 +28,19 @@ def discovery_hyperv_cluster_nodes(section) -> DiscoveryResult:
 
 def check_hyperv_cluster_nodes(item: str, section: Section) -> CheckResult:
 
-    node = section.get(item, "")
+    node = section.get(item, {})
 
     if not node:
         yield Result(state=State(3), summary="Node not found in agent output")
 
     state = 0
-    if node["cluster.node.state"] != "Up":
+    if node.get("cluster.node.state") != "Up":
         state = 3
-    message = f"is {node['cluster.node.state']}, has ID {node['cluster.node.id']} and weight {node['cluster.node.weight']}."
+    message = (
+        f"is {node.get('cluster.node.state')}, "
+        f"has ID {node.get('cluster.node.id')} and "
+        f"weight {node.get('cluster.node.weight')}."
+    )
     yield Result(state=State(state), summary=message)
 
 

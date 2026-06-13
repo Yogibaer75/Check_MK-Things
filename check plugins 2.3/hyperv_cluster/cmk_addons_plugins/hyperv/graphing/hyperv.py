@@ -1,12 +1,10 @@
 #!/usr/bin/python
 '''Translation for graphing values'''
-# -*- encoding: utf-8; py-indent-offst: 4 -*-
-
 # (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
 # License: GNU General Public License v2
 
-from cmk.graphing.v1 import translations
-
+from cmk.graphing.v1 import translations  # type: ignore[import]
 
 translation_hyperv = translations.Translation(
     name="hyperv",
@@ -30,7 +28,7 @@ translation_hyperv = translations.Translation(
         ),
         "trend_hoursleft": translations.ScaleBy(3600),
         "uncommitted": translations.ScaleBy(1048576),
-        "~(?!inodes_used|fs_size|growth|trend|reserved|fs_free|fs_provisioning|uncommitted|overprovisioned|dedup_rate|file_count|fs_used_percent).*$": translations.RenameToAndScaleBy(
+        "~(?!inodes_used|fs_size|growth|trend|reserved|fs_free|fs_provisioning|uncommitted|overprovisioned|dedup_rate|file_count|fs_used_percent).*$": translations.RenameToAndScaleBy( # noqa: E501
             "fs_used",
             1048576,
         ),

@@ -1,10 +1,15 @@
 #!/usr/bin/python
-# # -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# License: GNU General Public License v2
 
 from collections.abc import Mapping
-from typing import Any, Dict
+from typing import Any
 
-from cmk.agent_based.v2 import (
+from cmk_addons.plugins.hyperv.lib import hyperv_vm_convert
+
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -13,9 +18,8 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
-from cmk_addons.plugins.hyperv.lib import hyperv_vm_convert
 
-Section = Dict[str, Mapping[str, Any]]
+Section = dict[str, dict[str, Any]]
 
 hyperv_vm_integration_default_levels = {
     "default_status": "active",
@@ -50,7 +54,6 @@ def check_hyperv_vm_integration(
                         break
                 if section[key] == serv_params:
                     yield Result(state=State(0), summary=f"{service} - {section[key]}")
-
                 else:
                     yield Result(state=State(1), summary=f"{service} - {section[key]}")
             else:

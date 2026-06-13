@@ -1,26 +1,30 @@
 #!/usr/bin/python
-# # -*- encoding: utf-8; py-indent-offset: 4 -*-
 
-# from cmk.base.check_legacy_includes.df import *
-# from cmk.base.check_legacy_includes.size_trend import *
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# License: GNU General Public License v2
 
 from collections.abc import Mapping
-from typing import Any, Dict
+from typing import Any
 
-from cmk.agent_based.v2 import (
+from cmk_addons.plugins.hyperv.lib import parse_hyperv
+
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
     DiscoveryResult,
+    get_value_store,
     Result,
     Service,
     State,
-    get_value_store,
 )
-from cmk.plugins.lib.df import FILESYSTEM_DEFAULT_PARAMS, df_check_filesystem_single
-from cmk_addons.plugins.hyperv.lib import parse_hyperv
+from cmk.plugins.lib.df import (  # type: ignore[import]
+    df_check_filesystem_single,
+    FILESYSTEM_DEFAULT_PARAMS,
+)
 
-Section = Dict[str, Mapping[str, Any]]
+Section = dict[str, Mapping[str, Any]]
 
 
 def discovery_hyperv_vm_vhd(section) -> DiscoveryResult:
