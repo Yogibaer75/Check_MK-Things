@@ -18,6 +18,7 @@ from cmk.agent_based.v2 import (
     State,
     StringTable,
 )
+from cmk.plugins.hyperv_cluster.lib import parse_hyperv_json_multi
 
 Section = Mapping[str, Mapping[str, str]]
 RuleParams = dict[str, str | int]
@@ -45,6 +46,18 @@ hyperv_vm_nic_default_params: Final[NicParams] = {
     },
     "state": None,
 }
+
+
+def parse_hyperv_vm_nic_json(string_table: StringTable) -> Section:
+    parsed: dict[str, dict[str, str]] = {}
+    json_data = parse_hyperv_json_multi(string_table)
+    
+    for nic_id, nic_data in json_data.items():
+        if "\\" in nic_id:
+            nic_id = nic_id.split("\\")[-1]
+        parsed[nic_id] = {key: str(value) for key, value in nic_data.items()}
+    
+    return parsed
 
 
 def parse_hyperv_vm_nic(string_table: StringTable) -> Section:
@@ -236,9 +249,15 @@ agent_section_hyperv_vm_nic = AgentSection(
     parse_function=parse_hyperv_vm_nic,
 )
 
+agent_section_hyperv_vm_nic_json = AgentSection(
+    name="hyperv_vm_nic_json",
+    parse_function=parse_hyperv_vm_nic_json,
+    parsed_section_name="hyperv_vm_nic",
+)
+
 check_plugin_hyperv_vm_nic = CheckPlugin(
     name="hyperv_vm_nic",
-    service_name="HyperV NIC %s",
+    service_name="Hyper-V VM NIC %s",
     sections=["hyperv_vm_nic"],
     discovery_function=discovery_hyperv_vm_nic,
     check_function=check_hyperv_vm_nic,

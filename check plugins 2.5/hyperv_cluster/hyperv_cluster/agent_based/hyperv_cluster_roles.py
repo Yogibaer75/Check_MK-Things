@@ -90,6 +90,9 @@ def check_hyperv_cluster_roles(
         else:
             message = f"defined on {vm.get("cluster.vm.owner")}"
             yield Result(state=State(0), summary=message)
+    else:
+        message = "not defined on any node"
+        yield Result(state=State(0), summary=message)
 
 
 def cluster_check_hyperv_cluster_roles(
@@ -102,20 +105,20 @@ def cluster_check_hyperv_cluster_roles(
             continue
         results = list(check_hyperv_cluster_roles(item, params, node_section))
         if results:
-            found.append((node, results[0]))
+            found.append((node, results[0], results[1]))
 
     if not found:
         yield Result(state=State(3), summary="VM not found on any node")
         return
 
-    best_state = State.best(*(result.state for _node, result in found))
-    best_running_on, best_result = [(n, r) for n, r in found if r.state == best_state][
+    best_state = State.best(*(result.state for _node, result, _result2 in found))
+    best_running_on, best_result = [(x.summary, r) for n, r, x in found if r.state == best_state][
         -1
     ]
 
     yield best_result
     if best_running_on and best_state != State.CRIT:
-        yield Result(state=best_state, summary=f"running on: {best_running_on}")
+        yield Result(state=best_state, summary=f"{best_running_on}")
 
 
 agent_section_hyperv_cluster_roles = AgentSection(

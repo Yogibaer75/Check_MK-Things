@@ -32,3 +32,7 @@
 * 3.4.2  - CMK 2.5 modifications
 * 3.4.3  - fixed detection inside parse_hyperv
 * 3.4.4  - same patchlevel as 2.4 version
+* 3.4.5 - improved runtime of agent plugins
+* 3.4.6 - fixed cluster role cluster function
+* 3.4.7 - temp version
+* 3.4.8 - replaced hyperv_host.ps1 with new version and modified checks to support old and new one

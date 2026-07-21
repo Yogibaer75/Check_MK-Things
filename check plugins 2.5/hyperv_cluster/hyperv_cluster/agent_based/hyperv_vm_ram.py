@@ -22,7 +22,7 @@ from cmk.agent_based.v2 import (
     State,
     StringTable,
 )
-from cmk.plugins.hyperv_cluster.lib import hyperv_vm_convert
+from cmk.plugins.hyperv_cluster.lib import hyperv_vm_convert, parse_hyperv_json
 
 
 class Section(NamedTuple):
@@ -56,6 +56,18 @@ def parse_hyperv_vm_ram(string_table: StringTable) -> Section:
         is_dynamic=raw.get("config.hardware.RAMType") == "dynamic",
     )
 
+
+def parse_hyperv_vm_ram_json(string_table: StringTable) -> Section:
+    raw = parse_hyperv_json(string_table)
+
+    return Section(
+        assigned_ram=raw["config.hardware.AssignedRAM"],
+        ram_demand=raw.get("config.hardware.RAMDemand", "0"),
+        start_ram=raw.get("config.hardware.StartRAM", "0"),
+        max_ram=raw.get("config.hardware.MaxRAM", "0"),
+        min_ram=raw.get("config.hardware.MinRAM", "0"),
+        is_dynamic=raw.get("config.hardware.RAMType", False),
+    )
 
 def check_hyperv_vm_ram(params: CheckParameters, section: Section) -> CheckResult:
     metric_name_prefix = "hyperv_ram_metrics_"
@@ -99,30 +111,30 @@ def check_hyperv_vm_ram(params: CheckParameters, section: Section) -> CheckResul
             f"{metric_name_prefix}vm_ram_demand",
             value=section.ram_demand,
         )
+    if section.is_dynamic:
+        yield from check_levels(
+            section.start_ram,
+            metric_name=f"{metric_name_prefix}vm_start_ram",
+            render_func=render.bytes,
+            label="Start RAM",
+            notice_only=True,
+        )
 
-    yield from check_levels(
-        section.start_ram,
-        metric_name=f"{metric_name_prefix}vm_start_ram",
-        render_func=render.bytes,
-        label="Start RAM",
-        notice_only=True,
-    )
+        yield from check_levels(
+            section.max_ram,
+            metric_name=f"{metric_name_prefix}vm_max_ram",
+            render_func=render.bytes,
+            label="Max RAM",
+            notice_only=True,
+        )
 
-    yield from check_levels(
-        section.max_ram,
-        metric_name=f"{metric_name_prefix}vm_max_ram",
-        render_func=render.bytes,
-        label="Max RAM",
-        notice_only=True,
-    )
-
-    yield from check_levels(
-        section.min_ram,
-        metric_name=f"{metric_name_prefix}vm_min_ram",
-        render_func=render.bytes,
-        label="Min RAM",
-        notice_only=True,
-    )
+        yield from check_levels(
+            section.min_ram,
+            metric_name=f"{metric_name_prefix}vm_min_ram",
+            render_func=render.bytes,
+            label="Min RAM",
+            notice_only=True,
+        )
 
     yield Result(state=State.OK, notice=f"Dynamic memory Enabled: {section.is_dynamic}")
 
@@ -132,9 +144,15 @@ agent_section_hyperv_vm_ram = AgentSection(
     parse_function=parse_hyperv_vm_ram,
 )
 
+agent_section_hyperv_vm_ram_json = AgentSection(
+    name="hyperv_vm_ram_json",
+    parse_function=parse_hyperv_vm_ram_json,
+    parsed_section_name="hyperv_vm_ram",
+)
+
 check_plugin_hyperv_vm_ram = CheckPlugin(
     name="hyperv_vm_ram",
-    service_name="Hyper-V RAM",
+    service_name="Hyper-V VM RAM",
     check_ruleset_name="hyperv_vm_ram",
     discovery_function=discovery_hyperv_vm_ram,
     check_function=check_hyperv_vm_ram,

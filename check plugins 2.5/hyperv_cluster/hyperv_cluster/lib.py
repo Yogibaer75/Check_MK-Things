@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-
+import json
 from typing import Any
 from collections.abc import Mapping
 
@@ -108,5 +108,32 @@ def parse_hyperv(string_table) -> dict[str, dict[str, Any]]:
             parsed[element] = {}
         elif start:
             parsed[element][str(line[0])] = " ".join(line[1:])
+
+    return parsed
+
+
+def parse_hyperv_json_multi(string_table: StringTable) -> dict[str, dict[str, Any | bool| str]]:
+    dict_keys = ["vhd.Name", "nic.id", "checkpoint.name", "name"]
+    parsed: dict[str, dict[str, Any | bool| str]] = {}
+    for line in string_table:
+        try:
+            data = json.loads(line[0])
+        except json.JSONDecodeError:
+            continue
+        key = next((x for x in dict_keys if x in data.keys()), None)
+        if key:
+            parsed[data[key]] = data
+
+    return parsed
+
+
+def parse_hyperv_json(string_table: StringTable) -> dict[str, Any | bool| str]:
+    parsed: dict[str, Any | bool| str] = {}
+    for line in string_table:
+        try:
+            data = json.loads(line[0])
+        except json.JSONDecodeError:
+            continue
+        parsed.update(data)
 
     return parsed

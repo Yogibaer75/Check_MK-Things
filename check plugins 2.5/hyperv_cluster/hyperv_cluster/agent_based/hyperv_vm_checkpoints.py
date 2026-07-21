@@ -21,8 +21,9 @@ from cmk.agent_based.v2 import (
     State,
     StringTable,
 )
+from cmk.plugins.hyperv_cluster.lib import parse_hyperv_json_multi
 
-CheckpointInfo = dict[str, str]
+CheckpointInfo = dict[str, str|int]
 Section = dict[str, list[CheckpointInfo]]
 
 SECONDS_PER_DAY: Final[int] = 86400
@@ -67,6 +68,30 @@ def parse_hyperv_vm_checkpoints(string_table: StringTable) -> Section:
     return {"checkpoints": checkpoints}
 
 
+def parse_hyperv_vm_checkpoints_json(string_table: StringTable) -> Section:
+    parsed = parse_hyperv_json_multi(string_table)
+
+    if not parsed:
+        return {"checkpoints": []}
+
+    checkpoints = []
+    for values in parsed.values():
+        checkpoint_info: CheckpointInfo = {}
+        if "checkpoint.name" in values:
+            checkpoint_info["name"] = str(values["checkpoint.name"])
+        if "checkpoint.path" in values:
+            checkpoint_info["path"] = str(values["checkpoint.path"])
+        if "checkpoint.created" in values:
+            checkpoint_info["created"] = int(values["checkpoint.created"])
+        if "checkpoint.parent" in values:
+            checkpoint_info["parent"] = str(values["checkpoint.parent"])
+
+        if checkpoint_info:
+            checkpoints.append(checkpoint_info)
+
+    return {"checkpoints": checkpoints}
+
+
 def discover_hyperv_vm_checkpoints(section: Section) -> DiscoveryResult:
     if "checkpoints" in section:
         yield Service()
@@ -94,7 +119,12 @@ def _parse_checkpoint_ages(checkpoints: Sequence[CheckpointInfo]) -> list[tuple[
     for checkpoint in checkpoints:
         if "created" not in checkpoint or not checkpoint["created"]:
             continue
-
+        if isinstance(checkpoint["created"], int):
+            # If the created field is already an integer, assume it's a timestamp
+            age_seconds = current_time - checkpoint["created"]
+            checkpoint_data.append((checkpoint["name"], age_seconds))
+            continue
+        
         created_str = checkpoint["created"].strip()
         parsed_successfully = False
 
@@ -163,6 +193,12 @@ def check_hyperv_vm_checkpoints(params: CheckpointParams, section: Section) -> C
 agent_section_hyperv_vm_checkpoints = AgentSection(
     name="hyperv_vm_checkpoints",
     parse_function=parse_hyperv_vm_checkpoints,
+)
+
+agent_section_hyperv_vm_checkpoints_json = AgentSection(
+    name="hyperv_vm_checkpoints_json",
+    parse_function=parse_hyperv_vm_checkpoints_json,
+    parsed_section_name="hyperv_vm_checkpoints",
 )
 
 check_plugin_hyperv_vm_checkpoints = CheckPlugin(

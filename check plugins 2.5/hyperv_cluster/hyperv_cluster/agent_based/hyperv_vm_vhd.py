@@ -25,13 +25,14 @@ from cmk.agent_based.v2 import (
     State,
     StringTable,
 )
-from cmk.plugins.hyperv_cluster.lib import parse_hyperv
+from cmk.plugins.hyperv_cluster.lib import parse_hyperv, parse_hyperv_json_multi
 
 
 class VhdType(StrEnum):
     DIFFERENCING = "Differencing"
     DYNAMIC = "Dynamic"
     FIXED = "Fixed"
+    UNKNOWN = "Unknown"
 
 
 class VhdInfo(NamedTuple):
@@ -62,6 +63,23 @@ def discovery_hyperv_vm_vhd_fixed(section: Section) -> DiscoveryResult:
 
 def parse_hyperv_vm_vhd(string_table: StringTable) -> Section:
     raw = parse_hyperv(string_table)
+    
+    return {
+        f"{values['vhd.controller.Type']} {values['vhd.controller.Number']} {values['vhd.controller.Location']}": VhdInfo(
+            main_path=PureWindowsPath(vhd_path),
+            disk_size=int(values["vhd.DiskSize"]),
+            file_size=int(values["vhd.FileSize"]),
+            type=VhdType(vhd_type),
+        )
+        for _key, values in raw.items()
+        if (vhd_path := values.get("vhd.Path")) is not None
+        and (vhd_type := values.get("vhd.Type")) is not None
+        and vhd_type in VhdType
+    }
+
+
+def parse_hyperv_vm_vhd_json(string_table: StringTable) -> Section:
+    parsed = parse_hyperv_json_multi(string_table)
 
     return {
         f"{values['vhd.controller.Type']} {values['vhd.controller.Number']} {values['vhd.controller.Location']}": VhdInfo(
@@ -70,7 +88,7 @@ def parse_hyperv_vm_vhd(string_table: StringTable) -> Section:
             file_size=int(values["vhd.FileSize"]),
             type=VhdType(vhd_type),
         )
-        for key, values in raw.items()
+        for _key, values in parsed.items()
         if (vhd_path := values.get("vhd.Path")) is not None
         and (vhd_type := values.get("vhd.Type")) is not None
         and vhd_type in VhdType
@@ -150,6 +168,12 @@ def check_hyperv_vm_vhd_dynamic(
 agent_section_hyperv_vm_vhd = AgentSection(
     name="hyperv_vm_vhd",
     parse_function=parse_hyperv_vm_vhd,
+)
+
+agent_section_hyperv_vm_vhd_json = AgentSection(
+    name="hyperv_vm_vhd_json",
+    parse_function=parse_hyperv_vm_vhd_json,
+    parsed_section_name="hyperv_vm_vhd",
 )
 
 check_plugin_hyperv_vm_vhd_fixed = CheckPlugin(

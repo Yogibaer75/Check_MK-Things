@@ -13,11 +13,13 @@ from cmk.agent_based.v2 import (
     CheckPlugin,
     CheckResult,
     DiscoveryResult,
+    HostLabel,
+    HostLabelGenerator,
     Result,
     Service,
     State,
 )
-from cmk.plugins.hyperv_cluster.lib import hyperv_vm_convert
+from cmk.plugins.hyperv_cluster.lib import hyperv_vm_convert, parse_hyperv_json
 
 Section = Mapping[str, str]
 
@@ -40,6 +42,11 @@ hyperv_vm_general_default_params: Final[GeneralParams] = {
         "state_if_not_expected": State.WARN.value,
     },
 }
+
+
+def host_label_hyperv_vm(section: Section) -> HostLabelGenerator:
+    if section:
+        yield HostLabel("cmk/hyperv_object", "vm")
 
 
 def discovery_hyperv_vm_general(section: Section) -> DiscoveryResult:
@@ -71,8 +78,8 @@ def _check_vm_generation(section: Section, params: GeneralParams) -> CheckResult
 
     expected_generation = str(vm_generation_params["expected_generation"])
     expected_gen_number = expected_generation.replace("generation_", "")
-
-    if generation != expected_gen_number:
+    
+    if int(generation) != int(expected_gen_number):
         generation_state = State(
             vm_generation_params.get("state_if_not_expected", State.WARN.value)
         )
@@ -104,6 +111,14 @@ def check_hyperv_vm_general(params: GeneralParams, section: Section) -> CheckRes
 agent_section_hyperv_vm_general: AgentSection = AgentSection(
     name="hyperv_vm_general",
     parse_function=hyperv_vm_convert,
+    host_label_function=host_label_hyperv_vm,
+)
+
+agent_section_hyperv_vm_general_json: AgentSection = AgentSection(
+    name="hyperv_vm_general_json",
+    parse_function=parse_hyperv_json,
+    parsed_section_name="hyperv_vm_general",
+    host_label_function=host_label_hyperv_vm,
 )
 
 check_plugin_hyperv_vm_general = CheckPlugin(

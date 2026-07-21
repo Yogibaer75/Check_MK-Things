@@ -35,7 +35,7 @@ def check_hyperv_cluster_disks(item: str, section) -> CheckResult:
         state = 3
     message = (
         f"is {disk['cluster.disk.state']}, with owner {disk['cluster.disk.owner_node']}"
-        f"and group {disk['cluster.disk.owner_group']}."
+        f" and group {disk['cluster.disk.owner_group']}."
     )
     yield Result(state=State(state), summary=message)
 

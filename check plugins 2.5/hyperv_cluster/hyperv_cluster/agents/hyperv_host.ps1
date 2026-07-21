@@ -1,417 +1,362 @@
 # Copyright (C) 2025 Checkmk GmbH - License: GNU General Public License v2
 # This file is part of Checkmk (https://checkmk.com). It is subject to the terms and
 # conditions defined in the file COPYING, which is part of this source code package.
+# Optimized & Bugfixed Version
 
-# Thanks to Andreas Döhler for the contribution.
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($true)
 
 function Get-VMGeneralInfo {
-  param
-  (
-    [Object]
-    $vm,
-    [Object]
-    $clusterNode
+  param(
+    [Object]$vm,
+    [Object]$VMReplica = $null,
+    [bool]$HasVMSecurity = $false
   )
 
-  Write-Output "name $($vm.Name)"
-  Write-Output "cluster.clustered $($vm.IsClustered)"
-
-  if ($vm.IsClustered) {
-    $VMClusterResource = (Get-ClusterResource -VMId $vm.VMId)
-    Write-Output "cluster.group $($VMClusterResource.OwnerGroup)"
-    Write-Output "cluster.startup_priority $($VMClusterResource.OwnerGroup.Priority)"
+  $guestData = [ordered]@{
+    'guest.fqdn' = $null
+    'guest.os' = $null
+    'guest.IntegrationServicesVersion' = $null
   }
 
-  Write-Output "runtime.host $($vm.ComputerName)"
-  Write-Output "runtime.powerState $($vm.State)"
-  Write-Output "runtime.operationState $($vm.Status)"
-  Write-Output "config.vmid $($vm.VMId)"
-  Write-Output "config.generation $($vm.Generation)"
-  Write-Output "config.version $($vm.Version)"
-  Write-Output "config.created $($vm.CreationTime)"
+  try {
+    $VMWMI = Get-CimInstance -Namespace root\virtualization\v2 -Class Msvm_ComputerSystem -Filter "ElementName='$($vm.Name)'" -ErrorAction SilentlyContinue
+    if ($null -ne $VMWMI) {
+      $kvpExchange = Get-CimAssociatedInstance -InputObject $VMWMI -ResultClass Msvm_KvpExchangeComponent -ErrorAction SilentlyContinue
+      if ($null -ne $kvpExchange) {
+        foreach ($exchangeItem in $kvpExchange.GuestIntrinsicExchangeItems) {
+          $xml = [xml]$exchangeItem
+          $propName = $xml.SelectSingleNode("/INSTANCE/PROPERTY[@NAME='Name']/VALUE")
+          if ($null -ne $propName) {
+            $propName = $propName.InnerText
+            $dataValue = $xml.SelectSingleNode("/INSTANCE/PROPERTY[@NAME='Data']/VALUE")
+            if ($null -ne $dataValue) {
+              switch ($propName) {
+                'FullyQualifiedDomainName' { $guestData.'guest.fqdn' = $dataValue.InnerText }
+                'OSName' { $guestData.'guest.os' = $dataValue.InnerText }
+                'IntegrationServicesVersion' { $guestData.'guest.IntegrationServicesVersion' = $dataValue.InnerText }
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    Write-Verbose "Failed to retrieve KVP data for VM '$($vm.Name)': $_"
+  }
 
-  if ($null -ne $vm.Groups) {
-    Write-Output "config.MemberOfVMGroups $($vm.Groups.Count)"
-    foreach ($Member in $vm.Groups) {
-      Write-Output "$null $($vm.Groups.Name) ($($vm.Groups.InstanceId))"
+  $VMSec = @{}
+  if ($HasVMSecurity) {
+    $SecData = Get-VMSecurity -VM $vm | Select-Object Shielded, TpmEnabled, KsdEnabled, EncryptStateAndVmMigrationTraffic
+    $VMSec = [ordered]@{
+      'security.shieldedVM' = $secData.Shielded
+      'security.TPMEnabled' = $secData.TpmEnabled
+      'security.KeyStorageDriveEnabled' = $secData.KsdEnabled
+      'security.StateMigrationEncrypted' = $secData.EncryptStateAndVmMigrationTraffic
     }
   }
 
-  Write-Output "guest.fqdn $(Get-VMKVPdata -vm $vm.Name -clusterNode $clusterNode -kvpAttribute 'FullyQualifiedDomainName')"
-  Write-Output "guest.os $(Get-VMKVPdata -vm $vm.Name -clusterNode $clusterNode -kvpAttribute 'OSName')"
-  Write-Output "guest.IntegrationServicesVersion $(Get-VMKVPdata -vm $vm.Name -clusterNode $clusterNode -kvpAttribute 'IntegrationServicesVersion')"
-  Write-Output "guest.IntegrationServicesState $($vm.IntegrationServicesState)"
-  Write-Output "config.AutomaticStopAction $($vm.AutomaticStopAction)"
-  Write-Output "config.AutomaticStartAction $($vm.AutomaticStartAction)"
-  Write-Output "config.AutomaticStartDelay $($vm.AutomaticStartDelay)"
-  Write-Output "config.ConfigurationPath $($vm.ConfigurationLocation)"
-  Write-Output "config.CheckpointPath $($vm.SnapshotFileLocation)"
-
-  $CheckpointType = $vm.CheckpointType
-
-  if ($null -eq $CheckpointType) {
-    $CheckpointType = 'Standard_(legacy)'
-  }
-
-  Write-Output "config.CurrentCheckpointType $CheckpointType"
-
-  $VMReplica = Get-VMReplication -ComputerName $clusterNode -VMName $vm.Name -ErrorAction SilentlyContinue
-
-  if ($null -ne $VMReplica) {
-    Write-Output "replication.mode $($VMReplica.ReplicationMode)"
-    Write-Output "replication.state $($VMReplica.ReplicationState)"
-    Write-Output "replication.CurrentServer $($VMReplica.CurrentReplicaServerName)"
-
-    try {
-      $ReplicationFreq = ($VMReplica.ReplicationFrequencySec)
-    }
-    catch {
-      $ReplicationFreq = $null
-    }
-
-    if ($null -ne $ReplicationFreq) {
-      Write-Output "replication.frequency $ReplicationFreq"
+  $replicaData = @{}
+  if ($vm.ReplicationState -ne 'Disabled' -and $null -ne $VMReplica) {
+    $replicaData = [ordered]@{
+      'replication.CurrentServer' = $VMReplica.CurrentReplicaServerName
+      'replication.frequency' = $VMReplica.ReplicationFrequencySec
     }
   }
-  else {
-    Write-Output "replication.mode not configured"
+
+  $vmData = [ordered]@{
+    'name' = $vm.Name
+    'cluster.clustered' = $vm.IsClustered
+    'runtime.host' = $vm.ComputerName
+    'runtime.powerState' = Format-EnumValue $vm.State
+    'runtime.operationState' = Format-EnumValue $vm.Status
+    'config.vmid' = $vm.VMId
+    'config.generation' = $vm.Generation
+    'config.version' = $vm.Version
+    'config.creationTime' = Format-DateTimeValue $vm.CreationTime
+    'guest.IntegrationServicesState' = Format-EnumValue $vm.IntegrationServicesState
+    'runtime.Uptime' = $vm.Uptime
+    'replication.mode' = Format-EnumValue $vm.ReplicationMode
+    'replication.state' = Format-EnumValue $vm.ReplicationState
+    'replication.health' = Format-EnumValue $vm.ReplicationHealth
+    'config.Path' = $vm.Path
+    'config.ConfigurationLocation' = $vm.ConfigurationLocation
+    'config.SmartPagingFilePath' = $vm.SmartPagingFilePath
+    'config.SnapshotFileLocation' = $vm.SnapshotFileLocation
+    'runtime.Notes' = $vm.Notes
+    'config.AutomaticCriticalErrorAction' = Format-EnumValue $vm.AutomaticCriticalErrorAction
+    'config.AutomaticCriticalErrorActionTimeout' = $vm.AutomaticCriticalErrorActionTimeout
+    'config.AutomaticStartAction' = Format-EnumValue $vm.AutomaticStartAction
+    'config.AutomaticStartDelay' = $vm.AutomaticStartDelay
+    'config.AutomaticStopAction' = Format-EnumValue $vm.AutomaticStopAction
+    'config.CheckPointType' = Format-EnumValue $vm.CheckPointType
   }
 
-  $VMConnect = Get-VMConnectAccess -ComputerName $clusterNode -VMName $vm.Name
-  if ($VMConnect.Count -eq 0) {
-    $VMConnectUsers = 'nobody'
+  foreach ($kv in $VMSec.GetEnumerator()) {
+    if ($null -ne $kv.Key) {
+      $vmData[$kv.Key] = $kv.Value
+    }
   }
-  else {
-    $VMConnectUsers = $VMConnect.Username
-  }
-  Write-Output "access $VMConnectUsers"
 
-  if ($null -ne (Get-Command Get-VMSecurity -ErrorAction SilentlyContinue)) {
-    $VMSec = (Get-VMSecurity -VM $vm)
-    Write-Output "security.shieldedVM $($VMSec.Shielded)"
-    Write-Output "security.TPMEnabled $($VMSec.TpmEnabled)"
-    Write-Output "security.KeyStorageDriveEnabled $($VMSec.KsdEnabled)"
-    Write-Output "security.StateMigrationEncrypted $($VMSec.EncryptStateAndVmMigrationTraffic)"
+  foreach ($kv in $replicaData.GetEnumerator()) {
+    if ($null -ne $kv.Key) {
+      $vmData[$kv.Key] = $kv.Value
+    }
+  }
+
+  foreach ($kv in $guestData.GetEnumerator()) {
+    if ($null -ne $kv.Key) {
+      $vmData[$kv.Key] = $kv.Value
+    }
+  }
+
+  [pscustomobject]$vmData | Sort-Object -property key | ConvertTo-Json -Depth 3 -Compress
+}
+
+function Format-EnumValue {
+  param([Object]$Value)
+
+  if ($null -eq $Value) {
+    return $null
+  }
+
+  return $Value.ToString()
+}
+
+function Format-DateTimeValue {
+  param(
+    [Object]$Value,
+    [ValidateSet('Iso8601','Timestamp')][string]$Format = 'Iso8601'
+  )
+
+  if ($null -eq $Value) {
+    return $null
+  }
+
+  if (-not ($Value -is [DateTime])) {
+    return $Value
+  }
+
+  switch ($Format) {
+    'Timestamp' { return [int64]([DateTimeOffset]$Value).ToUnixTimeMilliseconds() }
+    default { return $Value.ToString('o') }
   }
 }
 
 ############################################################################################################
-
 function Get-vmCheckpoints {
-  param
-  (
-    [Object]
-    $vm,
-    [Object]
-    $clusterNode
-  )
+  param([Object]$Checkpoints)
 
-  $Checkpoints = (Get-VMSnapshot -VMName $vm.Name -ComputerName $clusterNode | Sort-Object CreationTime)
-  Write-Output "checkpoints $($Checkpoints.Length)"
-
-  if ($Checkpoints.Length -eq 0) {
-    Write-Output "checkpoints none"
+  if ($null -eq $Checkpoints) { 
+    Write-Output("{}")
+    Return
   }
-  else {
-    foreach ($Checkpoint in $Checkpoints) {
-      Write-Output "checkpoint.name $($Checkpoint.Name)"
-      Write-Output "checkpoint.path $($Checkpoint.Path)"
-      Write-Output "checkpoint.created $($Checkpoint.CreationTime)"
-      Write-Output "checkpoint.parent $($Checkpoint.ParentSnapshotName)"
-    }
+  $sortedCheckpoints = @($Checkpoints | Sort-Object CreationTime)
+
+  foreach ($checkpoint in $sortedCheckpoints) {
+    [pscustomobject][ordered]@{
+      'checkpoint.name' = $checkpoint.Name
+      'checkpoint.created' = Format-DateTimeValue $checkpoint.CreationTime
+      'checkpoint.id' = $checkpoint.Id
+      'checkpoint.parentSnapshotName' = $checkpoint.ParentSnapshotName
+      'checkpoint.checkpointType' = Format-EnumValue $checkpoint.CheckpointType
+      'checkpoint.path' = $checkpoint.Path
+    } | ConvertTo-Json -Depth 3 -Compress
   }
 }
 
 ############################################################################################################
-
 function Get-VMCPUInfo {
-  param
-  (
-    [Object]
-    $vm,
-    [Object]
-    $clusterNode
-  )
+  param([Object]$vm, [Object]$vmProcessor)
 
-  Write-Output "config.hardware.numCPU $($vm.ProcessorCount)"
-  $vmProcessor = Get-VMProcessor -VMName $vm.Name -ComputerName $clusterNode
-  Write-Output "config.hardware.CompatibilityForOlderOS $($vmProcessor.CompatibilityForOlderOperatingSystemsEnabled)"
-  Write-Output "config.hardware.CompatibilityForMigration $($vmProcessor.CompatibilityForMigrationEnabled)"
-
-  if ($null -ne $vmProcessor.EnableHostResourceProtection) {
-    Write-Output "config.hardware.HostResourceProtection $($vmProcessor.EnableHostResourceProtection)"
+  $vmProc = [ordered]@{
+    'config.hardware.numCPU' = $vm.ProcessorCount
+    'config.hardware.CompatibilityForOlderOS' = $vmProcessor.CompatibilityForOlderOperatingSystemsEnabled
+    'config.hardware.CompatibilityForMigration' = $vmProcessor.CompatibilityForMigrationEnabled
+    'config.hardware.HostResourceProtection' = $vmProcessor.EnableHostResourceProtection
+    'config.hardware.NestedVirtualization' = $vmProcessor.ExposeVirtualizationExtensions
   }
 
-  if ($null -ne $vmProcessor.ExposeVirtualizationExtensions) {
-    Write-Output "config.hardware.NestedVirtualization $($vmProcessor.ExposeVirtualizationExtensions)"
-  }
+  [pscustomobject]$vmProc | ConvertTo-Json -Depth 3 -Compress
 }
 
 ############################################################################################################
 function Get-VMRAMInfo {
-  param
-  (
-    [Object]
-    $vm,
-    [Object]
-    $clusterNode
-  )
+  param([Object]$vm, [Object]$getRAMInfo)
 
-  $getRAMInfo = Get-VMMemory -VMName $vm.Name -ComputerName $clusterNode
-  if ($getRAMInfo.DynamicMemoryEnabled -eq $true) {
-    Write-Output "config.hardware.RAMType dynamic"
+  $RAMInfo = [ordered]@{
+    'config.hardware.StartRAM' = $getRAMInfo.Startup
+    'config.hardware.MinRAM' = $getRAMInfo.Minimum
+    'config.hardware.MaxRAM' = $getRAMInfo.Maximum
+    'config.hardware.RAMType' = $getRAMInfo.DynamicMemoryEnabled
+    'config.hardware.AssignedRAM' = $vm.MemoryAssigned
+    'config.hardware.RAMDemand' = $vm.MemoryDemand
   }
-  else {
-    Write-Output "config.hardware.RAMType static"
-  }
-  Write-Output "config.hardware.StartRAM $($getRAMInfo.Startup)"
-  Write-Output "config.hardware.MinRAM $($getRAMInfo.Minimum)"
-  Write-Output "config.hardware.MaxRAM $($getRAMInfo.Maximum)"
-  Write-Output "config.hardware.AssignedRAM $($vm.MemoryAssigned)"
-  Write-Output "config.hardware.RAMDemand $($vm.MemoryDemand)"
+
+  [pscustomobject]$RAMInfo | ConvertTo-Json -Depth 3 -Compress
 }
 
 ############################################################################################################
 function Get-VMDriveInfo {
-  param
-  (
-    [Object]
-    $vm,
-    [Object]
-    $clusterNode
-  )
+  param([Object]$vmHDDs, [Object]$vmvSANs)
 
-  $vmHDDs = (Get-VMHardDiskDrive -VMName $vm.Name -ComputerName $clusterNode | Sort-Object Name)
-
-  Write-Output "vhd $($vmHDDs.Count)"
-
-  foreach ($vmHDD in $vmHDDs) {
-    Write-Output "vhd.Name $($vmHDD.Name)"
-    Write-Output "vhd.controller.ID $($vmHDD.ID)"
-    Write-Output "vhd.controller.Type $($vmHDD.ControllerType)"
-    Write-Output "vhd.controller.Number $($vmHDD.ControllerNumber)"
-    Write-Output "vhd.controller.Location $($vmHDD.ControllerLocation)"
-
-    $vmHDDVHD = $vmHDD.Path | Get-VHD -ComputerName $clusterNode -ErrorAction SilentlyContinue
-
-    if ($vmHDDVHD -ne $null) {
-      # When automatic checkpoints are enabled, the volume
-      # of a system may not strictly be the original
-      # but instead a snapshot, so we have to go one level up to get the real drive info
-      # because these snapshots can be shortlived.
-      $ext = (Get-Item($vmHDDVHD.Path)).Extension.ToLower();
-      $finalVhd = $vmHDDVHD
-
-      $isSnapshot = {
-        $ext = [System.IO.Path]::GetExtension($finalVhd.Path);
-
-        return ($ext -eq ".avhd" -or $ext -eq ".avhdx") -and $finalVhd.VhdType -eq "Differencing";
-      }
-
-      while ($isSnapshot.Invoke()) {
-        $finalVhd = $finalVhd.ParentPath | Get-VHD -ErrorAction SilentlyContinue
-
-        # Best parent could not be found, so falling back to the original file.
-        # This can happen if the parent file becomes unavailable (deleted, on a disconnected drive, etc).
-        if ($finalVhd -eq $null) {
-          $finalVhd = $vmHDDVHD
-          break
-        }
-      }
-
-      Write-Output "vhd.Path $($finalVhd.Path)"
-      Write-Output "vhd.Format $($finalVhd.VhdFormat)"
-      Write-Output "vhd.Type $($finalVhd.VhdType)"
-      Write-Output "vhd.DiskSize $($finalVhd.Size)"
-      Write-Output "vhd.FileSize $($finalVhd.FileSize)"
+  if ($null -eq $vmHDDs) { $vmHDDs = @() }
+  if ($null -eq $vmvSANs) { $vmvSANs = @() }
+  
+  foreach ($hdd in $vmHDDs) {
+    $vmHDDVHD = $null
+    if ($null -ne $hdd.Path) {
+      $vmHDDVHD = $hdd.Path | Get-VHD -ErrorAction SilentlyContinue
     }
-    else {
-      Write-Output "vhd.Path $($vmHDD.Path)"
-      Write-Output "vhd.Type Direct"
-    }
+
+    [pscustomobject][ordered]@{
+      'vhd.Name' = $hdd.Name
+      'vhd.ID' = $hdd.ID
+      'vhd.Path' = $hdd.Path
+      'vhd.controller.ID' = $hdd.ControllerId
+      'vhd.controller.Type' = $hdd.ControllerType
+      'vhd.controller.Location' = $hdd.ControllerLocation
+      'vhd.controller.Number' = $hdd.ControllerNumber
+      'vhd.Format' = Format-EnumValue $vmHDDVHD.VhdFormat
+      'vhd.Type' = Format-EnumValue $vmHDDVHD.VhdType
+      'vhd.DiskSize' = $vmHDDVHD.Size
+      'vhd.FileSize' = $vmHDDVHD.FileSize
+    } | ConvertTo-Json -Depth 3 -Compress
   }
 
-  # Get vFC, if any
-  $vmvSAN = (Get-VMFibreChannelHba -VMName $vm.Name -ComputerName $clusterNode | Sort-Object Name)
-  if ($null -ne $vmvSAN) {
-    Write-Output "vsan $($vmvSAN.Count)"
-
-    foreach ($vmvSAN in $vmvSAN) {
-      Write-Output "vsan.Name $($vmvSAN.SanName)"
-      Write-Output "vsan.PrimaryWWNN $($vmvSAN.WorldWideNodeNameSetA)"
-      Write-Output "vsan.PrimaryWWPN $($vmvSAN.WorldWidePortNameSetA)"
-      Write-Output "vsan.SecondaryWWNN $($vmvSAN.WorldWideNodeNameSetB)"
-      Write-Output "vsan.SecondaryWWPN $($vmvSAN.WorldWidePortNameSetB)"
-      Write-Output "vsan.ID $($vmvSAN.ID)"
-    }
+  foreach ($san in $vmvSANs) {
+    [pscustomobject][ordered]@{
+      'vasn.Name' = $san.SanName
+      'vasn.WorldWideNodeNameSetA' = $san.WorldWideNodeNameSetA
+      'vasn.WorldWidePortNameSetA' = $san.WorldWidePortNameSetA
+      'vasn.WorldWideNodeNameSetB' = $san.WorldWideNodeNameSetB
+      'vasn.WorldWidePortNameSetB' = $san.WorldWidePortNameSetB
+      'vasn.ID' = $san.ID
+    } | ConvertTo-Json -Depth 3 -Compress
   }
 }
 
 ############################################################################################################
 function Get-VMNICInfo {
-  param
-  (
-    [Object]
-    $vm,
-    [Object]
-    $clusterNode
-  )
+  param([Object]$vmNetCards)
 
-  $vmNetCards = (Get-VMNetworkAdapter -VMName $vm.Name -ComputerName $clusterNode | Sort-Object Name, ID)
-
-  Write-Output "nic $($vmNetCards.Count)"
-
-  foreach ($vmNetCard in $vmNetCards) {
-    Write-Output "nic.name $($vmNetCard.Name)"
-    Write-Output "nic.id $($vmNetCard.ID)"
-    Write-Output "nic.connectionstate $($vmNetCard.Connected)"
-
-    #vmNetCard Switch
-    if ($vmNetCard.SwitchName.Length -ne 0) {
-      Write-Output "nic.vswitch $($vmNetCard.SwitchName)"
-    }
-    else {
-      Write-Output "nic.vswitch none"
-    }
-
-    #vmNetCard MACAddress
-    Write-Output "nic.dynamicMAC $($vmNetCard.DynamicMacAddressEnabled)"
-    if ($vmNetCard.MacAddress.Length -ne 0) {
-      Write-Output "nic.MAC $($vmNetCard.MacAddress)"
-    }
-    else {
-      Write-Output "nic.MAC not assigned"
-    }
-
-    #vmNetCard IPAddress
-    $vmnetCardIPs = $vmNetCard.IPAddresses
-    if ($vmNetCard.IPAddresses.Length -ne 0) {
-      foreach ($vmnetCardIP in $vmnetCardIPs) {
-        Write-Output "nic.IP $($vmNetCardIP)"
+  if ($null -eq $vmNetCards) { $vmNetCards = @() }
+  
+  foreach ($nic in $vmNetCards) {
+    $vlanSetting = @{}
+    if ($null -ne $nic.VlanSetting) {
+      $vlandata = $nic.VlanSetting | Select-Object OperationMode, AccessVlanId
+      $vlanSetting = [ordered]@{
+        'nic.VLAN.mode' = Format-EnumValue $vlandata.OperationMode
+        'nic.VLAN.id' = $vlandata.AccessVlanId
       }
     }
-    else {
-      Write-Output "nic.IP not assigned"
+
+    $nicData = [ordered]@{
+      'nic.security.RouterGuard' = $nic.RouterGuard
+      'nic.security.DHCPGuard' = $nic.DHCPGuard
+      'nic.BandwidthSetting' = $nic.BandwidthSetting
+      'nic.dynamicMAC' = $nic.DynamicMACAddressEnabled
+      'nic.MAC' = $nic.MacAddress
+      'nic.IPAddresses' = $nic.IPAddresses
+      'nic.vswitch' = $nic.SwitchName
+      'nic.connectionstate' = $nic.Connected
+      'nic.id' = $nic.ID
+      'nic.name' = $nic.Name
     }
-    # special features (could be extended in future versions)
-    Write-Output "nic.security.DHCPGuard $($vmNetCard.DhcpGuard)"
-    Write-Output "nic.security.RouterGuard $($vmNetCard.RouterGuard)"
-    Write-Output "nic.VLAN.mode $($vmNetCard.VlanSetting.OperationMode)"
-    Write-Output "nic.VLAN.id $($vmNetCard.VlanSetting.AccessVlanId)"
-    if ($null -ne $vmNetCard.BandwidthSetting.MinimumBandwidthAbsolute -or $null -ne $vmNetCard.BandwidthSetting.MaximumBandwidth) {
-      # Bandwidth settings say they use Mbit but they only multiply the GUI value by a million ...
-      Write-Output "nic.bandwidth.min $($vmNetCard.BandwidthSetting.MinimumBandwidthAbsolute)"
-      Write-Output "nic.bandwidth.max $($vmNetCard.BandwidthSetting.MaximumBandwidth)"
+    
+    foreach ($kv in $vlanSetting.GetEnumerator()) {
+      if ($null -ne $kv.Key) {
+        $nicData[$kv.Key] = $kv.Value
+      }
     }
+    [pscustomobject]$nicData | ConvertTo-Json -Depth 3 -Compress
   }
 }
 
 ############################################################################################################
 function Get-VMISInfo {
-  param
-  (
-    [Object]
-    $vm,
-    [Object]
-    $clusterNode
-  )
+  param([Object]$vmIntSer)
 
-  $vmIntSer = (Get-VMIntegrationService -VMName $vm.Name -ComputerName $clusterNode | Sort-Object Name)
-  Write-Output "guest.tools.number $($vmIntSer.Count)"
-  foreach ($IS in $vmIntSer) {
-    if ($IS.Enabled) {
-      $ISActive = 'active'
-    }
-    else {
-      $ISActive = 'inactive'
-    }
-    Write-Output "guest.tools.service.$($IS.Name.Replace(' ', '_')) $ISActive"
+  if ($null -eq $vmIntSer) { $vmIntSer = @() }
+  
+  foreach ($service in $vmIntSer) {
+    [pscustomobject][ordered]@{
+      'enabled' = $service.Enabled
+      'name' = $service.Name
+      'PrimaryStatusDescription' = $service.PrimaryStatusDescription
+      'SecondaryStatusDescription' = $service.SecondaryStatusDescription
+    } | ConvertTo-Json -Depth 2 -Compress
   }
 }
 
 ############################################################################################################
-function Get-VMKVPdata {
-  param
-  (
-    [Object]
-    $vm,
-    [Object]
-    $clusterNode,
-    [Object]
-    $kvpAttribute
-  )
-  $VMKVPdata = $null
-  $WMIFilter = "ElementName='$vm'"
-  $attrName = "/INSTANCE/PROPERTY[@NAME='Name']/VALUE[child::text()='$kvpAttribute']"
-
-  try {
-    $VMWMI = Get-WmiObject -Namespace root\virtualization\v2 -Class Msvm_ComputerSystem -Filter $WMIFilter -ComputerName $clusterNode -ErrorAction SilentlyContinue
-    $VMWMI.GetRelated('Msvm_KvpExchangeComponent').GuestIntrinsicExchangeItems | ForEach-Object { `
-        $GuestExchangeItemXml = ([XML]$_).SelectSingleNode(`
-          $attrName)
-
-      if ($null -ne $GuestExchangeItemXml) {
-        $VMKVPdata = ($GuestExchangeItemXml.SelectSingleNode(`
-              "/INSTANCE/PROPERTY[@NAME='Data']/VALUE/child::text()").Value)
-      }
-    }
-  }
-  catch {
-    Write-Verbose "Failed to retrieve KVP data for VM '$vm' on '$clusterNode': $_"
-  }
-
-  return $VMKVPData
-}
-
-############################################################################################################
-
 function Get-VMInventoryHost() {
-  param
-  (
-    [Parameter(Mandatory = $false, Position = 1)]
-    [string]$Node
-  )
-
-  # creates an inventory reports of all VMs on a single host
-
-  if ($Node.Length -eq 0) {
-    '<<<hyperv_node>>>'
+  if ($null -eq (Get-Command Get-VM -ErrorAction SilentlyContinue)) {
+    '<<<hyperv_node_json:sep(0)>>>'
+    [ordered]@{ error = 'Hyper-V cmdlets are not available on this host.' } | ConvertTo-Json -Depth 1
     return
   }
 
-  if ((Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V).State -ne 'Enabled') {
-    '<<<hyperv_node>>>'
-    Write-Output "Hyper-V feature is not enabled on $Node. Exiting."
-    return
-  }
-
-  # connect only if host reacts to ping
-  '<<<hyperv_node>>>'
-  if (Test-Connection -ComputerName $Node -Quiet) {
-    $vms = (Get-VM -ComputerName $Node | Sort-Object Name)
-    Write-Output "vms.defined $($vms.count)"
-    foreach ($vm in $vms) {
-      '<<<<' + $vm.Name + '>>>>'
-      '<<<hyperv_vm_general>>>'
-      Get-VMGeneralInfo -vm $vm -clusterNode $Node
-      '<<<hyperv_vm_checkpoints>>>'
-      Get-vmCheckpoints -vm $vm -clusterNode $Node
-      '<<<hyperv_vm_cpu>>>'
-      Get-VMCPUInfo -vm $vm -clusterNode $Node
-      '<<<hyperv_vm_ram>>>'
-      Get-VMRAMInfo -vm $vm -clusterNode $Node
-      '<<<hyperv_vm_vhd>>>'
-      Get-VMDriveInfo -vm $vm -clusterNode $Node
-      '<<<hyperv_vm_nic>>>'
-      Get-VMNICInfo -vm $vm -clusterNode $Node
-      '<<<hyperv_vm_integration>>>'
-      Get-VMISInfo -vm $vm -clusterNode $Node
-      '<<<<>>>>'
+  if ($null -ne (Get-Command Get-WindowsOptionalFeature -ErrorAction SilentlyContinue)) {
+    if ((Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -ErrorAction SilentlyContinue).State -ne 'Enabled') {
+      '<<<hyperv_node_json:sep(0)>>>'
+      [ordered]@{ error = 'Hyper-V feature is not enabled. Exiting.' } | ConvertTo-Json -Depth 1
+      return
     }
   }
-  else {
-    '<<<hyperv_node>>>'
+
+  '<<<hyperv_node_json:sep(0)>>>'
+  $vms = @(Get-VM | Sort-Object Name)
+  $hasVMSecurity = $null -ne (Get-Command Get-VMSecurity -ErrorAction SilentlyContinue)
+
+  $payload = [ordered]@{
+    host = $env:COMPUTERNAME
+    vmCount = $vms.Count
+  }
+  $payload | ConvertTo-Json -Depth 3 -Compress
+  if ($vms.Count -eq 0) {
+    return
+  }
+
+  # --- BULK FETCHING WITH PIPELINE ---
+  $allProcessors = $vms | Get-VMProcessor | Group-Object { $_.VMId.Guid } -AsHashTable -AsString
+  $allMemories   = $vms | Get-VMMemory    | Group-Object { $_.VMId.Guid } -AsHashTable -AsString
+  $allHDDs       = $vms | Get-VMHardDiskDrive | Group-Object { $_.VMId.Guid } -AsHashTable -AsString
+  $allVSANs      = $vms | Get-VMFibreChannelHba -ErrorAction SilentlyContinue | Group-Object { $_.VMId.Guid } -AsHashTable -AsString
+  $allNICs       = $vms | Get-VMNetworkAdapter | Group-Object { $_.VMId.Guid } -AsHashTable -AsString
+  $allIS         = $vms | Get-VMIntegrationService | Group-Object { $_.VMId.Guid } -AsHashTable -AsString
+  $allSnaps      = $vms | Get-VMSnapshot | Group-Object { $_.VMId.Guid } -AsHashTable -AsString
+  $allReplicas   = $vms | Get-VMReplication -ErrorAction SilentlyContinue | Group-Object { $_.VMId.Guid } -AsHashTable -AsString
+
+  # --- NULL-ARRAY PROTECTION ---
+  if ($null -eq $allProcessors) { $allProcessors = @{} }
+  if ($null -eq $allMemories)   { $allMemories   = @{} }
+  if ($null -eq $allHDDs)       { $allHDDs       = @{} }
+  if ($null -eq $allVSANs)      { $allVSANs      = @{} }
+  if ($null -eq $allNICs)       { $allNICs       = @{} }
+  if ($null -eq $allIS)         { $allIS         = @{} }
+  if ($null -eq $allSnaps)      { $allSnaps      = @{} }
+  if ($null -eq $allReplicas)   { $allReplicas   = @{} }
+
+  foreach ($vm in $vms) {
+    $vmIdString = $vm.VMId.Guid
+    Write-Output('<<<<' + $vm.Name + '>>>>')
+    Write-Output("<<<hyperv_vm_general_json:sep(0)>>>")
+    Get-VMGeneralInfo -vm $vm -vmReplica ($allReplicas[$vmIdString] | Select-Object -First 1) -HasVMSecurity $hasVMSecurity
+    Write-Output("<<<hyperv_vm_checkpoints_json:sep(0)>>>")
+    Get-vmCheckpoints -Checkpoints $allSnaps[$vmIdString]
+    Write-Output("<<<hyperv_vm_cpu_json:sep(0)>>>")
+    Get-VMCPUInfo -vm $vm -vmProcessor ($allProcessors[$vmIdString] | Select-Object -First 1)
+    Write-Output("<<<hyperv_vm_ram_json:sep(0)>>>")
+    Get-VMRAMInfo -vm $vm -getRAMInfo ($allMemories[$vmIdString] | Select-Object -First 1)
+    Write-Output("<<<hyperv_vm_nic_json:sep(0)>>>")
+    Get-VMNICInfo -vmNetCards $allNICs[$vmIdString]
+    Write-Output("<<<hyperv_vm_integration_json:sep(0)>>>")
+    Get-VMISInfo -vmIntSer $allIS[$vmIdString]
+    Write-Output("<<<hyperv_vm_vhd_json:sep(0)>>>")
+    Get-VMDriveInfo -vmHDDs $allHDDs[$vmIdString] -vmvSANs $allVSANs[$vmIdString]
+    Write-Output("<<<<>>>>")
   }
 }
 
-Get-VMInventoryHost ($env:COMPUTERNAME)
+Get-VMInventoryHost
