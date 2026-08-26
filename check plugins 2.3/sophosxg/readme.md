@@ -9,3 +9,4 @@ ChangeLog:
 - 2.3.0 - CMK 2.3 ready
 - 2.4.0 - ported to CMK 2.3 API - Attention: all rules must be recreated as the new API does not provide the same functions as before.
 - 2.4.1 - removed debug print
+- 2.4.2 - add HW/SW Inventory for Firmware version 
