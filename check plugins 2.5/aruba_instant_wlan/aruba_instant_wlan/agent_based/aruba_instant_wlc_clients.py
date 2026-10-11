@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+"""Aruba instant WLC clients on SSID"""
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+from __future__ import annotations
+
+# (c) Andreas Doehler <andreas.doehler@bechtle.com/andreas.doehler@gmail.com>
+
+# License: GNU General Public License v2
+
+from cmk.agent_based.v2 import (
+    SNMPSection,
+    SNMPTree,
+    StringTable,
+    any_of,
+    startswith,
+)
+from cmk.plugins.lib.wlc_clients import ClientsTotal, WlcClientsSection
+
+PHYSICAL_AP_SYSOBJECT_ID = ".1.3.6.1.4.1.14823.1.2.87"
+
+
+def _cluster_services_allowed(sysobject_id: str, ap_count: int) -> bool:
+    """Allow cluster data on a physical AP only when it is standalone."""
+    is_physical_ap = sysobject_id == PHYSICAL_AP_SYSOBJECT_ID or sysobject_id.startswith(
+        f"{PHYSICAL_AP_SYSOBJECT_ID}."
+    )
+    return not is_physical_ap or ap_count == 1
+
+
+def parse_aruba_instant_wlc_clients(
+    string_table: list[StringTable],
+) -> WlcClientsSection[ClientsTotal] | None:
+    """parse wlc client data"""
+    sysobject_table, ap_table, clients_table = string_table
+    sysobject_id = sysobject_table[0][0] if sysobject_table and sysobject_table[0] else ""
+
+    if not _cluster_services_allowed(sysobject_id, len(ap_table)):
+        return None
+
+    section: WlcClientsSection[ClientsTotal] = WlcClientsSection()
+    for ssid_name, ssid_state, num_clients_str in clients_table:
+        if ssid_name == "":
+            continue
+        if int(ssid_state) == 1:
+            continue
+        num_clients = int(num_clients_str)
+        section.total_clients += num_clients
+        section.clients_per_ssid[ssid_name] = ClientsTotal(total=num_clients)
+    return section
+
+
+snmp_section_aruba_instant_wlc_clients = SNMPSection(
+    name="aruba_instant_wlc_clients",
+    parsed_section_name="wlc_clients",
+    detect=any_of(
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.111"),
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.71"),
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.137"),
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.161"),
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.134"),
+        startswith(".1.3.6.1.2.1.1.2.0", ".1.3.6.1.4.1.14823.1.2.87"),
+    ),
+    parse_function=parse_aruba_instant_wlc_clients,
+    fetch=[
+        SNMPTree(
+            base=".1.3.6.1.2.1.1",
+            oids=["2.0"],  # sysObjectID
+        ),
+        SNMPTree(
+            base=".1.3.6.1.4.1.14823.2.3.3.1.2.1.1",
+            oids=["2"],  # aiAPName
+        ),
+        SNMPTree(
+            base=".1.3.6.1.4.1.14823.2.3.3.1.1.7.1",
+            oids=[
+                "2",  # SSIDName
+                "3",  # SSIDState
+                "4",  # connected Clients
+            ],
+        ),
+    ],
+)
