@@ -13,7 +13,7 @@
 from collections.abc import Mapping
 from typing import Any
 
-from cmk.agent_based.v2 import (  # type: ignore[import]
+from cmk.agent_based.v2 import (
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -25,8 +25,10 @@ from cmk.agent_based.v2 import (  # type: ignore[import]
     check_levels,
 )
 
+Section = Mapping[str, Mapping[str, Any]]
 
-def parse_udp_backup(string_table: StringTable) -> Mapping[str, Mapping[str, Any]]:
+
+def parse_udp_backup(string_table: StringTable) -> Section:
     """
     Parse the output of the udp_backup agent plugin.
     The output is a list of lines, each containing the following fields:
@@ -58,14 +60,16 @@ agent_section_udp_backup = AgentSection(
 )
 
 
-def discovery_udp_backup(section) -> DiscoveryResult:
+def discovery_udp_backup(section: Section) -> DiscoveryResult:
     for item, data in section.items():
         if data.get("lastBackupStartTime") == "":
             continue
         yield Service(item=item)
 
 
-def check_udp_backup(item: str, params: Mapping[str, Any], section) -> CheckResult:
+def check_udp_backup(
+    item: str, params: Mapping[str, Any], section: Section
+) -> CheckResult:
     udp_backup_status = {
         "0": (3, "Unknown"),
         "1": (0, "Finished"),
@@ -88,7 +92,6 @@ def check_udp_backup(item: str, params: Mapping[str, Any], section) -> CheckResu
     no_backup_state = params.get("no_backup", None)
 
     if (data := section.get(item)) is not None:
-        print(data)
         status = 0
         msgtext = ""
         last_backup = data.get("lastBackupStartTime")
@@ -106,14 +109,16 @@ def check_udp_backup(item: str, params: Mapping[str, Any], section) -> CheckResu
         else:
             msgtext += f"Last backup {last_backup},"
             state, name, state_str = udp_recpoint_status.get(
-                rec_status, (3, "Unknown", "(!!!)")
+                str(rec_status), (3, "Unknown", "(!!!)")
             )
             msgtext += f" {recpoints} restore points with state {name}{state_str},"
-            state, name = udp_backup_status.get(last_backup_status, (3, "unknown"))
+            state, name = udp_backup_status.get(str(last_backup_status), (3, "unknown"))
             status = max(status, state)
             msgtext += f" last backup state {name}"
             yield Result(state=State(status), summary=msgtext)
 
+            if not isinstance(recpoints, (int, str)):
+                recpoints = 0
             yield from check_levels(
                 int(recpoints),
                 levels_upper=params.get("levels", ("no_levels", None)),

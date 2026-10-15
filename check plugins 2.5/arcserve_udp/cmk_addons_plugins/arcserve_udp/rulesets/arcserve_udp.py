@@ -4,8 +4,8 @@
 
 # License: GNU General Public License v2
 
-from cmk.rulesets.v1 import Title  # type: ignore[import]
-from cmk.rulesets.v1.form_specs import (  # type: ignore[import]
+from cmk.rulesets.v1 import Help, Title
+from cmk.rulesets.v1.form_specs import (
     DefaultValue,
     DictElement,
     Dictionary,
@@ -17,11 +17,10 @@ from cmk.rulesets.v1.form_specs import (  # type: ignore[import]
     String,
     migrate_to_integer_simple_levels,
 )
-from cmk.rulesets.v1.rule_specs import (  # type: ignore[import]
+from cmk.rulesets.v1.form_specs.validators import LengthInRange
+from cmk.rulesets.v1.rule_specs import (
     CheckParameters,
-    Help,
     HostAndItemCondition,
-    LengthInRange,
     Topic,
 )
 
@@ -29,7 +28,7 @@ from cmk.rulesets.v1.rule_specs import (  # type: ignore[import]
 def _parameter_valuespec_arcserve_udp_jobs():
     return Dictionary(
         elements={
-            "levels": DictElement[Integer](
+            "levels": DictElement(
                 parameter_form=SimpleLevels(
                     title=Title("Backup age"),
                     help_text=Help(

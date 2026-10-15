@@ -7,7 +7,7 @@
 from pathlib import Path
 from typing import Literal
 
-from cmk.bakery.v2_unstable import OS, BakeryPlugin, FileGenerator, Plugin
+from cmk.bakery.v2_unstable import OS, BakeryPlugin, FileGenerator, Plugin  # type: ignore[import]
 from pydantic import BaseModel
 
 

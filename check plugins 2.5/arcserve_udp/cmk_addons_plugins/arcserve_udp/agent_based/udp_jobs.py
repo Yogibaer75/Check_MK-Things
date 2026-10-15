@@ -14,7 +14,7 @@ import datetime as dt
 from collections.abc import Mapping
 from typing import Any
 
-from cmk.agent_based.v2 import (  # type: ignore[import]
+from cmk.agent_based.v2 import (
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -27,8 +27,10 @@ from cmk.agent_based.v2 import (  # type: ignore[import]
     render,
 )
 
+Section = Mapping[str, Mapping[str, Any]]
 
-def parse_udp_jobs(string_table: StringTable) -> Mapping[str, Mapping[str, Any]]:
+
+def parse_udp_jobs(string_table: StringTable) -> Section:
     """
     Parse the output of the udp_jobs agent plugin.
     The output is a list of lines, each containing the following fields:
@@ -64,14 +66,14 @@ def _udp_job_age(timedelta: dt.timedelta) -> int:
     return int(timedelta.days * 24 + int(timedelta.seconds / 3600))
 
 
-def discovery_udp_jobs(section) -> DiscoveryResult:
+def discovery_udp_jobs(section: Section) -> DiscoveryResult:
     for item in section:
         if section[item].get("lastBackupStartTime") == "":
             continue
         yield Service(item=item)
 
 
-def check_udp_jobs(item: str, params: Mapping[str, Any], section) -> CheckResult:
+def check_udp_jobs(item: str, params: Mapping[str, Any], section: Section) -> CheckResult:
     udp_job_method = {
         "-1": ("Unknown"),
         "0": ("Full backup job"),
@@ -105,10 +107,9 @@ def check_udp_jobs(item: str, params: Mapping[str, Any], section) -> CheckResult
 
     no_backup_state = params.get("no_backup", None)
 
-    if section.get(item):
-        data = section.get(item)
+    if data := section.get(item):
         msgtext = ""
-        last_backup = data.get("lastBackupStartTime")
+        last_backup = str(data.get("lastBackupStartTime"))
         job_status = data.get("lastJobStatus")
         size = data.get("jobSize")
         job_method = data.get("jobMethod")
@@ -121,30 +122,29 @@ def check_udp_jobs(item: str, params: Mapping[str, Any], section) -> CheckResult
             else:
                 yield Result(state=State.WARN, summary="No UDP job until now")
         else:
+            last_backup_date = dt.datetime.now()
             msgtext += f"Last job {last_backup},"
             failed = False
             try:
-                last_backup = dt.datetime.strptime(last_backup, "%d.%m.%Y %H:%M:%S")
+                last_backup_date = dt.datetime.strptime(last_backup, "%d.%m.%Y %H:%M:%S")
             except ValueError:
                 failed = True
             if failed:
                 try:
-                    last_backup = dt.datetime.strptime(
+                    last_backup_date = dt.datetime.strptime(
                         last_backup, "%m/%d/%Y %I:%M:%S %p"
                     )
                     failed = False
                 except ValueError:
                     msgtext += "Last backup time is not in the correct format"
                     failed = True
-            if failed:
-                backup_age = dt.datetime.now() - dt.datetime.now()
-            else:
-                backup_age = dt.datetime.now() - last_backup
+            
+            backup_age = dt.datetime.now() - last_backup_date
 
             backup_hours = _udp_job_age(backup_age)
-            status, name = udp_job_status.get(job_status, (3, "Unknown"))
+            status, name = udp_job_status.get(str(job_status), (3, "Unknown"))
             msgtext += f" with state {name}"
-            method = udp_job_method.get(job_method, f"unknown (!!!) id {job_method}")
+            method = udp_job_method.get(str(job_method), f"unknown (!!!) id {job_method}")
             yield Result(state=State(status), summary=msgtext)
 
             yield from check_levels(
@@ -155,7 +155,8 @@ def check_udp_jobs(item: str, params: Mapping[str, Any], section) -> CheckResult
                 metric_name="age",
                 label="backup age",
             )
-
+            if not isinstance(size, (int, str)):
+                size = 0
             msgtext = f"backup size {render.bytes(int(size))} and backup method was {method}"
             yield Result(state=State.OK, summary=msgtext)
 

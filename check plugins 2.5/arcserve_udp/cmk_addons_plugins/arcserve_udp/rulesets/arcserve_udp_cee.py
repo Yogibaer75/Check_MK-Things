@@ -4,13 +4,13 @@
 
 # License: GNU General Public License v2
 
-from cmk.rulesets.v1 import Help, Label, Title  # type: ignore[import]
-from cmk.rulesets.v1.form_specs import (  # type: ignore[import]
+from cmk.rulesets.v1 import Help, Label, Title
+from cmk.rulesets.v1.form_specs import (
     BooleanChoice,
     DictElement,
     Dictionary,
 )
-from cmk.rulesets.v1.rule_specs import AgentConfig, Topic  # type: ignore[import]
+from cmk.rulesets.v1.rule_specs import AgentConfig, Topic
 
 
 def _valuespec_agent_config_arcserve_udp():
