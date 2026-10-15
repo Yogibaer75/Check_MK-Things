@@ -12,3 +12,5 @@ Changelog:
 - 2.2.1 - migrated rulesets and checks to new API
 - 2.2.2 - small migration bugs fixed
 - 2.2.3 - formatting and params cleanup
+- 2.2.4 - make mypy happy
+- 2.2.5 - small format issues
