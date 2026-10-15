@@ -9,17 +9,17 @@ from typing import Final
 
 from cmk.agent_based.v2 import (
     AgentSection,
-    check_levels,
     CheckPlugin,
     CheckResult,
     DiscoveryResult,
     FixedLevelsT,
     NoLevelsT,
-    render,
     Result,
     Service,
     State,
     StringTable,
+    check_levels,
+    render,
 )
 from cmk.plugins.hyperv_cluster.lib import parse_hyperv_json_multi
 
@@ -82,7 +82,7 @@ def parse_hyperv_vm_checkpoints_json(string_table: StringTable) -> Section:
         if "checkpoint.path" in values:
             checkpoint_info["path"] = str(values["checkpoint.path"])
         if "checkpoint.created" in values:
-            checkpoint_info["created"] = int(values["checkpoint.created"])
+            checkpoint_info["created"] = str(values["checkpoint.created"])
         if "checkpoint.parent" in values:
             checkpoint_info["parent"] = str(values["checkpoint.parent"])
 
@@ -106,12 +106,11 @@ def _parse_checkpoint_ages(checkpoints: Sequence[CheckpointInfo]) -> list[tuple[
         "%m/%d/%Y %H:%M:%S",  # US format: 07/18/2025 13:44:18
         "%d/%m/%Y %H:%M:%S",  # European format: 18/07/2025 13:44:18
         "%Y-%m-%d %H:%M:%S",  # ISO format: 2025-07-18 13:44:18
+        "%Y-%m-%dT%H:%M:%S",  # ISO format with Separator: 2025-07-18T13:44:18 
         "%d.%m.%Y %H:%M:%S",  # German format: 18.07.2025 13:44:18
         "%Y/%m/%d %H:%M:%S",  # Asian format: 2025/07/18 13:44:18
         "%m-%d-%Y %H:%M:%S",  # US with dashes: 07-18-2025 13:44:18
         "%d-%m-%Y %H:%M:%S",  # European with dashes: 18-07-2025 13:44:18
-        "%m/%d/%Y %I:%M:%S %p",  # US with AM/PM: 07/18/2025 1:44:18 PM
-        "%d/%m/%Y %I:%M:%S %p",  # European with AM/PM: 18/07/2025 1:44:18 PM
         "%m/%d/%y %H:%M:%S",  # US 2-digit year: 07/18/25 13:44:18
         "%d/%m/%y %H:%M:%S",  # European 2-digit year: 18/07/25 13:44:18
     ]
@@ -122,22 +121,39 @@ def _parse_checkpoint_ages(checkpoints: Sequence[CheckpointInfo]) -> list[tuple[
         if isinstance(checkpoint["created"], int):
             # If the created field is already an integer, assume it's a timestamp
             age_seconds = current_time - checkpoint["created"]
-            checkpoint_data.append((checkpoint["name"], age_seconds))
+            checkpoint_data.append((str(checkpoint["name"]), age_seconds))
             continue
-        
-        created_str = checkpoint["created"].strip()
+
         parsed_successfully = False
 
-        for date_format in date_formats:
-            try:
-                checkpoint_time = time.strptime(created_str, date_format)
-                checkpoint_timestamp = time.mktime(checkpoint_time)
-                age_seconds = current_time - checkpoint_timestamp
-                checkpoint_data.append((checkpoint["name"], age_seconds))
-                parsed_successfully = True
-                break
-            except (ValueError, OverflowError):
-                continue
+        if "PM" in checkpoint["created"] or "AM" in checkpoint["created"]:
+            ampm_date_formats = [
+                "%m/%d/%Y %I:%M:%S %p",  # US with AM/PM: 07/18/2025 1:44:18 PM
+                "%d/%m/%Y %I:%M:%S %p",  # European with AM/PM: 18/07/2025 1:44:18 PM
+            ]
+            # Handle AM/PM format by converting to 24-hour format
+            for date_format in ampm_date_formats:
+                try:
+                    checkpoint_time = time.strptime(checkpoint["created"], date_format)
+                    checkpoint_timestamp = time.mktime(checkpoint_time)
+                    age_seconds = current_time - checkpoint_timestamp
+                    checkpoint_data.append((str(checkpoint["name"]), age_seconds))
+                    parsed_successfully = True
+                    break
+                except (ValueError, OverflowError):
+                    continue
+        else:
+            created_str = checkpoint["created"].strip()[:19]
+            for date_format in date_formats:
+                try:
+                    checkpoint_time = time.strptime(created_str, date_format)
+                    checkpoint_timestamp = time.mktime(checkpoint_time)
+                    age_seconds = current_time - checkpoint_timestamp
+                    checkpoint_data.append((str(checkpoint["name"]), age_seconds))
+                    parsed_successfully = True
+                    break
+                except (ValueError, OverflowError):
+                    continue
 
         if not parsed_successfully:
             continue

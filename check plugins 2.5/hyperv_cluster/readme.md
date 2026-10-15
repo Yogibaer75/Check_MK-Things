@@ -36,3 +36,4 @@
 * 3.4.6 - fixed cluster role cluster function
 * 3.4.7 - temp version
 * 3.4.8 - replaced hyperv_host.ps1 with new version and modified checks to support old and new one
+* 3.4.9 - fixed date parsing for special formats
