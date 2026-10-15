@@ -7,20 +7,20 @@
 
 from typing import NamedTuple, TypedDict
 
-from cmk.agent_based.v2 import (
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
-    check_levels,
     CheckPlugin,
     CheckResult,
     DiscoveryResult,
     FixedLevelsT,
     Metric,
     NoLevelsT,
-    render,
     Result,
     Service,
     State,
     StringTable,
+    check_levels,
+    render,
 )
 from cmk.plugins.hyperv_cluster.lib import hyperv_vm_convert, parse_hyperv_json
 
@@ -61,12 +61,12 @@ def parse_hyperv_vm_ram_json(string_table: StringTable) -> Section:
     raw = parse_hyperv_json(string_table)
 
     return Section(
-        assigned_ram=raw["config.hardware.AssignedRAM"],
-        ram_demand=raw.get("config.hardware.RAMDemand", "0"),
-        start_ram=raw.get("config.hardware.StartRAM", "0"),
-        max_ram=raw.get("config.hardware.MaxRAM", "0"),
-        min_ram=raw.get("config.hardware.MinRAM", "0"),
-        is_dynamic=raw.get("config.hardware.RAMType", False),
+        assigned_ram=int(raw["config.hardware.AssignedRAM"]),
+        ram_demand=int(raw.get("config.hardware.RAMDemand", "0")),
+        start_ram=int(raw.get("config.hardware.StartRAM", "0")),
+        max_ram=int(raw.get("config.hardware.MaxRAM", "0")),
+        min_ram=int(raw.get("config.hardware.MinRAM", "0")),
+        is_dynamic=raw.get("config.hardware.RAMType") == True,
     )
 
 def check_hyperv_vm_ram(params: CheckParameters, section: Section) -> CheckResult:

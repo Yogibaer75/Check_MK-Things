@@ -4,9 +4,7 @@
 
 # License: GNU General Public License v2
 
-from cmk.plugins.hyperv_cluster.lib import parse_hyperv
-
-from cmk.agent_based.v2 import (
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -15,27 +13,29 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
+from cmk.plugins.hyperv_cluster.lib import parse_hyperv
 
+Section = dict[str, dict[str, str]]
 
-def discovery_hyperv_cluster_disks(section) -> DiscoveryResult:
-    for disk in section.keys():
+def discovery_hyperv_cluster_disks(section: Section) -> DiscoveryResult:
+    for disk in section:
         yield Service(item=disk)
 
 
-def check_hyperv_cluster_disks(item: str, section) -> CheckResult:
+def check_hyperv_cluster_disks(item: str, section: Section) -> CheckResult:
 
-    disk = section.get(item, "")
+    disk = section.get(item, {})
 
     if not disk:
         yield Result(state=State(3), summary="Disk not found in agent output")
         return
 
     state = 0
-    if disk["cluster.disk.state"] != "Online":
+    if disk.get("cluster.disk.state") != "Online":
         state = 3
     message = (
-        f"is {disk['cluster.disk.state']}, with owner {disk['cluster.disk.owner_node']}"
-        f" and group {disk['cluster.disk.owner_group']}."
+        f"is {disk.get('cluster.disk.state')}, with owner {disk.get('cluster.disk.owner_node')}"
+        f" and group {disk.get('cluster.disk.owner_group')}."
     )
     yield Result(state=State(state), summary=message)
 

@@ -4,10 +4,9 @@
 
 # License: GNU General Public License v2
 
-from collections.abc import Mapping
 from typing import Any
 
-from cmk.agent_based.v2 import (
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -20,15 +19,15 @@ from cmk.agent_based.v2 import (
 )
 from cmk.plugins.hyperv_cluster.lib import parse_hyperv_json
 
-Section = dict[str, Mapping[str, Any]]
+Section = dict[str, Any | bool | str]
 
 
-def host_label_hyperv_node(section: Section) -> HostLabelGenerator:
+def host_labels_hyperv_node(section: Section) -> HostLabelGenerator:
     if section:
         yield HostLabel("cmk/hyperv_object", "server")
 
 
-def discovery_hyperv_node(section) -> DiscoveryResult:
+def discovery_hyperv_node(section: Section) -> DiscoveryResult:
     if section:
         yield Service()
 
@@ -43,11 +42,11 @@ def check_hyperv_node(section: Section) -> CheckResult:
         yield Result(state=State(0), summary=message)
 
 
-agent_section_hyperv_node_json: AgentSection = AgentSection(
+agent_section_hyperv_node_json = AgentSection(
     name="hyperv_node_json",
     parse_function=parse_hyperv_json,
+    host_label_function=host_labels_hyperv_node,
     parsed_section_name="hyperv_node",
-    host_label_function=host_label_hyperv_node,
 )
 
 check_plugin_hyperv_node = CheckPlugin(

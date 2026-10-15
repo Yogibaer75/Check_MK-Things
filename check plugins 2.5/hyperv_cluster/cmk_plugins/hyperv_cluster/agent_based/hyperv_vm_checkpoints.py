@@ -7,7 +7,7 @@ import time
 from collections.abc import Mapping, Sequence
 from typing import Final
 
-from cmk.agent_based.v2 import (
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -44,7 +44,7 @@ def parse_hyperv_vm_checkpoints(string_table: StringTable) -> Section:
     if not string_table:
         return {}
 
-    checkpoints = []
+    checkpoints: list[CheckpointInfo] = []
     current_checkpoint: CheckpointInfo = {}
 
     for line in string_table:
@@ -74,7 +74,7 @@ def parse_hyperv_vm_checkpoints_json(string_table: StringTable) -> Section:
     if not parsed:
         return {"checkpoints": []}
 
-    checkpoints = []
+    checkpoints: list[CheckpointInfo] = []
     for values in parsed.values():
         checkpoint_info: CheckpointInfo = {}
         if "checkpoint.name" in values:
@@ -82,7 +82,7 @@ def parse_hyperv_vm_checkpoints_json(string_table: StringTable) -> Section:
         if "checkpoint.path" in values:
             checkpoint_info["path"] = str(values["checkpoint.path"])
         if "checkpoint.created" in values:
-            checkpoint_info["created"] = str(values["checkpoint.created"])
+            checkpoint_info["created"] = int(values["checkpoint.created"])
         if "checkpoint.parent" in values:
             checkpoint_info["parent"] = str(values["checkpoint.parent"])
 
@@ -124,8 +124,6 @@ def _parse_checkpoint_ages(checkpoints: Sequence[CheckpointInfo]) -> list[tuple[
             checkpoint_data.append((str(checkpoint["name"]), age_seconds))
             continue
 
-        parsed_successfully = False
-
         if "PM" in checkpoint["created"] or "AM" in checkpoint["created"]:
             ampm_date_formats = [
                 "%m/%d/%Y %I:%M:%S %p",  # US with AM/PM: 07/18/2025 1:44:18 PM
@@ -138,7 +136,6 @@ def _parse_checkpoint_ages(checkpoints: Sequence[CheckpointInfo]) -> list[tuple[
                     checkpoint_timestamp = time.mktime(checkpoint_time)
                     age_seconds = current_time - checkpoint_timestamp
                     checkpoint_data.append((str(checkpoint["name"]), age_seconds))
-                    parsed_successfully = True
                     break
                 except (ValueError, OverflowError):
                     continue
@@ -150,13 +147,9 @@ def _parse_checkpoint_ages(checkpoints: Sequence[CheckpointInfo]) -> list[tuple[
                     checkpoint_timestamp = time.mktime(checkpoint_time)
                     age_seconds = current_time - checkpoint_timestamp
                     checkpoint_data.append((str(checkpoint["name"]), age_seconds))
-                    parsed_successfully = True
                     break
                 except (ValueError, OverflowError):
                     continue
-
-        if not parsed_successfully:
-            continue
 
     return checkpoint_data
 

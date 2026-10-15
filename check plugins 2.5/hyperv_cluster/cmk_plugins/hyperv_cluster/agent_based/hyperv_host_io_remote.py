@@ -8,25 +8,24 @@ import time
 from collections.abc import Mapping
 from typing import Any
 
-from cmk.plugins.hyperv_cluster.lib import parse_hyperv_io
-
-from cmk.agent_based.v2 import (
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
     DiscoveryResult,
-    get_value_store,
     Result,
     Service,
     State,
+    get_value_store,
 )
+from cmk.plugins.hyperv_cluster.lib import parse_hyperv_io
 from cmk.plugins.lib.diskstat import check_diskstat_dict  # type: ignore[import]
 
 Section = dict[str, dict[str, Any]]
 
 
 def discovery_hyperv_host_io_remote(section: Section) -> DiscoveryResult:
-    for lun in section.keys():
+    for lun in section:
         yield Service(item=lun)
 
 
@@ -42,7 +41,6 @@ def check_hyperv_host_io_remote(
     yield from check_diskstat_dict(
         params=params,
         disk={
-            "node": None,
             "read_ql": float(lun["avg. disk read queue length"].replace(",", ".")),
             "write_ql": float(lun["avg. disk write queue length"].replace(",", ".")),
             "sec_per_read_counter": float(lun["avg. disk sec/read"].replace(",", ".")),

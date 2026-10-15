@@ -7,29 +7,28 @@
 from collections.abc import Mapping
 from typing import Any
 
-from cmk.plugins.hyperv_cluster.lib import parse_hyperv
-
-from cmk.agent_based.v2 import (
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
     DiscoveryResult,
-    get_value_store,
-    render,
     Result,
     Service,
     State,
+    get_value_store,
+    render,
 )
+from cmk.plugins.hyperv_cluster.lib import parse_hyperv
 from cmk.plugins.lib.df import (  # type: ignore[import]
-    df_check_filesystem_single,
     FILESYSTEM_DEFAULT_PARAMS,
+    df_check_filesystem_single,
 )
 
 Section = dict[str, dict[str, Any]]
 
 
 def discovery_hyperv_cluster_csv(section: Section) -> DiscoveryResult:
-    for csv in section.keys():
+    for csv in section:
         yield Service(item=csv)
 
 

@@ -14,10 +14,10 @@ from cmk.rulesets.v1.form_specs import (
     SingleChoiceElement,
     String,
 )
+from cmk.rulesets.v1.form_specs.validators import LengthInRange
 from cmk.rulesets.v1.rule_specs import (
     CheckParameters,
     HostAndItemCondition,
-    LengthInRange,
     Topic,
 )
 

@@ -10,20 +10,20 @@ from enum import StrEnum
 from pathlib import PurePath, PureWindowsPath
 from typing import Literal, NamedTuple, TypedDict
 
-from cmk.agent_based.v2 import (
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
-    check_levels,
     CheckPlugin,
     CheckResult,
     DiscoveryResult,
     FixedLevelsT,
     Metric,
     NoLevelsT,
-    render,
     Result,
     Service,
     State,
     StringTable,
+    check_levels,
+    render,
 )
 from cmk.plugins.hyperv_cluster.lib import parse_hyperv, parse_hyperv_json_multi
 
@@ -83,10 +83,10 @@ def parse_hyperv_vm_vhd_json(string_table: StringTable) -> Section:
 
     return {
         f"{values['vhd.controller.Type']} {values['vhd.controller.Number']} {values['vhd.controller.Location']}": VhdInfo(
-            main_path=PureWindowsPath(vhd_path),
+            main_path=PureWindowsPath(str(vhd_path)),
             disk_size=int(values["vhd.DiskSize"]),
             file_size=int(values["vhd.FileSize"]),
-            type=VhdType(vhd_type),
+            type=VhdType(str(vhd_type)),
         )
         for _key, values in parsed.items()
         if (vhd_path := values.get("vhd.Path")) is not None

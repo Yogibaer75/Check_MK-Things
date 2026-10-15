@@ -7,9 +7,7 @@
 from collections.abc import Generator, Mapping
 from typing import Any
 
-from cmk.plugins.hyperv_cluster.lib import parse_hyperv
-
-from cmk.agent_based.v2 import (
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -18,11 +16,12 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
+from cmk.plugins.hyperv_cluster.lib import parse_hyperv
 
 Section = dict[str, dict[str, Any]]
 
 
-hyperv_cluster_roles_default_levels = {
+hyperv_cluster_roles_default_levels: dict[str, Any] = {
     "default_status": "active",
     "match_services": [],
 }
@@ -35,9 +34,9 @@ states = {
 }
 
 
-def discovery_hyperv_cluster_roles(section) -> DiscoveryResult:
+def discovery_hyperv_cluster_roles(section: Section) -> DiscoveryResult:
     """Discovery function"""
-    for vm in section.keys():
+    for vm in section:
         yield Service(item=vm)
 
 
@@ -57,6 +56,7 @@ def check_hyperv_cluster_roles(
 
     state = 0
     wanted_result = None
+    wanted_state = None
     wanted_states = params.get("match_services")
 
     if wanted_states:
@@ -72,6 +72,8 @@ def check_hyperv_cluster_roles(
             message = f"power state: {vm.get("cluster.vm.state")}"
             yield Result(state=State(state), summary=message)
         else:
+            if not wanted_state:
+                wanted_state = "Unknown"
             state = 1
             message = f"power state: {vm.get("cluster.vm.state")} - wanted state: {wanted_state}"
             yield Result(state=State(state), summary=message)
@@ -99,7 +101,7 @@ def cluster_check_hyperv_cluster_roles(
     item: str, params: Mapping[str, Any], section: Mapping[str, Section | None]
 ) -> CheckResult:
     """Cluster check function"""
-    found = []
+    found : list[tuple[str, Result, Result]] = []
     for node, node_section in section.items():
         if not node_section:
             continue
@@ -112,7 +114,7 @@ def cluster_check_hyperv_cluster_roles(
         return
 
     best_state = State.best(*(result.state for _node, result, _result2 in found))
-    best_running_on, best_result = [(x.summary, r) for n, r, x in found if r.state == best_state][
+    best_running_on, best_result = [(x.summary, r) for _n, r, x in found if r.state == best_state][
         -1
     ]
 

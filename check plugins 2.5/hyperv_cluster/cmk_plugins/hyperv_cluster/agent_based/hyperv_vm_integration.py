@@ -7,7 +7,7 @@
 
 from typing import Final, Literal, TypedDict
 
-from cmk.agent_based.v2 import (
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -152,16 +152,14 @@ def check_hyperv_vm_integration(params: IntegrationServicesParams, section: Sect
         )
 
     match_services_param = params.get("match_services", [])
-    if isinstance(match_services_param, list):
-        for item in match_services_param:
-            if isinstance(item, dict):
-                service_name = item["service_name"]
-                default_status = item["default_status"]
-                state_if_not_default = item["state_if_not_default"]
+    for item in match_services_param:
+        service_name = item["service_name"]
+        default_status = item["default_status"]
+        state_if_not_default = item["state_if_not_default"]
 
-                match_services[service_name] = ServiceSettings(
-                    default_status=default_status, state_if_not_default=state_if_not_default
-                )
+        match_services[service_name] = ServiceSettings(
+            default_status=default_status, state_if_not_default=state_if_not_default
+        )
 
     yield from process_service_status(
         section, match_services, global_default_status, global_state_if_not_default
@@ -184,28 +182,26 @@ def check_hyperv_vm_integration_json(params: IntegrationServicesParams, section:
         )
 
     match_services_param = params.get("match_services", [])
-    if isinstance(match_services_param, list):
-        for item in match_services_param:
-            if isinstance(item, dict):
-                service_name = item["service_name"]
-                default_status = item["default_status"]
-                state_if_not_default = item["state_if_not_default"]
+    for item in match_services_param:
+        service_name = item["service_name"]
+        default_status = item["default_status"]
+        state_if_not_default = item["state_if_not_default"]
 
-                match_services[service_name] = ServiceSettings(
-                    default_status=default_status, state_if_not_default=state_if_not_default
-                )
+        match_services[service_name] = ServiceSettings(
+            default_status=default_status, state_if_not_default=state_if_not_default
+        )
 
     yield from process_service_status_json(
         section, match_services, global_default_status, global_state_if_not_default
     )
 
 
-agent_section_hyperv_vm_integration: AgentSection = AgentSection(
+agent_section_hyperv_vm_integration = AgentSection(
     name="hyperv_vm_integration",
     parse_function=hyperv_vm_convert,
 )
 
-agent_section_hyperv_vm_integration_json: AgentSection = AgentSection(
+agent_section_hyperv_vm_integration_json = AgentSection(
     name="hyperv_vm_integration_json",
     parse_function=parse_hyperv_json_multi,
 )

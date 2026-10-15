@@ -7,9 +7,7 @@
 from collections.abc import Mapping
 from typing import Any
 
-from cmk.plugins.hyperv_cluster.lib import hyperv_vm_convert
-
-from cmk.agent_based.v2 import (
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -18,11 +16,12 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
+from cmk.plugins.hyperv_cluster.lib import hyperv_vm_convert
 
 Section = dict[str, Mapping[str, Any]]
 
 
-def discovery_hyperv_cluster_general(section) -> DiscoveryResult:
+def discovery_hyperv_cluster_general(section: Section) -> DiscoveryResult:
     if section:
         yield Service()
 

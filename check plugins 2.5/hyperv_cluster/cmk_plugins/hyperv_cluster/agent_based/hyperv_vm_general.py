@@ -6,9 +6,9 @@
 # Thanks to Andreas Döhler for the contribution.
 
 from collections.abc import Mapping
-from typing import Final, TypedDict
+from typing import Any, Final, TypedDict
 
-from cmk.agent_based.v2 import (
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -21,7 +21,7 @@ from cmk.agent_based.v2 import (
 )
 from cmk.plugins.hyperv_cluster.lib import hyperv_vm_convert, parse_hyperv_json
 
-Section = Mapping[str, str]
+Section = Mapping[str, Any | bool | str]
 
 
 class GeneralParams(TypedDict):
@@ -55,17 +55,17 @@ def discovery_hyperv_vm_general(section: Section) -> DiscoveryResult:
 
 
 def _check_power_state(section: Section, params: GeneralParams) -> CheckResult:
-    power_state = section.get("runtime.powerState")
-    if not power_state:
+    power_state_value = str(section.get("runtime.powerState"))
+    if not power_state_value:
         yield Result(state=State.WARN, summary="State information is missing")
         return
 
     power_state_mapping = params["power_state"]
     default_mapping = hyperv_vm_general_default_params["power_state"]
     state_value = power_state_mapping.get(
-        power_state.lower(), default_mapping.get(power_state.lower(), State.UNKNOWN.value)
+        power_state_value.lower(), default_mapping.get(power_state_value.lower(), State.UNKNOWN.value)
     )
-    yield Result(state=State(state_value), summary=f"State: {power_state}")
+    yield Result(state=State(state_value), summary=f"State: {power_state_value}")
 
 
 def _check_vm_generation(section: Section, params: GeneralParams) -> CheckResult:
@@ -108,13 +108,13 @@ def check_hyperv_vm_general(params: GeneralParams, section: Section) -> CheckRes
     yield from _check_vm_generation(section, params)
 
 
-agent_section_hyperv_vm_general: AgentSection = AgentSection(
+agent_section_hyperv_vm_general = AgentSection(
     name="hyperv_vm_general",
     parse_function=hyperv_vm_convert,
     host_label_function=host_label_hyperv_vm,
 )
 
-agent_section_hyperv_vm_general_json: AgentSection = AgentSection(
+agent_section_hyperv_vm_general_json = AgentSection(
     name="hyperv_vm_general_json",
     parse_function=parse_hyperv_json,
     parsed_section_name="hyperv_vm_general",

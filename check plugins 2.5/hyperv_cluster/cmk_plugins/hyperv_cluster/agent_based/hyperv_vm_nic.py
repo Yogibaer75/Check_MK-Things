@@ -8,7 +8,7 @@
 from collections.abc import Callable, Mapping
 from typing import Final, TypedDict
 
-from cmk.agent_based.v2 import (
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -135,14 +135,16 @@ def _check_connection_state(data: Mapping[str, str], params: NicParams, item: st
         return
 
     if "connection_state" not in params and params.get("state") is not None:
-        discovered_state = params["state"]
+        discovered_state = params.get("state")
+        if discovered_state is None:
+            discovered_state = "unknown"
         actual_state = data.get("nic.connectionstate", "unknown")
 
         if actual_state == "unknown":
             yield Result(state=State.UNKNOWN, summary=f"Connection state missing for NIC: {item}")
             return
 
-        if actual_state.lower() == discovered_state:
+        if actual_state.lower() == discovered_state.lower():
             state = State.OK
         else:
             state = State.WARN
@@ -150,8 +152,8 @@ def _check_connection_state(data: Mapping[str, str], params: NicParams, item: st
         yield Result(state=state, summary=f"Connected: {actual_state}")
         return
 
-    connection_params = params["connection_state"]
-    expected_state = connection_params["connected"]
+    connection_params = params.get("connection_state", {})
+    expected_state = connection_params.get("connected", "unknown")
     actual_state = data.get("nic.connectionstate", "unknown")
 
     if actual_state == "unknown":

@@ -6,9 +6,8 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
+from cmk.bakery.v2_unstable import OS, BakeryPlugin, FileGenerator, Plugin  # type: ignore[import]
 from pydantic import BaseModel
-
-from cmk.bakery.v2_unstable import BakeryPlugin, FileGenerator, OS, Plugin
 
 HyperVPluginName = Literal["hyperv_host", "hyperv_cluster", "hyperv_host_csv"]
 

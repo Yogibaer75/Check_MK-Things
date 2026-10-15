@@ -6,9 +6,7 @@
 
 from typing import Any
 
-from cmk.plugins.hyperv_cluster.lib import parse_hyperv
-
-from cmk.agent_based.v2 import (
+from cmk.agent_based.v2 import (  # type: ignore[import]
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -17,12 +15,13 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
+from cmk.plugins.hyperv_cluster.lib import parse_hyperv
 
 Section = dict[str, dict[str, Any]]
 
 
-def discovery_hyperv_cluster_nodes(section) -> DiscoveryResult:
-    for node in section.keys():
+def discovery_hyperv_cluster_nodes(section: Section) -> DiscoveryResult:
+    for node in section:
         yield Service(item=node)
 
 

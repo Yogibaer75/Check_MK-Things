@@ -1,21 +1,21 @@
 #!/usr/bin/python
 
 import json
-from typing import Any
 from collections.abc import Mapping
+from typing import Any
 
-from cmk.agent_based.v2 import (
+from cmk.agent_based.v2 import (  # type: ignore[import]
     StringTable,
 )
 
 Section = Mapping[str, Mapping[str, str]]
 
 
-def hyperv_vm_general(string_table):
-    parsed = {}
-    single_host = {}
+def hyperv_vm_general(string_table: StringTable) -> Mapping[str, Mapping[str, str]]:
+    parsed: dict[str, dict[str, str]] = {}
+    single_host: dict[str, str] = {}
     foundit = False
-    host_name = ""
+    host_name: str = ""
     for line in string_table:
         if line[0] == "runtime.host":
             foundit = True
@@ -40,8 +40,8 @@ def hyperv_vm_convert(string_table: StringTable) -> Mapping[str, str]:
 
 
 counter_translation = {
-    "durchschnittl. warteschlangenlänge der datenträger-lesevorgänge": "avg. disk read queue length",  # NOQA: E501
-    "durchschnittl. warteschlangenlänge der datenträger-schreibvorgänge": "avg. disk write queue length",  # NOQA: E501
+    "durchschnittl. warteschlangenlänge der datenträger-lesevorgänge": "avg. disk read queue length",
+    "durchschnittl. warteschlangenlänge der datenträger-schreibvorgänge": "avg. disk write queue length",
     "mittlere sek./lesevorgänge": "avg. disk sec/read",
     "mittlere sek./schreibvorgänge": "avg. disk sec/write",
     "lesevorgänge/s": "disk reads/sec",
@@ -64,7 +64,7 @@ def parse_hyperv_io(string_table: StringTable) -> Section:
             _empty, _empty2, host, lun, name = splitted_data
         else:
             continue
-        if name in counter_translation.keys():
+        if name in counter_translation:
             name = counter_translation[name]
         if lun not in parsed:
             parsed[lun] = {}
@@ -73,7 +73,7 @@ def parse_hyperv_io(string_table: StringTable) -> Section:
     return parsed
 
 
-def parse_hyperv(string_table) -> dict[str, dict[str, Any]]:
+def parse_hyperv(string_table: StringTable) -> dict[str, dict[str, Any]]:
     datatypes = {
         "vhd": "vhd.name",
         "nic": "nic.name",
@@ -120,7 +120,7 @@ def parse_hyperv_json_multi(string_table: StringTable) -> dict[str, dict[str, An
             data = json.loads(line[0])
         except json.JSONDecodeError:
             continue
-        key = next((x for x in dict_keys if x in data.keys()), None)
+        key = next((x for x in dict_keys if x in data), None)
         if key:
             parsed[data[key]] = data
 
