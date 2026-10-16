@@ -15,3 +15,5 @@ Changelog:
 - 2.2.4 - make mypy happy
 - 2.2.5 - small format issues
 - 2.3.0 - migrated bakery functions to agent folder
+- 2.3.1 - some compat changes for CMK 3.0
+- 2.3.2 - forgot small type changes
