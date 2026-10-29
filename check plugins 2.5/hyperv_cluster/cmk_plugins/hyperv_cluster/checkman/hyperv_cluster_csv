@@ -7,7 +7,7 @@ description:
  This check monitors the used space of the cluster shared volumes (CSV) of a
  Microsoft Windows failover cluster running Hyper-V.
 
- Levels and trends are configured with the rule "Filesystems (used space and growth)".
+ Levels and trends are configured with the rule "File systems (used space and growth)".
 
  The data is collected by the agent plug-in {hyperv_cluster.ps1}, which can be
  deployed with the agent bakery rule "Hyper-V".
