@@ -6,7 +6,7 @@
 - Inside this rule you can select what plugins should be deployed
   - "Hyper-V host monitoring" - for Hyper-V VMs 
   - "Hyper-V cluster monitoring" - for Hyper-V cluster nodes and cluster resources
-  - "Hyper-V host CSV monitoring" - for Hyper-V cluster shared volume monitoring
+  - "Hyper-V cluster shared volume I/O monitoring" - for the I/O of cluster shared volumes
 
 ## Changelog
 
