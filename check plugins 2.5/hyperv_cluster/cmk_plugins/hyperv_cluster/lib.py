@@ -87,7 +87,6 @@ def parse_hyperv(string_table: StringTable) -> dict[str, dict[str, Any]]:
         "cluster.number_of_csv": "cluster.csv.name",
         "cluster.number_of_disks": "cluster.disk.name",
         "cluster.number_of_vms": "cluster.vm.name",
-        "cluster.number_of_roles": "cluster.role.name",
         "cluster.number_of_networks": "cluster.network.name",
     }
 
