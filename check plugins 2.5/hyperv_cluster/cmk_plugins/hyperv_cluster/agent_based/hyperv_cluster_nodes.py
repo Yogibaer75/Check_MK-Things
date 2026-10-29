@@ -4,9 +4,7 @@
 
 # License: GNU General Public License v2
 
-from typing import Any
-
-from cmk.agent_based.v2 import (  # type: ignore[import]
+from cmk.agent_based.v2 import (
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -15,32 +13,42 @@ from cmk.agent_based.v2 import (  # type: ignore[import]
     Service,
     State,
 )
-from cmk.plugins.hyperv_cluster.lib import parse_hyperv
+from cmk.plugins.hyperv_cluster.lib import parse_hyperv, Section
 
-Section = dict[str, dict[str, Any]]
+_NODE_STATES = {
+    "Up": State.OK,
+    "Paused": State.WARN,
+    "Joining": State.WARN,
+    "Down": State.CRIT,
+}
+
+# Status information of Windows Server 2016 and later. "Normal" and unknown values are OK.
+_NODE_STATUS_INFORMATION = {
+    "Isolated": State.WARN,
+    "Quarantined": State.CRIT,
+}
 
 
-def discovery_hyperv_cluster_nodes(section: Section) -> DiscoveryResult:
+def discover_hyperv_cluster_nodes(section: Section) -> DiscoveryResult:
     for node in section:
         yield Service(item=node)
 
 
 def check_hyperv_cluster_nodes(item: str, section: Section) -> CheckResult:
+    if (node := section.get(item)) is None:
+        return
 
-    node = section.get(item, {})
-
-    if not node:
-        yield Result(state=State(3), summary="Node not found in agent output")
-
-    state = 0
-    if node.get("cluster.node.state") != "Up":
-        state = 3
-    message = (
-        f"is {node.get('cluster.node.state')}, "
-        f"has ID {node.get('cluster.node.id')} and "
-        f"weight {node.get('cluster.node.weight')}."
-    )
-    yield Result(state=State(state), summary=message)
+    state = node.get("cluster.node.state") or "not reported"
+    yield Result(state=_NODE_STATES.get(state, State.UNKNOWN), summary=f"State: {state}")
+    if node_id := node.get("cluster.node.id"):
+        yield Result(state=State.OK, summary=f"ID: {node_id}")
+    if weight := node.get("cluster.node.weight"):
+        yield Result(state=State.OK, summary=f"Weight: {weight}")
+    if info := node.get("cluster.node.info"):
+        if (info_state := _NODE_STATUS_INFORMATION.get(info, State.OK)) is State.OK:
+            yield Result(state=State.OK, notice=f"Status information: {info}")
+        else:
+            yield Result(state=info_state, summary=f"Status information: {info}")
 
 
 agent_section_hyperv_cluster_nodes = AgentSection(
@@ -50,8 +58,7 @@ agent_section_hyperv_cluster_nodes = AgentSection(
 
 check_plugin_hyperv_cluster_nodes = CheckPlugin(
     name="hyperv_cluster_nodes",
-    service_name="HyperV Node %s",
-    sections=["hyperv_cluster_nodes"],
-    discovery_function=discovery_hyperv_cluster_nodes,
+    service_name="Hyper-V cluster node %s",
+    discovery_function=discover_hyperv_cluster_nodes,
     check_function=check_hyperv_cluster_nodes,
 )
