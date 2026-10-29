@@ -8,7 +8,7 @@ description:
  cluster running Hyper-V.
 
  The check is {OK} if the network is up, {WARN} if it is partitioned,
- {CRIT} if it is down and {UNKNOWN} for any other state.
+ {CRIT} if it is down or unavailable and {UNKNOWN} for any other state.
 
  The data is collected by the agent plug-in {hyperv_cluster.ps1}, which can be
  deployed with the agent bakery rule "Hyper-V".
