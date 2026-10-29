@@ -5,9 +5,8 @@
 # License: GNU General Public License v2
 
 from collections.abc import Mapping
-from typing import Any
 
-from cmk.agent_based.v2 import (  # type: ignore[import]
+from cmk.agent_based.v2 import (
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -18,24 +17,24 @@ from cmk.agent_based.v2 import (  # type: ignore[import]
 )
 from cmk.plugins.hyperv_cluster.lib import hyperv_vm_convert
 
-Section = dict[str, Mapping[str, Any]]
+Section = Mapping[str, str]
 
 
-def discovery_hyperv_cluster_general(section: Section) -> DiscoveryResult:
-    if section:
+def discover_hyperv_cluster_general(section: Section) -> DiscoveryResult:
+    if "cluster.name" in section:
         yield Service()
 
 
 def check_hyperv_cluster_general(section: Section) -> CheckResult:
-    if section:
-        name = section.get("cluster.name", "")
-        quorum = section.get("quorum.resourcename", "")
-        ip = section.get("cluster.ip", "")
-        quorum_typ = section.get("quorum.type", "")
-
-        message = f"Hyper-V Cluster {name} with IP {ip} and quorum {quorum} as {quorum_typ} quorum."
-
-        yield Result(state=State(0), summary=message)
+    yield Result(state=State.OK, summary=f"Name: {section.get('cluster.name', '')}")
+    if ip := section.get("cluster.ip"):
+        yield Result(state=State.OK, summary=f"IP: {ip}")
+    # Quorum types without a witness, e.g. NodeMajority, have no quorum resource
+    quorum_type = section.get("quorum.type", "")
+    if resource := section.get("quorum.resourcename"):
+        yield Result(state=State.OK, summary=f"Quorum: {resource} ({quorum_type})")
+    elif quorum_type:
+        yield Result(state=State.OK, summary=f"Quorum: {quorum_type}")
 
 
 agent_section_hyperv_cluster_general = AgentSection(
@@ -45,8 +44,7 @@ agent_section_hyperv_cluster_general = AgentSection(
 
 check_plugin_hyperv_cluster_general = CheckPlugin(
     name="hyperv_cluster_general",
-    service_name="HyperV Cluster Status",
-    sections=["hyperv_cluster_general"],
-    discovery_function=discovery_hyperv_cluster_general,
+    service_name="Hyper-V cluster",
+    discovery_function=discover_hyperv_cluster_general,
     check_function=check_hyperv_cluster_general,
 )
