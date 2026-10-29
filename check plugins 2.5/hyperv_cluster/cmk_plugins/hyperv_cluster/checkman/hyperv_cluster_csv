@@ -17,3 +17,9 @@ item:
 
 discovery:
  One service is created for each cluster shared volume.
+
+cluster:
+ Every node of the failover cluster reports all cluster shared volumes, so
+ without a Checkmk cluster host the services are created on every node. In a
+ Checkmk cluster host the report of the first node, in the order of the node
+ names, is used.

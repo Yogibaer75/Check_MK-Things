@@ -7,6 +7,7 @@ import pytest
 from cmk.agent_based.v2 import Result, Service, State
 from cmk.plugins.hyperv_cluster.agent_based.hyperv_cluster_nodes import (
     check_hyperv_cluster_nodes,
+    cluster_check_hyperv_cluster_nodes,
     discover_hyperv_cluster_nodes,
 )
 from cmk.plugins.hyperv_cluster.lib import parse_hyperv, Section
@@ -93,3 +94,17 @@ def test_missing_values_are_left_out() -> None:
 
 def test_vanished_node_yields_no_result() -> None:
     assert not list(check_hyperv_cluster_nodes("HV03", _section()))
+
+
+def test_cluster_uses_the_report_of_the_first_node() -> None:
+    results = list(
+        cluster_check_hyperv_cluster_nodes(
+            "HV02", {"HV02": _section(state="Paused"), "HV01": _section(state="Down"), "HV03": None}
+        )
+    )
+
+    assert results[0] == Result(state=State.CRIT, summary="State: Down")
+
+
+def test_cluster_yields_no_result_for_unknown_node() -> None:
+    assert not list(cluster_check_hyperv_cluster_nodes("HV09", {"HV01": _section(), "HV02": None}))

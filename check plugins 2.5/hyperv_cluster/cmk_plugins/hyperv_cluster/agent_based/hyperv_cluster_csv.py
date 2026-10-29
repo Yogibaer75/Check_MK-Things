@@ -15,7 +15,7 @@ from cmk.agent_based.v2 import (
     get_value_store,
     Service,
 )
-from cmk.plugins.hyperv_cluster.lib import parse_hyperv, Section
+from cmk.plugins.hyperv_cluster.lib import merge_node_sections, parse_hyperv, Section
 from cmk.plugins.lib.df import df_check_filesystem_single, FILESYSTEM_DEFAULT_PARAMS
 
 _MB = 1024.0 * 1024.0
@@ -55,6 +55,14 @@ def check_cluster_shared_volume(
     )
 
 
+def cluster_check_hyperv_cluster_csv(
+    item: str, params: Mapping[str, Any], section: Mapping[str, Section | None]
+) -> CheckResult:
+    yield from check_cluster_shared_volume(
+        item, params, merge_node_sections(section), get_value_store()
+    )
+
+
 agent_section_hyperv_cluster_csv = AgentSection(
     name="hyperv_cluster_csv",
     parse_function=parse_hyperv,
@@ -65,6 +73,7 @@ check_plugin_hyperv_cluster_csv = CheckPlugin(
     service_name="Hyper-V cluster CSV %s",
     discovery_function=discover_hyperv_cluster_csv,
     check_function=check_hyperv_cluster_csv,
+    cluster_check_function=cluster_check_hyperv_cluster_csv,
     check_ruleset_name="filesystem",
     check_default_parameters=FILESYSTEM_DEFAULT_PARAMS,
 )

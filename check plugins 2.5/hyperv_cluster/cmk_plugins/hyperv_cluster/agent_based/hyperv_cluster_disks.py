@@ -4,6 +4,8 @@
 
 # License: GNU General Public License v2
 
+from collections.abc import Mapping
+
 from cmk.agent_based.v2 import (
     AgentSection,
     CheckPlugin,
@@ -13,7 +15,7 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
-from cmk.plugins.hyperv_cluster.lib import parse_hyperv, Section
+from cmk.plugins.hyperv_cluster.lib import merge_node_sections, parse_hyperv, Section
 
 _DISK_STATES = {
     "Online": State.OK,
@@ -43,6 +45,12 @@ def check_hyperv_cluster_disks(item: str, section: Section) -> CheckResult:
         yield Result(state=State.OK, summary=f"Group: {group}")
 
 
+def cluster_check_hyperv_cluster_disks(
+    item: str, section: Mapping[str, Section | None]
+) -> CheckResult:
+    yield from check_hyperv_cluster_disks(item, merge_node_sections(section))
+
+
 agent_section_hyperv_cluster_disks = AgentSection(
     name="hyperv_cluster_disks",
     parse_function=parse_hyperv,
@@ -53,4 +61,5 @@ check_plugin_hyperv_cluster_disks = CheckPlugin(
     service_name="Hyper-V cluster disk %s",
     discovery_function=discover_hyperv_cluster_disks,
     check_function=check_hyperv_cluster_disks,
+    cluster_check_function=cluster_check_hyperv_cluster_disks,
 )

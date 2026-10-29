@@ -5,9 +5,13 @@
 import time
 from collections.abc import Iterable
 
+import pytest
+
 from cmk.agent_based.v2 import Metric, Result, Service, State
+from cmk.plugins.hyperv_cluster.agent_based import hyperv_cluster_csv
 from cmk.plugins.hyperv_cluster.agent_based.hyperv_cluster_csv import (
     check_cluster_shared_volume,
+    cluster_check_hyperv_cluster_csv,
     discover_hyperv_cluster_csv,
 )
 from cmk.plugins.hyperv_cluster.lib import parse_hyperv, Section
@@ -110,4 +114,32 @@ def test_vanished_volume_yields_no_result() -> None:
 
     assert not list(
         check_cluster_shared_volume("Cluster Disk 3", FILESYSTEM_DEFAULT_PARAMS, section, {})
+    )
+
+
+def test_cluster_uses_the_report_of_the_first_node(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(hyperv_cluster_csv, "get_value_store", lambda: _value_store(95 * 1024))
+
+    results = list(
+        cluster_check_hyperv_cluster_csv(
+            "Cluster Disk 2",
+            FILESYSTEM_DEFAULT_PARAMS,
+            {
+                "HV02": _section(100 * _GIB, 50 * _GIB),
+                "HV01": _section(100 * _GIB, 5 * _GIB),
+                "HV03": None,
+            },
+        )
+    )
+
+    assert _worst_state(results) is State.CRIT
+
+
+def test_cluster_without_reports_yields_no_result(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(hyperv_cluster_csv, "get_value_store", dict)
+
+    assert not list(
+        cluster_check_hyperv_cluster_csv(
+            "Cluster Disk 2", FILESYSTEM_DEFAULT_PARAMS, {"HV01": None, "HV02": None}
+        )
     )

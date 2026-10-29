@@ -7,6 +7,7 @@ import pytest
 from cmk.agent_based.v2 import Result, Service, State
 from cmk.plugins.hyperv_cluster.agent_based.hyperv_cluster_disks import (
     check_hyperv_cluster_disks,
+    cluster_check_hyperv_cluster_disks,
     discover_hyperv_cluster_disks,
 )
 from cmk.plugins.hyperv_cluster.lib import parse_hyperv, Section
@@ -77,3 +78,13 @@ def test_missing_values_are_left_out() -> None:
 
 def test_vanished_disk_yields_no_result() -> None:
     assert not list(check_hyperv_cluster_disks("Cluster Disk 3", _section()))
+
+
+def test_cluster_uses_the_report_of_the_first_node() -> None:
+    results = list(
+        cluster_check_hyperv_cluster_disks(
+            "Cluster Disk 2", {"HV02": _section("Online"), "HV01": _section("Failed"), "HV03": None}
+        )
+    )
+
+    assert results[0] == Result(state=State.CRIT, summary="State: Failed")

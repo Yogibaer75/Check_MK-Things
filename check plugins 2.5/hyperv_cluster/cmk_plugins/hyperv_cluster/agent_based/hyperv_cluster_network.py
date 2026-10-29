@@ -4,6 +4,8 @@
 
 # License: GNU General Public License v2
 
+from collections.abc import Mapping
+
 from cmk.agent_based.v2 import (
     AgentSection,
     CheckPlugin,
@@ -13,7 +15,7 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
-from cmk.plugins.hyperv_cluster.lib import parse_hyperv, Section
+from cmk.plugins.hyperv_cluster.lib import merge_node_sections, parse_hyperv, Section
 
 _NETWORK_STATES = {
     "Up": State.OK,
@@ -40,6 +42,12 @@ def check_hyperv_cluster_network(item: str, section: Section) -> CheckResult:
         yield Result(state=State.OK, summary=f"Role: {role}")
 
 
+def cluster_check_hyperv_cluster_network(
+    item: str, section: Mapping[str, Section | None]
+) -> CheckResult:
+    yield from check_hyperv_cluster_network(item, merge_node_sections(section))
+
+
 agent_section_hyperv_cluster_network = AgentSection(
     name="hyperv_cluster_network",
     parse_function=parse_hyperv,
@@ -50,4 +58,5 @@ check_plugin_hyperv_cluster_network = CheckPlugin(
     service_name="Hyper-V cluster network %s",
     discovery_function=discover_hyperv_cluster_network,
     check_function=check_hyperv_cluster_network,
+    cluster_check_function=cluster_check_hyperv_cluster_network,
 )

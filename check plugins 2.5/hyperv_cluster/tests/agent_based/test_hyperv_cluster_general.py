@@ -5,6 +5,7 @@
 from cmk.agent_based.v2 import Result, Service, State
 from cmk.plugins.hyperv_cluster.agent_based.hyperv_cluster_general import (
     check_hyperv_cluster_general,
+    cluster_check_hyperv_cluster_general,
     discover_hyperv_cluster_general,
 )
 from cmk.plugins.hyperv_cluster.lib import hyperv_vm_convert as parse
@@ -48,3 +49,19 @@ def test_quorum_without_resource_and_missing_ip() -> None:
         Result(state=State.OK, summary="Name: HVCLUSTER01"),
         Result(state=State.OK, summary="Quorum: NodeMajority"),
     ]
+
+
+def test_cluster_uses_the_report_of_the_first_node() -> None:
+    other = parse([["cluster.name", "HVCLUSTER01"], ["quorum.type", "NodeMajority"]])
+
+    results = list(
+        cluster_check_hyperv_cluster_general(
+            {"HV02": other, "HV01": parse(STRING_TABLE), "HV03": None}
+        )
+    )
+
+    assert results == list(check_hyperv_cluster_general(parse(STRING_TABLE)))
+
+
+def test_cluster_without_reports_yields_no_result() -> None:
+    assert not list(cluster_check_hyperv_cluster_general({"HV01": None}))

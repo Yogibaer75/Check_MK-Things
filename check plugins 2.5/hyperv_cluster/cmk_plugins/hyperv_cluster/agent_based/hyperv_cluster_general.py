@@ -37,6 +37,14 @@ def check_hyperv_cluster_general(section: Section) -> CheckResult:
         yield Result(state=State.OK, summary=f"Quorum: {quorum_type}")
 
 
+def cluster_check_hyperv_cluster_general(section: Mapping[str, Section | None]) -> CheckResult:
+    # Every node reports the same cluster. Use the report of the first node.
+    for node in sorted(section):
+        if node_section := section[node]:
+            yield from check_hyperv_cluster_general(node_section)
+            return
+
+
 agent_section_hyperv_cluster_general = AgentSection(
     name="hyperv_cluster_general",
     parse_function=hyperv_vm_convert,
@@ -47,4 +55,5 @@ check_plugin_hyperv_cluster_general = CheckPlugin(
     service_name="Hyper-V cluster",
     discovery_function=discover_hyperv_cluster_general,
     check_function=check_hyperv_cluster_general,
+    cluster_check_function=cluster_check_hyperv_cluster_general,
 )

@@ -78,6 +78,24 @@ def parse_hyperv_io(string_table: StringTable) -> Section:
     return parsed
 
 
+def merge_node_sections(section: Mapping[str, Section | None]) -> Section:
+    """Combine the reports of the nodes of a Checkmk cluster host
+
+    Every node of the failover cluster reports the same cluster-wide data. For each
+    item, use the report of the first node, in the order of the node names.
+
+    >>> merge_node_sections(
+    ...     {"HV02": {"A": {"x": "2"}, "B": {}}, "HV01": {"A": {"x": "1"}}, "HV03": None}
+    ... )
+    {'A': {'x': '1'}, 'B': {}}
+    """
+    merged: dict[str, Mapping[str, str]] = {}
+    for node in sorted(section):
+        for item, data in (section[node] or {}).items():
+            merged.setdefault(item, data)
+    return merged
+
+
 def parse_hyperv(string_table: StringTable) -> dict[str, dict[str, Any]]:
     datatypes = {
         "vhd": "vhd.name",
