@@ -1,0 +1,25 @@
+title: Microsoft Hyper-V Cluster: VM state
+agents: windows
+catalog: os/services
+license: GPLv2
+distribution: check_mk
+description:
+ This check monitors the power state of the virtual machines of a Microsoft
+ Windows failover cluster running Hyper-V and shows the node they run on.
+
+ By default the check is {OK} if the VM is online and {WARN} if it is offline.
+ The expected power state can be configured with the rule "Hyper-V cluster VM state".
+ A failed VM is always {CRIT}, any other state is {UNKNOWN}.
+
+ The data is collected by the agent plug-in {hyperv_cluster.ps1}, which can be
+ deployed with the agent bakery rule "Hyper-V".
+
+item:
+ The name of the virtual machine.
+
+discovery:
+ One service is created for each clustered virtual machine.
+
+cluster:
+ Every cluster node reports all clustered virtual machines. In a Checkmk
+ cluster host the most favourable report is shown.

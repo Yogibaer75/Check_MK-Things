@@ -1,0 +1,20 @@
+title: Microsoft Hyper-V Cluster: Node state
+agents: windows
+catalog: os/services
+license: GPLv2
+distribution: check_mk
+description:
+ This check monitors the state of the nodes of a Microsoft Windows failover
+ cluster running Hyper-V.
+
+ The check is {OK} if the node is up, {WARN} if it is paused or joining,
+ {CRIT} if it is down and {UNKNOWN} for any other state.
+
+ The data is collected by the agent plug-in {hyperv_cluster.ps1}, which can be
+ deployed with the agent bakery rule "Hyper-V".
+
+item:
+ The name of the cluster node.
+
+discovery:
+ One service is created for each cluster node.
