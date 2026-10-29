@@ -4,9 +4,9 @@
 
 # License: GNU General Public License v2
 
-from typing import Any
+from collections.abc import Mapping
 
-from cmk.agent_based.v2 import (  # type: ignore[import]
+from cmk.agent_based.v2 import (
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -15,32 +15,37 @@ from cmk.agent_based.v2 import (  # type: ignore[import]
     Service,
     State,
 )
-from cmk.plugins.hyperv_cluster.lib import parse_hyperv
+from cmk.plugins.hyperv_cluster.lib import merge_node_sections, parse_hyperv, Section
 
-Section = dict[str, dict[str, Any]]
+_NETWORK_STATES = {
+    "Up": State.OK,
+    "Partitioned": State.WARN,
+    "Down": State.CRIT,
+    "Unavailable": State.CRIT,
+}
 
 
-def discovery_hyperv_cluster_network(section: Section) -> DiscoveryResult:
+def discover_hyperv_cluster_network(section: Section) -> DiscoveryResult:
     for network in section:
         yield Service(item=network)
 
 
 def check_hyperv_cluster_network(item: str, section: Section) -> CheckResult:
+    if (network := section.get(item)) is None:
+        return
 
-    network = section.get(item, {})
+    state = network.get("cluster.network.state") or "not reported"
+    yield Result(state=_NETWORK_STATES.get(state, State.UNKNOWN), summary=f"State: {state}")
+    if address := network.get("cluster.network.ip"):
+        yield Result(state=State.OK, summary=f"Address: {address}")
+    if role := network.get("cluster.network.role"):
+        yield Result(state=State.OK, summary=f"Role: {role}")
 
-    if not network:
-        yield Result(state=State(3), summary="Network not found in agent output")
 
-    state = 0
-    if network.get("cluster.network.state") != "Up":
-        state = 3
-    message = (
-        f"is {network.get('cluster.network.state')}, "
-        f"has address {network.get('cluster.network.ip')} and "
-        f"role {network.get('cluster.network.role')}."
-    )
-    yield Result(state=State(state), summary=message)
+def cluster_check_hyperv_cluster_network(
+    item: str, section: Mapping[str, Section | None]
+) -> CheckResult:
+    yield from check_hyperv_cluster_network(item, merge_node_sections(section))
 
 
 agent_section_hyperv_cluster_network = AgentSection(
@@ -50,8 +55,8 @@ agent_section_hyperv_cluster_network = AgentSection(
 
 check_plugin_hyperv_cluster_network = CheckPlugin(
     name="hyperv_cluster_network",
-    service_name="HyperV Network %s",
-    sections=["hyperv_cluster_network"],
-    discovery_function=discovery_hyperv_cluster_network,
+    service_name="Hyper-V cluster network %s",
+    discovery_function=discover_hyperv_cluster_network,
     check_function=check_hyperv_cluster_network,
+    cluster_check_function=cluster_check_hyperv_cluster_network,
 )

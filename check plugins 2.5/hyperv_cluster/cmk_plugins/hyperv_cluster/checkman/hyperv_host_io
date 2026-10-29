@@ -1,0 +1,24 @@
+title: Microsoft Hyper-V Cluster: CSV I/O
+agents: windows
+catalog: os/storage
+license: GPLv2
+distribution: check_mk
+description:
+ This check monitors the throughput, operations, latency and queue lengths
+ of the cluster shared volumes (CSV) as seen from the monitored node, and shows
+ whether the node owns the volume. The agent plug-in measures the counters
+ over one second.
+
+ Levels are configured with the rule "Disk I/O levels".
+
+ The check is {UNKNOWN} if the agent reports the volume without any counters.
+
+ The data is collected by the agent plug-in {hyperv_host_csv_io.ps1}, which can
+ be deployed with the agent bakery rule "Hyper-V".
+
+item:
+ The name of the cluster shared volume.
+
+discovery:
+ One service is created for each cluster shared volume the node reports.
+ The service stays the same when the volume moves to another node.

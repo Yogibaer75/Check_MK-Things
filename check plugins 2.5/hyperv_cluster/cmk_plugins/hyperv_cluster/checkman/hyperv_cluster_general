@@ -14,3 +14,8 @@ description:
 
 discovery:
  One service is created if the agent reports a cluster name.
+
+cluster:
+ Every node of the failover cluster reports the cluster, so without a Checkmk
+ cluster host the service is created on every node. In a Checkmk cluster host
+ the report of the first node, in the order of the node names, is used.

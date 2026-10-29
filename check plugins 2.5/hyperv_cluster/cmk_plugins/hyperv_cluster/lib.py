@@ -4,7 +4,7 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
-from cmk.agent_based.v2 import (  # type: ignore[import]
+from cmk.agent_based.v2 import (
     StringTable,
 )
 
@@ -39,7 +39,7 @@ def hyperv_vm_convert(string_table: StringTable) -> Mapping[str, str]:
     return parsed
 
 
-counter_translation = {
+COUNTER_TRANSLATIONS = {
     "durchschnittl. warteschlangenlänge der datenträger-lesevorgänge": "avg. disk read queue length",
     "durchschnittl. warteschlangenlänge der datenträger-schreibvorgänge": "avg. disk write queue length",
     "mittlere sek./lesevorgänge": "avg. disk sec/read",
@@ -52,25 +52,48 @@ counter_translation = {
 
 
 def parse_hyperv_io(string_table: StringTable) -> Section:
+    r"""Parse the CSV IO counters
+
+    Lines read "<CSV name>\<counter> <value>". Older versions of the agent plug-in
+    wrote "\\<node>\<CSV name>\<counter> <value>" with localized counter names.
+
+    >>> parse_hyperv_io([["Volume1\\disk", "reads/sec", "12"]])
+    {'Volume1': {'disk reads/sec': '12', 'node': ''}}
+    >>> parse_hyperv_io([["\\\\hv01\\Volume1\\lesevorgänge/s", "12,5"]])
+    {'Volume1': {'disk reads/sec': '12,5', 'node': 'hv01'}}
+    """
     parsed: dict[str, dict[str, str]] = {}
     for line in string_table:
         value = line[-1]
-        data = " ".join(line[:-1])
-        splitted_data = data.split("\\", 4)
-        if len(splitted_data) == 2:
-            lun, name = splitted_data
-            host = ""
-        elif len(splitted_data) == 5:
-            _empty, _empty2, host, lun, name = splitted_data
-        else:
-            continue
-        if name in counter_translation:
-            name = counter_translation[name]
-        if lun not in parsed:
-            parsed[lun] = {}
-        parsed[lun][name] = value
-        parsed[lun]["node"] = host
+        match " ".join(line[:-1]).split("\\", 4):
+            case [lun, name]:
+                host = ""
+            case ["", "", host, lun, name]:
+                pass
+            case _:
+                continue
+        lun_data = parsed.setdefault(lun, {})
+        lun_data[COUNTER_TRANSLATIONS.get(name, name)] = value
+        lun_data["node"] = host
     return parsed
+
+
+def merge_node_sections(section: Mapping[str, Section | None]) -> Section:
+    """Combine the reports of the nodes of a Checkmk cluster host
+
+    Every node of the failover cluster reports the same cluster-wide data. For each
+    item, use the report of the first node, in the order of the node names.
+
+    >>> merge_node_sections(
+    ...     {"HV02": {"A": {"x": "2"}, "B": {}}, "HV01": {"A": {"x": "1"}}, "HV03": None}
+    ... )
+    {'A': {'x': '1'}, 'B': {}}
+    """
+    merged: dict[str, Mapping[str, str]] = {}
+    for node in sorted(section):
+        for item, data in (section[node] or {}).items():
+            merged.setdefault(item, data)
+    return merged
 
 
 def parse_hyperv(string_table: StringTable) -> dict[str, dict[str, Any]]:
@@ -82,7 +105,6 @@ def parse_hyperv(string_table: StringTable) -> dict[str, dict[str, Any]]:
         "cluster.number_of_csv": "cluster.csv.name",
         "cluster.number_of_disks": "cluster.disk.name",
         "cluster.number_of_vms": "cluster.vm.name",
-        "cluster.number_of_roles": "cluster.role.name",
         "cluster.number_of_networks": "cluster.network.name",
     }
 

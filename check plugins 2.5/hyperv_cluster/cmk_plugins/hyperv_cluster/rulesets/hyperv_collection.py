@@ -61,7 +61,7 @@ def _valuespec_agent_config_hyperv_collection() -> Dictionary:
                                     ),
                                     MultipleChoiceElement(
                                         name="hyperv_host_csv",
-                                        title=Title("Hyper-V host CSV monitoring"),
+                                        title=Title("Hyper-V cluster shared volume I/O monitoring"),
                                     ),
                                 ),
                                 prefill=DefaultValue(["hyperv_host"]),

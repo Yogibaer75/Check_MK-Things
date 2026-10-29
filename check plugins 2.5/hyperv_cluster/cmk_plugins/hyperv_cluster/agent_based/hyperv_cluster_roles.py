@@ -4,10 +4,10 @@
 
 # License: GNU General Public License v2
 
-from collections.abc import Generator, Mapping
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Literal, TypedDict
 
-from cmk.agent_based.v2 import (  # type: ignore[import]
+from cmk.agent_based.v2 import (
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -16,111 +16,76 @@ from cmk.agent_based.v2 import (  # type: ignore[import]
     Service,
     State,
 )
-from cmk.plugins.hyperv_cluster.lib import parse_hyperv
-
-Section = dict[str, dict[str, Any]]
+from cmk.plugins.hyperv_cluster.lib import parse_hyperv, Section
 
 
-hyperv_cluster_roles_default_levels: dict[str, Any] = {
-    "default_status": "active",
-    "match_services": [],
+class RolesParams(TypedDict):
+    expected_state: Literal["active", "inactive", "ignore"]
+
+
+_DEFAULT_PARAMS: RolesParams = {"expected_state": "active"}
+
+_EXPECTED_VM_STATE = {
+    "active": "Online",
+    "inactive": "Offline",
 }
 
-states = {
-    "active": 0,
-    "inactive": 1,
-    "Online": 0,
-    "Offline": 1,
-}
+# Known cluster group states that differ from the expected one
+_UNEXPECTED_VM_STATES = {"Online", "Offline", "PartialOnline", "Pending"}
+
+_RUNNING_VM_STATES = {"Online", "PartialOnline"}
 
 
-def discovery_hyperv_cluster_roles(section: Section) -> DiscoveryResult:
-    """Discovery function"""
+def discover_hyperv_cluster_roles(section: Section) -> DiscoveryResult:
     for vm in section:
         yield Service(item=vm)
 
 
-def check_hyperv_cluster_roles(
-    item: str, params: Mapping[str, Any], section: Section
-) -> Generator[Result, None, None]:
-    """Check function"""
-    vm = section.get(item, {})
+def _vm_state(vm_state: str, expected_state: Literal["active", "inactive", "ignore"]) -> State:
+    if vm_state == "Failed":
+        return State.CRIT
+    if expected_state == "ignore" or vm_state == _EXPECTED_VM_STATE[expected_state]:
+        return State.OK
+    if vm_state in _UNEXPECTED_VM_STATES:
+        return State.WARN
+    return State.UNKNOWN
 
-    translate_state = {
-        "active": "Online",
-        "inactive": "Offline",
-    }
 
-    if not vm:
-        return
+def _check_vm(vm: Mapping[str, str], params: RolesParams) -> Sequence[Result]:
+    vm_state = vm.get("cluster.vm.state", "")
+    state = _vm_state(vm_state, params["expected_state"])
+    summary = f"Power state: {vm_state}"
+    if state is State.WARN:
+        summary += f" (expected: {_EXPECTED_VM_STATE[params['expected_state']]})"
 
-    state = 0
-    wanted_result = None
-    wanted_state = None
-    wanted_states = params.get("match_services")
-
-    if wanted_states:
-        for element in wanted_states:
-            if element.get("service_name") == item:
-                wanted_state = element.get("state")
-                wanted_result = translate_state.get(wanted_state)
-                break
-
-    vm_state = vm.get("cluster.vm.state")
-    if wanted_result:
-        if wanted_result == vm_state:
-            message = f"power state: {vm.get("cluster.vm.state")}"
-            yield Result(state=State(state), summary=message)
-        else:
-            if not wanted_state:
-                wanted_state = "Unknown"
-            state = 1
-            message = f"power state: {vm.get("cluster.vm.state")} - wanted state: {wanted_state}"
-            yield Result(state=State(state), summary=message)
+    if not (owner := vm.get("cluster.vm.owner")):
+        location = "Not assigned to a node"
+    elif vm_state in _RUNNING_VM_STATES:
+        location = f"Running on: {owner}"
     else:
-        if params.get("default_status") == "ignore":
-            state = 0
-        else:
-            state = states.get(vm.get("cluster.vm.state") or "Unknown", 3)
-        message = f"power state: {vm.get("cluster.vm.state")}"
-        yield Result(state=State(state), summary=message)
+        location = f"Defined on: {owner}"
 
-    if vm.get("cluster.vm.owner"):
-        if vm.get("cluster.vm.state") == "Online":
-            message = f"running on {vm.get("cluster.vm.owner")}"
-            yield Result(state=State(0), summary=message)
-        else:
-            message = f"defined on {vm.get("cluster.vm.owner")}"
-            yield Result(state=State(0), summary=message)
-    else:
-        message = "not defined on any node"
-        yield Result(state=State(0), summary=message)
+    return [Result(state=state, summary=summary), Result(state=State.OK, summary=location)]
+
+
+def check_hyperv_cluster_roles(item: str, params: RolesParams, section: Section) -> CheckResult:
+    if (vm := section.get(item)) is not None:
+        yield from _check_vm(vm, params)
 
 
 def cluster_check_hyperv_cluster_roles(
-    item: str, params: Mapping[str, Any], section: Mapping[str, Section | None]
+    item: str, params: RolesParams, section: Mapping[str, Section | None]
 ) -> CheckResult:
-    """Cluster check function"""
-    found : list[tuple[str, Result, Result]] = []
-    for node, node_section in section.items():
-        if not node_section:
-            continue
-        results = list(check_hyperv_cluster_roles(item, params, node_section))
-        if results:
-            found.append((node, results[0], results[1]))
-
-    if not found:
-        yield Result(state=State(3), summary="VM not found on any node")
-        return
-
-    best_state = State.best(*(result.state for _node, result, _result2 in found))
-    best_running_on, best_result = [(x.summary, r) for _n, r, x in found if r.state == best_state][
-        -1
+    # Every cluster node reports all clustered VMs. Use the most favourable report.
+    reports = [
+        _check_vm(vm, params)
+        for node_section in section.values()
+        if node_section is not None and (vm := node_section.get(item)) is not None
     ]
-
-    yield best_result
-    if best_running_on and best_state != State.CRIT:
-        yield Result(state=best_state, summary=f"{best_running_on}")
+    if not reports:
+        return
+    worst_states = [State.worst(*(result.state for result in results)) for results in reports]
+    yield from reports[worst_states.index(State.best(*worst_states))]
 
 
 agent_section_hyperv_cluster_roles = AgentSection(
@@ -130,11 +95,10 @@ agent_section_hyperv_cluster_roles = AgentSection(
 
 check_plugin_hyperv_cluster_roles = CheckPlugin(
     name="hyperv_cluster_roles",
-    service_name="HyperV VM %s",
-    sections=["hyperv_cluster_roles"],
-    discovery_function=discovery_hyperv_cluster_roles,
+    service_name="Hyper-V cluster VM %s",
+    discovery_function=discover_hyperv_cluster_roles,
     check_function=check_hyperv_cluster_roles,
     cluster_check_function=cluster_check_hyperv_cluster_roles,
-    check_default_parameters=hyperv_cluster_roles_default_levels,
     check_ruleset_name="hyperv_cluster_roles",
+    check_default_parameters=_DEFAULT_PARAMS,
 )
