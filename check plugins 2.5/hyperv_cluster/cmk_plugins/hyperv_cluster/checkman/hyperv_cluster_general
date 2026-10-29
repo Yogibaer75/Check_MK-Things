@@ -1,0 +1,16 @@
+title: Microsoft Hyper-V Cluster: General information
+agents: windows
+catalog: os/services
+license: GPLv2
+distribution: check_mk
+description:
+ This check shows the name, the IP address and the quorum configuration of a
+ Microsoft Windows failover cluster running Hyper-V.
+
+ The check is always {OK}.
+
+ The data is collected by the agent plug-in {hyperv_cluster.ps1}, which can be
+ deployed with the agent bakery rule "Hyper-V".
+
+discovery:
+ One service is created if the agent reports a cluster name.

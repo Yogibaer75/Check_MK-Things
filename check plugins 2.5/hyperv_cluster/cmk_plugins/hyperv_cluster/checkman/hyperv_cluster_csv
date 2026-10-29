@@ -1,0 +1,19 @@
+title: Microsoft Hyper-V Cluster: Cluster shared volume usage
+agents: windows
+catalog: os/storage
+license: GPLv2
+distribution: check_mk
+description:
+ This check monitors the used space of the cluster shared volumes (CSV) of a
+ Microsoft Windows failover cluster running Hyper-V.
+
+ Levels and trends are configured with the rule "Filesystems (used space and growth)".
+
+ The data is collected by the agent plug-in {hyperv_cluster.ps1}, which can be
+ deployed with the agent bakery rule "Hyper-V".
+
+item:
+ The name of the cluster shared volume.
+
+discovery:
+ One service is created for each cluster shared volume.
