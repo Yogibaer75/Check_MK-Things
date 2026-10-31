@@ -1,0 +1,30 @@
+title: Microsoft Hyper-V VM: Network adapter
+agents: windows
+catalog: os/networking
+license: GPLv2
+distribution: check_mk
+description:
+ This check monitors a network adapter of a virtual machine running on
+ Microsoft Hyper-V. It shows the name, the connection state, whether the MAC
+ address is dynamic, the virtual switch and the VLAN mode and ID of the adapter.
+
+ By default the check is {WARN} if the adapter is not connected. The rule
+ "Hyper-V VM network adapter" configures the expected connection state, the
+ expected MAC configuration and the expected virtual switch, and the state if
+ they do not match. By default a static MAC address or any virtual switch is
+ {OK}.
+
+ The check is {WARN} if the VLAN mode or ID is missing and {UNKNOWN} if
+ the connection state, the MAC configuration or the virtual switch is missing
+ while it is checked.
+
+ The data is collected by the agent plug-in {hyperv_host.ps1}, which can be
+ deployed with the agent bakery rule "Hyper-V". The plug-in sends the data
+ as piggyback data to a host with the name of the VM.
+
+item:
+ The GUID of the network adapter, which is the last part of its ID.
+
+discovery:
+ One service is created for each network adapter that reports a connection
+ state.

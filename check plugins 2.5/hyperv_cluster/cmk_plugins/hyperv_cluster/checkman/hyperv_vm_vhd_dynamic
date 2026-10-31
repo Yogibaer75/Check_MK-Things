@@ -1,0 +1,26 @@
+title: Microsoft Hyper-V VM: Dynamic virtual disk
+agents: windows
+catalog: os/storage
+license: GPLv2
+distribution: check_mk
+description:
+ This check monitors the size of the image file of a dynamic or differencing
+ virtual disk of a virtual machine running on Microsoft Hyper-V. It shows the
+ file name, the file size, the maximum size of the disk and the type.
+
+ Levels for the file size are configured with the rule "Hyper-V VM VHD",
+ as an absolute value or relative to the maximum size of the disk. There are
+ no levels by default.
+
+ Fixed disks are monitored by the check {hyperv_vm_vhd_fixed}.
+
+ The data is collected by the agent plug-in {hyperv_host.ps1}, which can be
+ deployed with the agent bakery rule "Hyper-V". The plug-in sends the data
+ as piggyback data to a host with the name of the VM.
+
+item:
+ The controller type, the controller number and the location of the disk,
+ for example {SCSI 0 1}.
+
+discovery:
+ One service is created for each dynamic or differencing virtual disk.

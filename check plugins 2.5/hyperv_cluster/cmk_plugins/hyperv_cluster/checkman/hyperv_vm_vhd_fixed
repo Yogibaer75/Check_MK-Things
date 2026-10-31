@@ -1,0 +1,22 @@
+title: Microsoft Hyper-V VM: Fixed virtual disk
+agents: windows
+catalog: os/storage
+license: GPLv2
+distribution: check_mk
+description:
+ This check shows the file name, the size and the type of a fixed virtual
+ disk of a virtual machine running on Microsoft Hyper-V.
+
+ The check is always {OK}. Dynamic and differencing disks are monitored by
+ the check {hyperv_vm_vhd_dynamic}.
+
+ The data is collected by the agent plug-in {hyperv_host.ps1}, which can be
+ deployed with the agent bakery rule "Hyper-V". The plug-in sends the data
+ as piggyback data to a host with the name of the VM.
+
+item:
+ The controller type, the controller number and the location of the disk,
+ for example {SCSI 0 1}.
+
+discovery:
+ One service is created for each fixed virtual disk.

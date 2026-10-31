@@ -1,0 +1,23 @@
+title: Microsoft Hyper-V VM: RAM
+agents: windows
+catalog: os/virtual
+license: GPLv2
+distribution: check_mk
+description:
+ This check monitors the RAM assigned to a virtual machine running on
+ Microsoft Hyper-V and shows the memory demand of the guest. For VMs with
+ dynamic memory it also shows the startup, minimum and maximum RAM.
+
+ Levels are configured with the rule "Hyper-V VM RAM". The upper levels are
+ a percentage of the configured maximum RAM, the lower levels a percentage
+ of the configured minimum RAM. Both have no levels by default.
+
+ The same rule can make the check {WARN} if the demand is higher than the
+ assigned RAM. The demand is only shown if the guest reports it.
+
+ The data is collected by the agent plug-in {hyperv_host.ps1}, which can be
+ deployed with the agent bakery rule "Hyper-V". The plug-in sends the data
+ as piggyback data to a host with the name of the VM.
+
+discovery:
+ One service is created on the piggyback host of each VM.

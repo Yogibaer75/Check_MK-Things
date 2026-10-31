@@ -1,0 +1,28 @@
+title: Microsoft Hyper-V VM: Summary
+agents: windows
+catalog: os/virtual
+license: GPLv2
+distribution: check_mk
+description:
+ This check shows the name, the power state, the Hyper-V host and the
+ generation of a virtual machine running on Microsoft Hyper-V.
+
+ The monitoring state of each power state is configured with the rule
+ "Hyper-V VM summary". By default the check is {OK} if the VM is running
+ or saved, {WARN} if it is paused or starting and {CRIT} if it is off.
+ Any other power state is {UNKNOWN}.
+
+ By default the check is {WARN} if the VM is not a generation 2 VM. The
+ expected generation and the state are configured in the same rule.
+
+ The check is {WARN} if the power state, the host or the generation is
+ missing in the agent output.
+
+ The VM gets the host label {cmk/hyperv_object:vm}.
+
+ The data is collected by the agent plug-in {hyperv_host.ps1}, which can be
+ deployed with the agent bakery rule "Hyper-V". The plug-in sends the data
+ as piggyback data to a host with the name of the VM.
+
+discovery:
+ One service is created on the piggyback host of each VM.

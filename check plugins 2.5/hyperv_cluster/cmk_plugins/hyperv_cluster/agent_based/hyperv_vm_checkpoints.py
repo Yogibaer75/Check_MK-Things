@@ -5,6 +5,7 @@
 
 import time
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Final
 
 from cmk.agent_based.v2 import (  # type: ignore[import]
@@ -81,8 +82,12 @@ def parse_hyperv_vm_checkpoints_json(string_table: StringTable) -> Section:
             checkpoint_info["name"] = str(values["checkpoint.name"])
         if "checkpoint.path" in values:
             checkpoint_info["path"] = str(values["checkpoint.path"])
-        if "checkpoint.created" in values:
-            checkpoint_info["created"] = int(values["checkpoint.created"])
+        if (created := values.get("checkpoint.created")) is not None:
+            # Older agents sent a Unix timestamp, newer ones an ISO 8601 string
+            try:
+                checkpoint_info["created"] = int(created)
+            except ValueError:
+                checkpoint_info["created"] = str(created)
         if "checkpoint.parent" in values:
             checkpoint_info["parent"] = str(values["checkpoint.parent"])
 
@@ -122,6 +127,15 @@ def _parse_checkpoint_ages(checkpoints: Sequence[CheckpointInfo]) -> list[tuple[
             # If the created field is already an integer, assume it's a timestamp
             age_seconds = current_time - checkpoint["created"]
             checkpoint_data.append((str(checkpoint["name"]), age_seconds))
+            continue
+
+        # ISO 8601 with fractional seconds and UTC offset: 2025-07-18T13:44:18.1749500+02:00
+        try:
+            checkpoint_timestamp = datetime.fromisoformat(checkpoint["created"].strip()).timestamp()
+        except ValueError:
+            pass
+        else:
+            checkpoint_data.append((str(checkpoint["name"]), current_time - checkpoint_timestamp))
             continue
 
         if "PM" in checkpoint["created"] or "AM" in checkpoint["created"]:

@@ -1,0 +1,23 @@
+title: Microsoft Hyper-V VM: Integration services
+agents: windows
+catalog: os/virtual
+license: GPLv2
+distribution: check_mk
+description:
+ This check monitors the integration services of a virtual machine running on
+ Microsoft Hyper-V. It shows whether each service is enabled.
+
+ By default the check is {WARN} if a service is not active. Only the service
+ "Guest Service Interface" is expected to be inactive, and it is always {OK}.
+ The expected status and the state are configured with the rule
+ "Hyper-V VM integration services", for all services and for single services.
+ The VSS service is matched by the name "VSS (Volume Shadow Copy Service)".
+ A service with a status other than active or inactive is {UNKNOWN}.
+
+ The data is collected by the agent plug-in {hyperv_host.ps1}, which can be
+ deployed with the agent bakery rule "Hyper-V". The plug-in sends the data
+ as piggyback data to a host with the name of the VM.
+
+discovery:
+ One service is created on the piggyback host of each VM that reports
+ integration services.

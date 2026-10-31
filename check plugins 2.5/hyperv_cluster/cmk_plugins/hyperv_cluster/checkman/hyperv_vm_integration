@@ -1,0 +1,20 @@
+title: Microsoft Hyper-V VM: Integration services (legacy)
+agents: windows
+catalog: os/virtual
+license: GPLv2
+distribution: check_mk
+description:
+ This check monitors the integration services of a virtual machine running on
+ Microsoft Hyper-V. It processes the output of older versions of the agent
+ plug-in. The current agent plug-in is processed by the check
+ {hyperv_vm_integration_json}.
+
+ By default the check is {WARN} if a service is not active. Only the service
+ "Guest Service Interface" is expected to be inactive, and it is always {OK}.
+ The expected status and the state are configured with the rule
+ "Hyper-V VM integration services", for all services and for single services.
+ A service with a status other than active or inactive is {UNKNOWN}.
+
+discovery:
+ One service is created on the piggyback host of each VM that reports
+ integration services.

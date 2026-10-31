@@ -1,0 +1,18 @@
+title: Microsoft Hyper-V: Host summary
+agents: windows
+catalog: os/virtual
+license: GPLv2
+distribution: check_mk
+description:
+ This check shows the name of a Microsoft Hyper-V host and the number of
+ virtual machines registered on it.
+
+ The check is always {OK}.
+
+ The host gets the host label {cmk/hyperv_object:server}.
+
+ The data is collected by the agent plug-in {hyperv_host.ps1}, which can be
+ deployed with the agent bakery rule "Hyper-V".
+
+discovery:
+ One service is created if the agent reports the Hyper-V host.

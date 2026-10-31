@@ -1,0 +1,25 @@
+title: Microsoft Hyper-V VM: Checkpoints
+agents: windows
+catalog: os/virtual
+license: GPLv2
+distribution: check_mk
+description:
+ This check monitors the checkpoints (snapshots) of a virtual machine running
+ on Microsoft Hyper-V. It shows the number of checkpoints and the age of the
+ latest and the oldest checkpoint.
+
+ By default the check is {WARN} if the oldest checkpoint is older than 10 days
+ and {CRIT} if it is older than 20 days. The age of the latest checkpoint has no
+ levels by default. Both levels are configured with the rule
+ "Hyper-V VM checkpoints".
+
+ The check is {OK} if the VM has no checkpoints and {UNKNOWN} if no creation
+ date of a checkpoint can be read.
+
+ The data is collected by the agent plug-in {hyperv_host.ps1}, which can be
+ deployed with the agent bakery rule "Hyper-V". The plug-in sends the data
+ as piggyback data to a host with the name of the VM.
+
+discovery:
+ One service is created on the piggyback host of each VM, also if the VM has
+ no checkpoints.
