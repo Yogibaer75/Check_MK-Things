@@ -10,6 +10,9 @@ description:
  The check is {OK} if the node is up, {WARN} if it is paused or joining,
  {CRIT} if it is down and {UNKNOWN} for any other state.
 
+ On Windows Server 2016 and later, the check also shows the status information
+ of the node: an isolated node is {WARN}, a quarantined node is {CRIT}.
+
  The data is collected by the agent plug-in {hyperv_cluster.ps1}, which can be
  deployed with the agent bakery rule "Hyper-V".
 
@@ -18,3 +21,9 @@ item:
 
 discovery:
  One service is created for each cluster node.
+
+cluster:
+ Every node of the failover cluster reports all cluster nodes, so without a
+ Checkmk cluster host the services are created on every node. In a Checkmk
+ cluster host the report of the first node, in the order of the node names,
+ is used.

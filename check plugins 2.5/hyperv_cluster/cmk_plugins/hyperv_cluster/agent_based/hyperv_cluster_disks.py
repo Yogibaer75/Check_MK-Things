@@ -4,7 +4,9 @@
 
 # License: GNU General Public License v2
 
-from cmk.agent_based.v2 import (  # type: ignore[import]
+from collections.abc import Mapping
+
+from cmk.agent_based.v2 import (
     AgentSection,
     CheckPlugin,
     CheckResult,
@@ -13,31 +15,40 @@ from cmk.agent_based.v2 import (  # type: ignore[import]
     Service,
     State,
 )
-from cmk.plugins.hyperv_cluster.lib import parse_hyperv
+from cmk.plugins.hyperv_cluster.lib import merge_node_sections, parse_hyperv, Section
 
-Section = dict[str, dict[str, str]]
+_DISK_STATES = {
+    "Online": State.OK,
+    "Initializing": State.WARN,
+    "Pending": State.WARN,
+    "OnlinePending": State.WARN,
+    "OfflinePending": State.WARN,
+    "Offline": State.CRIT,
+    "Failed": State.CRIT,
+}
 
-def discovery_hyperv_cluster_disks(section: Section) -> DiscoveryResult:
+
+def discover_hyperv_cluster_disks(section: Section) -> DiscoveryResult:
     for disk in section:
         yield Service(item=disk)
 
 
 def check_hyperv_cluster_disks(item: str, section: Section) -> CheckResult:
-
-    disk = section.get(item, {})
-
-    if not disk:
-        yield Result(state=State(3), summary="Disk not found in agent output")
+    if (disk := section.get(item)) is None:
         return
 
-    state = 0
-    if disk.get("cluster.disk.state") != "Online":
-        state = 3
-    message = (
-        f"is {disk.get('cluster.disk.state')}, with owner {disk.get('cluster.disk.owner_node')}"
-        f" and group {disk.get('cluster.disk.owner_group')}."
-    )
-    yield Result(state=State(state), summary=message)
+    state = disk.get("cluster.disk.state") or "not reported"
+    yield Result(state=_DISK_STATES.get(state, State.UNKNOWN), summary=f"State: {state}")
+    if owner := disk.get("cluster.disk.owner_node"):
+        yield Result(state=State.OK, summary=f"Owner: {owner}")
+    if group := disk.get("cluster.disk.owner_group"):
+        yield Result(state=State.OK, summary=f"Group: {group}")
+
+
+def cluster_check_hyperv_cluster_disks(
+    item: str, section: Mapping[str, Section | None]
+) -> CheckResult:
+    yield from check_hyperv_cluster_disks(item, merge_node_sections(section))
 
 
 agent_section_hyperv_cluster_disks = AgentSection(
@@ -47,8 +58,8 @@ agent_section_hyperv_cluster_disks = AgentSection(
 
 check_plugin_hyperv_cluster_disks = CheckPlugin(
     name="hyperv_cluster_disks",
-    service_name="HyperV Disk %s",
-    sections=["hyperv_cluster_disks"],
-    discovery_function=discovery_hyperv_cluster_disks,
+    service_name="Hyper-V cluster disk %s",
+    discovery_function=discover_hyperv_cluster_disks,
     check_function=check_hyperv_cluster_disks,
+    cluster_check_function=cluster_check_hyperv_cluster_disks,
 )
