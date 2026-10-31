@@ -37,3 +37,6 @@
 * 3.4.7 - temp version
 * 3.4.8 - replaced hyperv_host.ps1 with new version and modified checks to support old and new one
 * 3.4.9 - fixed date parsing for special formats
+* 3.4.10 - mypy fixes
+* 3.4.11 - mainlining migration
+* 3.4.12 - added HW/SW inventory data
