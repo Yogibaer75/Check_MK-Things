@@ -46,13 +46,13 @@ def discovery_hyperv_vm_ram(section: Section) -> DiscoveryResult:
 
 def parse_hyperv_vm_ram(string_table: StringTable) -> Section:
     raw = hyperv_vm_convert(string_table)
-
+    print(raw)
     return Section(
         assigned_ram=int(raw["config.hardware.AssignedRAM"]),
-        ram_demand=int(raw.get("config.hardware.RAMDemand", "0")),
-        start_ram=int(raw.get("config.hardware.StartRAM", "0")),
-        max_ram=int(raw.get("config.hardware.MaxRAM", "0")),
-        min_ram=int(raw.get("config.hardware.MinRAM", "0")),
+        ram_demand=int(0 if (v := raw.get("config.hardware.RAMDemand")) is None else v),
+        start_ram=int(0 if (v := raw.get("config.hardware.StartRAM")) is None else v),
+        max_ram=int(0 if (v := raw.get("config.hardware.MaxRAM")) is None else v),
+        min_ram=int(0 if (v := raw.get("config.hardware.MinRAM")) is None else v),
         is_dynamic=raw.get("config.hardware.RAMType") == "dynamic",
     )
 
@@ -62,12 +62,13 @@ def parse_hyperv_vm_ram_json(string_table: StringTable) -> Section:
 
     return Section(
         assigned_ram=int(raw["config.hardware.AssignedRAM"]),
-        ram_demand=int(raw.get("config.hardware.RAMDemand", "0")),
-        start_ram=int(raw.get("config.hardware.StartRAM", "0")),
-        max_ram=int(raw.get("config.hardware.MaxRAM", "0")),
-        min_ram=int(raw.get("config.hardware.MinRAM", "0")),
+        ram_demand=int(0 if (v := raw.get("config.hardware.RAMDemand")) is None else v),
+        start_ram=int(0 if (v := raw.get("config.hardware.StartRAM")) is None else v),
+        max_ram=int(0 if (v := raw.get("config.hardware.MaxRAM")) is None else v),
+        min_ram=int(0 if (v := raw.get("config.hardware.MinRAM")) is None else v),
         is_dynamic=raw.get("config.hardware.RAMType") == True,
     )
+
 
 def check_hyperv_vm_ram(params: CheckParameters, section: Section) -> CheckResult:
     metric_name_prefix = "hyperv_ram_metrics_"

@@ -40,3 +40,4 @@
 * 3.4.10 - mypy fixes
 * 3.4.11 - mainlining migration
 * 3.4.12 - added HW/SW inventory data
+* 3.4.13 - ram parsing problem
