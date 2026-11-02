@@ -1,0 +1,19 @@
+title: Nutanix Prism: Cluster Health (API v4)
+agents: nutanix
+catalog: virtual/nutanix
+license: GPLv2
+distribution: check_mk
+description:
+ This check monitors the health score (0-100) of the cluster as calculated by
+ Nutanix from the results of its health checks. By default the service goes
+ WARN below 70 and CRIT below 50, the levels can be configured with the rule
+ "Nutanix Cluster Health".
+
+ The operation mode of the cluster is checked as well: NORMAL is OK,
+ READ_ONLY is CRIT and every other mode (e.g. STAND_ALONE, OVERRIDE) is WARN.
+ The service is CRIT if the cluster reports that it is not available.
+
+ This check requires the Nutanix Prism special agent for API v4 (agent_prism_v4).
+
+discovery:
+ One service is created for the cluster.

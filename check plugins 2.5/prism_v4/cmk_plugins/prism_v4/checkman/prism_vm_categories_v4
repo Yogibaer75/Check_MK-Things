@@ -1,0 +1,22 @@
+title: Nutanix Prism: VM Categories (API v4)
+agents: nutanix
+catalog: virtual/nutanix
+license: GPLv2
+distribution: check_mk
+description:
+ This check shows the categories (key: value) assigned to a Nutanix VM.
+
+ With the rule "Nutanix VM Categories" a list of expected categories can be
+ configured. If an expected category is missing the service goes to WARN,
+ categories which are assigned but not expected are OK by default. Both
+ states can be configured. An expected category without value accepts any
+ value of that category.
+
+ Every assigned category is also set as host label "nutanix/category/<name>"
+ with the category value as label value (several values are sorted and joined
+ by ","), e.g. "nutanix/category/Veeam:Bronze".
+
+ This check requires the Nutanix Prism special agent for API v4 (agent_prism_v4).
+
+discovery:
+ One service is created for every VM, also if no categories are assigned.

@@ -1,0 +1,19 @@
+title: Nutanix Prism: Cluster Storage (API v4)
+agents: nutanix
+catalog: virtual/nutanix
+license: GPLv2
+distribution: check_mk
+description:
+ This check monitors the physical storage capacity and usage of the whole
+ Nutanix cluster (all disks of all nodes). The usage includes the replicas
+ created by the redundancy factor. The levels can be configured with the
+ rule "Filesystems (used space and growth)". The logical usage is shown as
+ additional information.
+
+ This check requires the Nutanix Prism special agent for API v4 (agent_prism_v4).
+
+item:
+ Always "Cluster".
+
+discovery:
+ One service is created for the cluster.

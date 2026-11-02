@@ -14,3 +14,6 @@ Categories from sebastian.haeger@sva.de
 - 1.1.11 - modified ruleset for vm state
 - 1.1.12 - single VM state check with ignored added
 - 1.1.13 - extension with some new checks / HW/SW inventory / more performance data
+- 1.1.15 - logwatch feature for special agent - from sebastian.haeger@sva.de
+- 1.1.16 - semi automatic API version detection
+- 1.1.17 - host network - link speed can be configured with interface rule

@@ -1,0 +1,21 @@
+title: Nutanix Prism: Host Hardware Disks (API v4)
+agents: nutanix
+catalog: virtual/nutanix
+license: GPLv2
+distribution: check_mk
+description:
+ This check monitors the status of the hardware disk devices in a Nutanix host.
+ The disk mount state can be configured through wato.
+
+ The disk is CRIT if it is offline (WARN during a planned outage) and WARN if
+ Nutanix reports a status other than NORMAL or flags the disk as unhealthy,
+ suspected unhealthy, with errors found in the log, under diagnosis or marked
+ for removal. These states are fixed.
+
+ This check requires the Nutanix Prism special agent for API v4 (agent_prism_v4).
+
+item:
+ The ID of the disk.
+
+discovery:
+ One service is created for each disk.

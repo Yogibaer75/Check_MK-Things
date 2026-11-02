@@ -1,0 +1,13 @@
+title: Nutanix Prism: Cluster CPU (API v4)
+agents: nutanix
+catalog: virtual/nutanix
+license: GPLv2
+distribution: check_mk
+description:
+ This check shows the actual CPU usage for the Nutanix cluster.
+ The levels can be configured through the coresponding rule.
+
+ This check requires the Nutanix Prism special agent for API v4 (agent_prism_v4).
+
+discovery:
+ One service is created.

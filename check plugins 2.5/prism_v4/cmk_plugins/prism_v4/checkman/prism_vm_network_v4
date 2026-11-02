@@ -1,0 +1,16 @@
+title: Nutanix Prism: VM Network (API v4)
+agents: nutanix
+catalog: virtual/nutanix
+license: GPLv2
+distribution: check_mk
+description:
+ This check shows the network throughput (in/out) and the dropped packets
+ of a Nutanix VM as measured by the hypervisor. The values are calculated
+ from the counters of the last sampling interval (about 30 seconds).
+
+ The check is always OK, it is meant for graphing the network usage.
+
+ This check requires the Nutanix Prism special agent for API v4 (agent_prism_v4).
+
+discovery:
+ One service is created for every VM.

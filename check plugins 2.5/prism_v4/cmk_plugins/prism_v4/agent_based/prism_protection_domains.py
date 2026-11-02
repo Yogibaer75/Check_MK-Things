@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+# Copyright (C) 2023 Checkmk GmbH - License: GNU General Public License v2
+# This file is part of Checkmk (https://checkmk.com). It is subject to the terms and
+# conditions defined in the file COPYING, which is part of this source code package.
+
+import time
+from collections.abc import Mapping
+from typing import Any
+
+from cmk.agent_based.v2 import (
+    AgentSection,
+    CheckPlugin,
+    CheckResult,
+    DiscoveryResult,
+    Metric,
+    Result,
+    Service,
+    State,
+    StringTable,
+    render,
+)
+from cmk.plugins.prism_v4.lib_v4 import load_json_v4
+
+Section = Mapping[str, Mapping[str, Any]]
+
+
+def parse_prism_protection_domains_v4(string_table: StringTable) -> Section:
+    parsed: dict[str, dict[str, Any]] = {}
+    data = load_json_v4(string_table)
+    for element in data.get("entities", {}):
+        parsed.setdefault(element.get("name", "unknown"), element)
+    return parsed
+
+
+agent_section_prism_protection_domains_v4 = AgentSection(
+    name="prism_protection_domains_v4",
+    parse_function=parse_prism_protection_domains_v4,
+)
+
+
+def discovery_prism_protection_domains_v4(section: Section) -> DiscoveryResult:
+    for item in section:
+        yield Service(item=item)
+
+
+def check_prism_protection_domains_v4(
+    item: str, params: Mapping[str, Any], section: Section
+) -> CheckResult:
+    data = section.get(item)
+    if not data:
+        return
+
+    mtr = data.get("metro_avail", None)
+
+    _SYNC_STATES = {
+        "Enabled": 0,
+        "Disabled": 2,
+        "Synchronizing": 1,
+    }
+
+    if mtr:
+        sync_state = mtr.get("status", "Unknown")
+        wanted_state = params.get("sync_state", "Enabled")
+        summary = (
+            f"Type: Metro Availability, "
+            f"Role: {mtr.get('role')}, "
+            f"Container: {mtr.get('container')}, "
+            f"RemoteSite: {mtr.get('remote_site')}, "
+        )
+        state = 0
+        if sync_state != wanted_state:
+            state = max(_SYNC_STATES.get(sync_state, 3), _SYNC_STATES.get(wanted_state, 3))
+            summary += f"Status: {sync_state} not {wanted_state}(!)"
+        else:
+            summary += f"Status: {sync_state}"
+        yield Result(state=State(state), summary=summary)
+    else:
+        date = data.get("next_snapshot_time_usecs", None)
+        if not date:
+            date = "N/A"
+        else:
+            date = time.strftime("%a %d-%m-%Y %H:%M:%S", time.localtime(float(date)))
+
+        remotes = data.get("remote_site_names", [])
+        if not remotes:
+            remote = "no remote site defined"
+        else:
+            remote = ", ".join(remotes)
+
+        usage_stats = data.get("usage_stats") or {}
+        stats = data.get("stats") or {}
+        vms = data.get("vms") or []
+
+        exclusive_raw = usage_stats.get("dr.exclusive_snapshot_usage_bytes")
+        exclusivesnapshot = int(exclusive_raw) if exclusive_raw is not None else 0
+        yield Metric("pd_exclusivesnapshot", exclusivesnapshot)
+
+        # API reports in kBps; emit B/s so the graph's UNIT_BYTES_PER_SECOND
+        # auto-scales sanely (kB/s, MB/s, ...).
+        if (bandwidthrx_raw := stats.get("replication_received_bandwidth_kBps")) is not None:
+            yield Metric("pd_bandwidth_rx", float(bandwidthrx_raw) * 1000)
+
+        if (bandwidthtx_raw := stats.get("replication_transmitted_bandwidth_kBps")) is not None:
+            yield Metric("pd_bandwidth_tx", float(bandwidthtx_raw) * 1000)
+
+        summary = (
+            f"Type: Async DR, "
+            f"Exclusive Snapshot Usage: {render.bytes(exclusivesnapshot)}, "
+            f"Next Snapshot scheduled at: {date}, "
+            f"Total entities: {len(vms)}, "
+            f"Remote Site: {remote}"
+        )
+
+        yield Result(state=State.OK, summary=summary)
+
+
+check_plugin_prism_protection_domains_v4 = CheckPlugin(
+    name="prism_protection_domains_v4",
+    service_name="NTNX Data Protection %s",
+    sections=["prism_protection_domains_v4"],
+    check_default_parameters={},
+    discovery_function=discovery_prism_protection_domains_v4,
+    check_function=check_prism_protection_domains_v4,
+    check_ruleset_name="prism_protection_domains",
+)

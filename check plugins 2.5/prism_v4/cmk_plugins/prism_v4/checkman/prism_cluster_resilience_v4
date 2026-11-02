@@ -1,0 +1,19 @@
+title: Nutanix Prism: Cluster Resilience (API v4)
+agents: nutanix
+catalog: virtual/nutanix
+license: GPLv2
+distribution: check_mk
+description:
+ This check compares the current fault tolerance of the cluster (number of
+ node or disk failures the cluster can survive) with the desired fault
+ tolerance configured in the cluster. The service goes CRIT if the current
+ fault tolerance is lower, e.g. during a rebuild after a node or disk failure.
+
+ The state and an additional minimum fault tolerance can be configured with
+ the rule "Nutanix Cluster Resilience". The redundancy factor and the domain
+ awareness level are shown as additional information.
+
+ This check requires the Nutanix Prism special agent for API v4 (agent_prism_v4).
+
+discovery:
+ One service is created for the cluster.

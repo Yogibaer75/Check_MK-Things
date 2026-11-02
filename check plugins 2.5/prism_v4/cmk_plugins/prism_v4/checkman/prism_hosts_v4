@@ -1,0 +1,20 @@
+title: Nutanix Prism: Hosts (API v4)
+agents: nutanix
+catalog: virtual/nutanix
+license: GPLv2
+distribution: check_mk
+description:
+ This check monitors the status of the virtualization hosts in a Nutanix cluster.
+ The desired host state can be configured through wato.
+
+ The hypervisor state (WARN if not ACROPOLIS_NORMAL, e.g. maintenance or HA
+ failover), the node maintenance state and the maintenance mode of the CVM
+ are checked as well.
+
+ This check requires the Nutanix Prism special agent for API v4 (agent_prism_v4).
+
+item:
+ The name of the host.
+
+discovery:
+ One service is created for each host.

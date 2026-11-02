@@ -1,0 +1,18 @@
+title: Nutanix Prism: VM Status (API v4)
+agents: nutanix
+catalog: virtual/nutanix
+license: GPLv2
+distribution: check_mk
+description:
+ This check shows the actual status of the VM.
+ The desired state of the VM can be configured thrue the coresponding rule.
+
+ If the VM is not in the wanted state, the state of the service depends on
+ the power state of the VM. The default mapping (e.g. OFF is WARN, UNDETERMINED
+ is UNKNOWN) can be changed per power state with the rule "Nutanix single VM
+ State", as well as the state for power states not known to the check.
+
+ This check requires the Nutanix Prism special agent for API v4 (agent_prism_v4).
+
+discovery:
+ One service is created.
